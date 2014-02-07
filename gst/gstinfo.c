@@ -90,6 +90,9 @@
 #include "gst_private.h"
 #include "gstinfo.h"
 
+#undef gst_debug_remove_log_function
+#undef gst_debug_add_log_function
+
 #ifndef GST_DISABLE_GST_DEBUG
 
 #ifdef HAVE_DLFCN_H
@@ -99,6 +102,8 @@
 #  include <printf.h>
 #endif
 #include <stdio.h>              /* fprintf */
+#include <glib/gstdio.h>
+#include <errno.h>
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>           /* getpid on UNIX */
 #endif
@@ -115,7 +120,7 @@
 #include "gstutils.h"
 #include "gstquark.h"
 #include "gstsegment.h"
-#ifdef HAVE_VALGRIND_H
+#ifdef HAVE_VALGRIND_VALGRIND_H
 #  include <valgrind/valgrind.h>
 #endif
 #include <glib/gprintf.h>       /* g_sprintf */
@@ -261,8 +266,10 @@ static GSList *__log_functions = NULL;
 #define PRETTY_TAGS_DEFAULT  TRUE
 static gboolean pretty_tags = PRETTY_TAGS_DEFAULT;
 
-static gint __default_level;
-static gint __use_color;
+static volatile gint G_GNUC_MAY_ALIAS __default_level = GST_LEVEL_DEFAULT;
+static volatile gint G_GNUC_MAY_ALIAS __use_color = 1;
+
+static FILE *log_file;
 
 /* FIXME: export this? */
 gboolean
@@ -277,7 +284,7 @@ _priv_gst_in_valgrind (void)
   in_valgrind = GST_VG_UNCHECKED;
 
   if (in_valgrind == GST_VG_UNCHECKED) {
-#ifdef HAVE_VALGRIND_H
+#ifdef HAVE_VALGRIND_VALGRIND_H
     if (RUNNING_ON_VALGRIND) {
       GST_CAT_INFO (GST_CAT_GST_INIT, "we're running inside valgrind");
       printf ("GStreamer has detected that it is running inside valgrind.\n");
@@ -294,7 +301,7 @@ _priv_gst_in_valgrind (void)
     g_assert (in_valgrind == GST_VG_NO_VALGRIND ||
         in_valgrind == GST_VG_INSIDE);
   }
-  return (in_valgrind == GST_VG_INSIDE) ? TRUE : FALSE;
+  return (in_valgrind == GST_VG_INSIDE);
 }
 
 /**
@@ -308,8 +315,21 @@ _gst_debug_init (void)
 {
   const gchar *env;
 
-  g_atomic_int_set (&__default_level, GST_LEVEL_DEFAULT);
-  g_atomic_int_set (&__use_color, 1);
+  env = g_getenv ("GST_DEBUG_FILE");
+  if (env != NULL && *env != '\0') {
+    if (strcmp (env, "-") == 0) {
+      log_file = stdout;
+    } else {
+      log_file = g_fopen (env, "w");
+      if (log_file == NULL) {
+        g_printerr ("Could not open log file '%s' for writing: %s\n", env,
+            g_strerror (errno));
+        log_file = stderr;
+      }
+    }
+  } else {
+    log_file = stderr;
+  }
 
   /* get time we started for debugging messages */
   _priv_gst_info_start_time = gst_util_get_timestamp ();
@@ -422,7 +442,8 @@ _gst_debug_init (void)
  * @file: the file that emitted the message, usually the __FILE__ identifier
  * @function: the function that emitted the message
  * @line: the line from that the message was emitted, usually __LINE__
- * @object: the object this message relates to or NULL if none
+ * @object: (transfer none) (allow-none): the object this message relates to,
+ *     or NULL if none
  * @format: a printf style format string
  * @...: optional arguments for the format
  *
@@ -441,6 +462,31 @@ gst_debug_log (GstDebugCategory * category, GstDebugLevel level,
   va_end (var_args);
 }
 
+#ifdef _MSC_VER
+/* based on g_basename(), which we can't use because it was deprecated */
+static inline const gchar *
+gst_path_basename (const gchar * file_name)
+{
+  register const gchar *base;
+
+  base = strrchr (file_name, G_DIR_SEPARATOR);
+
+  {
+    const gchar *q = strrchr (file_name, '/');
+    if (base == NULL || (q != NULL && q > base))
+      base = q;
+  }
+
+  if (base)
+    return base + 1;
+
+  if (g_ascii_isalpha (file_name[0]) && file_name[1] == ':')
+    return file_name + 2;
+
+  return file_name;
+}
+#endif
+
 /**
  * gst_debug_log_valist:
  * @category: category to log
@@ -448,7 +494,8 @@ gst_debug_log (GstDebugCategory * category, GstDebugLevel level,
  * @file: the file that emitted the message, usually the __FILE__ identifier
  * @function: the function that emitted the message
  * @line: the line from that the message was emitted, usually __LINE__
- * @object: the object this message relates to or NULL if none
+ * @object: (transfer none) (allow-none): the object this message relates to,
+ *     or NULL if none
  * @format: a printf style format string
  * @args: optional arguments for the format
  *
@@ -463,22 +510,16 @@ gst_debug_log_valist (GstDebugCategory * category, GstDebugLevel level,
   LogFuncEntry *entry;
   GSList *handler;
 
-#ifdef _MSC_VER
-  gchar *file_basename;
-#endif
-
   g_return_if_fail (category != NULL);
   g_return_if_fail (file != NULL);
   g_return_if_fail (function != NULL);
   g_return_if_fail (format != NULL);
 
-#ifdef _MSC_VER
-  /*
-   * The predefined macro __FILE__ is always the exact path given to the
+  /* The predefined macro __FILE__ is always the exact path given to the
    * compiler with MSVC, which may or may not be the basename.  We work
-   * around it at runtime to improve the readability.
-   */
-  file = file_basename = g_path_get_basename (file);
+   * around it at runtime to improve the readability. */
+#ifdef _MSC_VER
+  file = gst_path_basename (file);
 #endif
 
   message.message = NULL;
@@ -494,10 +535,6 @@ gst_debug_log_valist (GstDebugCategory * category, GstDebugLevel level,
   }
   g_free (message.message);
   va_end (message.arguments);
-
-#ifdef _MSC_VER
-  g_free (file_basename);
-#endif
 }
 
 /**
@@ -594,6 +631,23 @@ gst_debug_print_object (gpointer ptr)
   }
   if (*(GType *) ptr == GST_TYPE_STRUCTURE) {
     return gst_info_structure_to_string ((GstStructure *) ptr);
+  }
+  if (GST_IS_BUFFER (ptr)) {
+    GstBuffer *buf = (GstBuffer *) ptr;
+    gchar *caps, *ret;
+
+    caps = gst_caps_to_string (GST_BUFFER_CAPS (buf));
+    ret =
+        g_strdup_printf ("%p, data %p, malloc %p, ts %" GST_TIME_FORMAT
+        ", dur %" GST_TIME_FORMAT ", size %u, offset %" G_GUINT64_FORMAT
+        ", offset_end %" G_GUINT64_FORMAT ", caps: %s", buf,
+        GST_BUFFER_DATA (buf), GST_BUFFER_MALLOCDATA (buf),
+        GST_TIME_ARGS (GST_BUFFER_TIMESTAMP (buf)),
+        GST_TIME_ARGS (GST_BUFFER_DURATION (buf)), GST_BUFFER_SIZE (buf),
+        GST_BUFFER_OFFSET (buf), GST_BUFFER_OFFSET_END (buf), caps);
+
+    g_free (caps);
+    return ret;
   }
 #ifdef USE_POISONING
   if (*(guint32 *) ptr == 0xffffffff) {
@@ -717,7 +771,8 @@ gst_debug_print_segment (gpointer ptr)
  * terminals.
  * You need to free the string after use.
  *
- * Returns: a string containing the color definition
+ * Returns: (transfer full) (type gchar*): a string containing the color
+ *     definition
  */
 gchar *
 gst_debug_construct_term_color (guint colorinfo)
@@ -866,12 +921,15 @@ static const gchar *levelcolormap[GST_LEVEL_COUNT] = {
  * @function: the function that emitted the message
  * @line: the line from that the message was emitted, usually __LINE__
  * @message: the actual message
- * @object: the object this message relates to or NULL if none
+ * @object: (transfer none) (allow-none): the object this message relates to,
+ *     or NULL if none
  * @unused: an unused variable, reserved for some user_data.
  *
  * The default logging handler used by GStreamer. Logging functions get called
  * whenever a macro like GST_DEBUG or similar is used. This function outputs the
- * message and additional info using the glib error handler.
+ * message and additional info to stderr (or the log file specified via the
+ * GST_DEBUG_FILE environment variable).
+ *
  * You can add other handlers by using gst_debug_add_log_function().
  * And you can remove this handler by calling
  * gst_debug_remove_log_function(gst_debug_log_default);
@@ -892,14 +950,14 @@ gst_debug_log_default (GstDebugCategory * category, GstDebugLevel level,
   pid = getpid ();
   is_colored = gst_debug_is_colored ();
 
-  elapsed = GST_CLOCK_DIFF (_priv_gst_info_start_time,
-      gst_util_get_timestamp ());
-
   if (object) {
     obj = gst_debug_print_object (object);
   } else {
     obj = g_strdup ("");
   }
+
+  elapsed = GST_CLOCK_DIFF (_priv_gst_info_start_time,
+      gst_util_get_timestamp ());
 
   if (is_colored) {
 #ifndef G_OS_WIN32
@@ -916,11 +974,12 @@ gst_debug_log_default (GstDebugCategory * category, GstDebugLevel level,
     levelcolor = levelcolormap[level];
 
 #define PRINT_FMT " %s"PID_FMT"%s "PTR_FMT" %s%s%s %s"CAT_FMT"%s %s\n"
-    g_printerr ("%" GST_TIME_FORMAT PRINT_FMT, GST_TIME_ARGS (elapsed),
+    fprintf (log_file, "%" GST_TIME_FORMAT PRINT_FMT, GST_TIME_ARGS (elapsed),
         pidcolor, pid, clear, g_thread_self (), levelcolor,
         gst_debug_level_get_name (level), clear, color,
         gst_debug_category_get_name (category), file, line, function, obj,
         clear, gst_debug_message_get (message));
+    fflush (log_file);
 #undef PRINT_FMT
     g_free (color);
 #else
@@ -929,37 +988,46 @@ gst_debug_log_default (GstDebugCategory * category, GstDebugLevel level,
      * thing. */
     static GStaticMutex win_print_mutex = G_STATIC_MUTEX_INIT;
     const gint clear = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
-#define SET_COLOR(c) \
-  SetConsoleTextAttribute (GetStdHandle (STD_ERROR_HANDLE), (c));
+#define SET_COLOR(c) G_STMT_START { \
+  if (log_file == stderr) \
+    SetConsoleTextAttribute (GetStdHandle (STD_ERROR_HANDLE), (c)); \
+  } G_STMT_END
     g_static_mutex_lock (&win_print_mutex);
     /* timestamp */
-    g_printerr ("%" GST_TIME_FORMAT " ", GST_TIME_ARGS (elapsed));
+    fprintf (log_file, "%" GST_TIME_FORMAT " ", GST_TIME_ARGS (elapsed));
+    fflush (log_file);
     /* pid */
     SET_COLOR (available_colors[pid % G_N_ELEMENTS (available_colors)]);
-    g_printerr (PID_FMT, pid);
+    fprintf (log_file, PID_FMT, pid);
+    fflush (log_file);
     /* thread */
     SET_COLOR (clear);
-    g_printerr (" " PTR_FMT " ", g_thread_self ());
+    fprintf (log_file, " " PTR_FMT " ", g_thread_self ());
+    fflush (log_file);
     /* level */
     SET_COLOR (levelcolormap[level]);
-    g_printerr ("%s ", gst_debug_level_get_name (level));
+    fprintf (log_file, "%s ", gst_debug_level_get_name (level));
+    fflush (log_file);
     /* category */
     SET_COLOR (gst_debug_construct_win_color (gst_debug_category_get_color
             (category)));
-    g_printerr (CAT_FMT, gst_debug_category_get_name (category),
+    fprintf (log_file, CAT_FMT, gst_debug_category_get_name (category),
         file, line, function, obj);
+    fflush (log_file);
     /* message */
     SET_COLOR (clear);
-    g_printerr (" %s\n", gst_debug_message_get (message));
+    fprintf (log_file, " %s\n", gst_debug_message_get (message));
+    fflush (log_file);
     g_static_mutex_unlock (&win_print_mutex);
 #endif
   } else {
     /* no color, all platforms */
 #define PRINT_FMT " "PID_FMT" "PTR_FMT" %s "CAT_FMT" %s\n"
-    g_printerr ("%" GST_TIME_FORMAT PRINT_FMT, GST_TIME_ARGS (elapsed), pid,
-        g_thread_self (), gst_debug_level_get_name (level),
+    fprintf (log_file, "%" GST_TIME_FORMAT PRINT_FMT, GST_TIME_ARGS (elapsed),
+        pid, g_thread_self (), gst_debug_level_get_name (level),
         gst_debug_category_get_name (category), file, line, function, obj,
         gst_debug_message_get (message));
+    fflush (log_file);
 #undef PRINT_FMT
   }
 
@@ -1005,10 +1073,10 @@ gst_debug_level_get_name (GstDebugLevel level)
 /**
  * gst_debug_add_log_function:
  * @func: the function to use
- * @data: user data
+ * @data: (closure): user data
  *
  * Adds the logging function to the list of logging functions.
- * Be sure to use G_GNUC_NO_INSTRUMENT on that function, it is needed.
+ * Be sure to use #G_GNUC_NO_INSTRUMENT on that function, it is needed.
  */
 void
 gst_debug_add_log_function (GstLogFunction func, gpointer data)
@@ -1016,7 +1084,8 @@ gst_debug_add_log_function (GstLogFunction func, gpointer data)
   LogFuncEntry *entry;
   GSList *list;
 
-  g_return_if_fail (func != NULL);
+  if (func == NULL)
+    func = gst_debug_log_default;
 
   entry = g_slice_new (LogFuncEntry);
   entry->func = func;
@@ -1092,7 +1161,8 @@ gst_debug_remove_log_function (GstLogFunction func)
 {
   guint removals;
 
-  g_return_val_if_fail (func != NULL, 0);
+  if (func == NULL)
+    func = gst_debug_log_default;
 
   removals =
       gst_debug_remove_with_compare_func
@@ -1131,11 +1201,13 @@ gst_debug_remove_log_function_by_data (gpointer data)
  * @colored: Whether to use colored output or not
  *
  * Sets or unsets the use of coloured debugging output.
+ *
+ * This function may be called before gst_init().
  */
 void
 gst_debug_set_colored (gboolean colored)
 {
-  g_atomic_int_set (&__use_color, colored ? 1 : 0);
+  g_atomic_int_set (&__use_color, (gint) colored);
 }
 
 /**
@@ -1148,7 +1220,7 @@ gst_debug_set_colored (gboolean colored)
 gboolean
 gst_debug_is_colored (void)
 {
-  return g_atomic_int_get (&__use_color) == 0 ? FALSE : TRUE;
+  return (gboolean) g_atomic_int_get (&__use_color);
 }
 
 /**
@@ -1190,6 +1262,8 @@ gst_debug_is_active (void)
  *
  * Sets the default threshold to the given level and updates all categories to
  * use this threshold.
+ *
+ * This function may be called before gst_init().
  */
 void
 gst_debug_set_default_threshold (GstDebugLevel level)
@@ -1423,7 +1497,7 @@ gst_debug_category_reset_threshold (GstDebugCategory * category)
 GstDebugLevel
 gst_debug_category_get_threshold (GstDebugCategory * category)
 {
-  return g_atomic_int_get (&category->threshold);
+  return (GstDebugLevel) g_atomic_int_get (&category->threshold);
 }
 
 /**
@@ -1476,7 +1550,8 @@ gst_debug_category_get_description (GstDebugCategory * category)
  * may change anytime.
  * The caller has to free the list after use.
  *
- * Returns: the list of categories
+ * Returns: (transfer container) (element-type Gst.DebugCategory): the list of
+ *     debug categories
  */
 GSList *
 gst_debug_get_all_categories (void)
@@ -1731,7 +1806,7 @@ gst_debug_log_default (GstDebugCategory * category, GstDebugLevel level,
 {
 }
 
-G_CONST_RETURN gchar *
+const gchar *
 gst_debug_level_get_name (GstDebugLevel level)
 {
   return "NONE";
@@ -1819,7 +1894,7 @@ gst_debug_category_get_threshold (GstDebugCategory * category)
   return GST_LEVEL_NONE;
 }
 
-G_CONST_RETURN gchar *
+const gchar *
 gst_debug_category_get_name (GstDebugCategory * category)
 {
   return "";
@@ -1831,7 +1906,7 @@ gst_debug_category_get_color (GstDebugCategory * category)
   return 0;
 }
 
-G_CONST_RETURN gchar *
+const gchar *
 gst_debug_category_get_description (GstDebugCategory * category)
 {
   return "";

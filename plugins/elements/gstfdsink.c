@@ -475,8 +475,6 @@ gst_fd_sink_set_property (GObject * object, guint prop_id,
 {
   GstFdSink *fdsink;
 
-  g_return_if_fail (GST_IS_FD_SINK (object));
-
   fdsink = GST_FD_SINK (object);
 
   switch (prop_id) {
@@ -488,6 +486,7 @@ gst_fd_sink_set_property (GObject * object, guint prop_id,
       break;
     }
     default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
@@ -498,8 +497,6 @@ gst_fd_sink_get_property (GObject * object, guint prop_id, GValue * value,
 {
   GstFdSink *fdsink;
 
-  g_return_if_fail (GST_IS_FD_SINK (object));
-
   fdsink = GST_FD_SINK (object);
 
   switch (prop_id) {
@@ -507,6 +504,7 @@ gst_fd_sink_get_property (GObject * object, guint prop_id, GValue * value,
       g_value_set_int (value, fdsink->fd);
       break;
     default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
@@ -523,7 +521,7 @@ gst_fd_sink_do_seek (GstFdSink * fdsink, guint64 new_offset)
 
   fdsink->current_pos = new_offset;
 
-  GST_DEBUG_OBJECT (fdsink, "File desciptor %d to seek to position "
+  GST_DEBUG_OBJECT (fdsink, "File descriptor %d to seek to position "
       "%" G_GUINT64_FORMAT, fdsink->fd, fdsink->current_pos);
 
   return TRUE;
@@ -531,7 +529,7 @@ gst_fd_sink_do_seek (GstFdSink * fdsink, guint64 new_offset)
   /* ERRORS */
 seek_failed:
   {
-    GST_DEBUG_OBJECT (fdsink, "File desciptor %d failed to seek to position "
+    GST_DEBUG_OBJECT (fdsink, "File descriptor %d failed to seek to position "
         "%" G_GUINT64_FORMAT, fdsink->fd, new_offset);
     return FALSE;
   }

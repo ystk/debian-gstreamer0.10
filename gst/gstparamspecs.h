@@ -1,4 +1,4 @@
-/* GStreamer - GParamSpecs for for some of our types
+/* GStreamer - GParamSpecs for some of our types
  * Copyright (C) 2007 Tim-Philipp Müller  <tim centricular net>
  *
  * This library is free software; you can redistribute it and/or
@@ -120,7 +120,7 @@ GParamSpec  * gst_param_spec_fraction (const gchar * name,
                                        gint min_num, gint min_denom,
                                        gint max_num, gint max_denom,
                                        gint default_num, gint default_denom,
-                                       GParamFlags flags);
+                                       GParamFlags flags) G_GNUC_MALLOC;
 
 G_END_DECLS
 

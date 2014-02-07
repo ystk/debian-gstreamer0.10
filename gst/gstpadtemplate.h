@@ -103,6 +103,7 @@ typedef enum {
  * Flags for the padtemplate
  */
 typedef enum {
+  /* FIXME0.11: this is not used and the purpose is unclear */
   GST_PAD_TEMPLATE_FIXED        = (GST_OBJECT_FLAG_LAST << 0),
   /* padding */
   GST_PAD_TEMPLATE_FLAG_LAST    = (GST_OBJECT_FLAG_LAST << 4)
@@ -181,7 +182,7 @@ GType			gst_static_pad_template_get_type	(void);
 
 GstPadTemplate*		gst_pad_template_new			(const gchar *name_template,
 								 GstPadDirection direction, GstPadPresence presence,
-								 GstCaps *caps);
+								 GstCaps *caps) G_GNUC_MALLOC;
 
 GstPadTemplate *	gst_static_pad_template_get             (GstStaticPadTemplate *pad_template);
 GstCaps*		gst_static_pad_template_get_caps	(GstStaticPadTemplate *templ);

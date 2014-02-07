@@ -43,7 +43,26 @@
 static GstAllocTrace *_gst_mini_object_trace;
 #endif
 
-#define DEBUG_REFCOUNT
+#define GST_MINI_OBJECT_GET_CLASS_UNCHECKED(obj) \
+    ((GstMiniObjectClass *) (((GTypeInstance*)(obj))->g_class))
+
+/* Structure used for storing weak references */
+typedef struct
+{
+  GstMiniObject *object;
+  guint n_weak_refs;
+  struct
+  {
+    GstMiniObjectWeakNotify notify;
+    gpointer data;
+  } weak_refs[1];               /* flexible array */
+} WeakRefStack;
+
+/* Structure for storing a mini object's private data */
+struct _GstMiniObjectPrivate
+{
+  WeakRefStack *wstack;
+};
 
 #if 0
 static void gst_mini_object_base_init (gpointer g_class);
@@ -54,6 +73,7 @@ static void gst_mini_object_init (GTypeInstance * instance, gpointer klass);
 
 static void gst_value_mini_object_init (GValue * value);
 static void gst_value_mini_object_free (GValue * value);
+static void weak_refs_notify (WeakRefStack * data);
 static void gst_value_mini_object_copy (const GValue * src_value,
     GValue * dest_value);
 static gpointer gst_value_mini_object_peek_pointer (const GValue * value);
@@ -65,12 +85,16 @@ static gchar *gst_value_mini_object_lcopy (const GValue * value,
 static GstMiniObject *gst_mini_object_copy_default (const GstMiniObject * obj);
 static void gst_mini_object_finalize (GstMiniObject * obj);
 
+/* Mutex used for weak referencing */
+G_LOCK_DEFINE_STATIC (weak_refs_mutex);
+
 GType
 gst_mini_object_get_type (void)
 {
-  static GType _gst_mini_object_type = 0;
+  static volatile GType _gst_mini_object_type = 0;
 
-  if (G_UNLIKELY (_gst_mini_object_type == 0)) {
+  if (g_once_init_enter (&_gst_mini_object_type)) {
+    GType _type;
     static const GTypeValueTable value_table = {
       gst_value_mini_object_init,
       gst_value_mini_object_free,
@@ -102,14 +126,14 @@ gst_mini_object_get_type (void)
           G_TYPE_FLAG_DERIVABLE | G_TYPE_FLAG_DEEP_DERIVABLE)
     };
 
-    _gst_mini_object_type = g_type_fundamental_next ();
-    g_type_register_fundamental (_gst_mini_object_type, "GstMiniObject",
+    _type = g_type_fundamental_next ();
+    g_type_register_fundamental (_type, "GstMiniObject",
         &mini_object_info, &mini_object_fundamental_info, G_TYPE_FLAG_ABSTRACT);
 
 #ifndef GST_DISABLE_TRACE
-    _gst_mini_object_trace =
-        gst_alloc_trace_register (g_type_name (_gst_mini_object_type));
+    _gst_mini_object_trace = gst_alloc_trace_register (g_type_name (_type));
 #endif
+    g_once_init_leave (&_gst_mini_object_type, _type);
   }
 
   return _gst_mini_object_type;
@@ -136,6 +160,9 @@ gst_mini_object_class_init (gpointer g_class, gpointer class_data)
 
   mo_class->copy = gst_mini_object_copy_default;
   mo_class->finalize = gst_mini_object_finalize;
+
+  /* Set the instance data type */
+  g_type_class_add_private (g_class, sizeof (GstMiniObjectPrivate));
 }
 
 static void
@@ -144,6 +171,9 @@ gst_mini_object_init (GTypeInstance * instance, gpointer klass)
   GstMiniObject *mini_object = GST_MINI_OBJECT_CAST (instance);
 
   mini_object->refcount = 1;
+
+  /* we delay initialising the mini object's private data until it's actually
+   * needed for now (mini_object->priv automatically inited to NULL) */
 }
 
 static GstMiniObject *
@@ -175,7 +205,7 @@ gst_mini_object_finalize (GstMiniObject * obj)
  *
  * MT safe
  *
- * Returns: the new mini-object.
+ * Returns: (transfer full): the new mini-object.
  */
 GstMiniObject *
 gst_mini_object_new (GType type)
@@ -215,7 +245,7 @@ gst_mini_object_new (GType type)
  *
  * MT safe
  *
- * Returns: the new mini-object.
+ * Returns: (transfer full): the new mini-object.
  */
 GstMiniObject *
 gst_mini_object_copy (const GstMiniObject * mini_object)
@@ -253,7 +283,7 @@ gst_mini_object_is_writable (const GstMiniObject * mini_object)
 
 /**
  * gst_mini_object_make_writable:
- * @mini_object: the mini-object to make writable
+ * @mini_object: (transfer full): the mini-object to make writable
  *
  * Checks if a mini-object is writable.  If not, a writable copy is made and
  * returned.  This gives away the reference to the original mini object,
@@ -261,7 +291,8 @@ gst_mini_object_is_writable (const GstMiniObject * mini_object)
  *
  * MT safe
  *
- * Returns: a mini-object (possibly the same pointer) that is writable.
+ * Returns: (transfer full): a mini-object (possibly the same pointer) that
+ *     is writable.
  */
 GstMiniObject *
 gst_mini_object_make_writable (GstMiniObject * mini_object)
@@ -295,7 +326,7 @@ gst_mini_object_make_writable (GstMiniObject * mini_object)
  * of memcpy operations in a pipeline, especially if the miniobject
  * is a #GstBuffer.
  *
- * Returns: the mini-object.
+ * Returns: (transfer full): the mini-object.
  */
 GstMiniObject *
 gst_mini_object_ref (GstMiniObject * mini_object)
@@ -306,17 +337,25 @@ gst_mini_object_ref (GstMiniObject * mini_object)
    * the object
    g_return_val_if_fail (mini_object->refcount > 0, NULL);
    */
-#ifdef DEBUG_REFCOUNT
   g_return_val_if_fail (GST_IS_MINI_OBJECT (mini_object), NULL);
 
   GST_CAT_TRACE (GST_CAT_REFCOUNTING, "%p ref %d->%d", mini_object,
       GST_MINI_OBJECT_REFCOUNT_VALUE (mini_object),
       GST_MINI_OBJECT_REFCOUNT_VALUE (mini_object) + 1);
-#endif
 
   g_atomic_int_inc (&mini_object->refcount);
 
   return mini_object;
+}
+
+static void
+weak_refs_notify (WeakRefStack * wstack)
+{
+  guint i;
+
+  for (i = 0; i < wstack->n_weak_refs; i++)
+    wstack->weak_refs[i].notify (wstack->weak_refs[i].data, wstack->object);
+  g_free (wstack);
 }
 
 static void
@@ -327,14 +366,22 @@ gst_mini_object_free (GstMiniObject * mini_object)
   /* At this point, the refcount of the object is 0. We increase the refcount
    * here because if a subclass recycles the object and gives out a new
    * reference we don't want to free the instance anymore. */
-  gst_mini_object_ref (mini_object);
+  GST_CAT_TRACE (GST_CAT_REFCOUNTING, "%p ref %d->%d", mini_object,
+      GST_MINI_OBJECT_REFCOUNT_VALUE (mini_object),
+      GST_MINI_OBJECT_REFCOUNT_VALUE (mini_object) + 1);
 
-  mo_class = GST_MINI_OBJECT_GET_CLASS (mini_object);
+  g_atomic_int_inc (&mini_object->refcount);
+
+  mo_class = GST_MINI_OBJECT_GET_CLASS_UNCHECKED (mini_object);
   mo_class->finalize (mini_object);
 
   /* decrement the refcount again, if the subclass recycled the object we don't
    * want to free the instance anymore */
   if (G_LIKELY (g_atomic_int_dec_and_test (&mini_object->refcount))) {
+    /* The weak reference stack is freed in the notification function */
+    if (mini_object->priv != NULL && mini_object->priv->wstack != NULL)
+      weak_refs_notify (mini_object->priv->wstack);
+
 #ifndef GST_DISABLE_TRACE
     gst_alloc_trace_free (_gst_mini_object_trace, mini_object);
 #endif
@@ -352,17 +399,13 @@ gst_mini_object_free (GstMiniObject * mini_object)
 void
 gst_mini_object_unref (GstMiniObject * mini_object)
 {
-  g_return_if_fail (mini_object != NULL);
-  g_return_if_fail (mini_object->refcount > 0);
-
-#ifdef DEBUG_REFCOUNT
   g_return_if_fail (GST_IS_MINI_OBJECT (mini_object));
+  g_return_if_fail (mini_object->refcount > 0);
 
   GST_CAT_TRACE (GST_CAT_REFCOUNTING, "%p unref %d->%d",
       mini_object,
       GST_MINI_OBJECT_REFCOUNT_VALUE (mini_object),
       GST_MINI_OBJECT_REFCOUNT_VALUE (mini_object) - 1);
-#endif
 
   if (G_UNLIKELY (g_atomic_int_dec_and_test (&mini_object->refcount))) {
     gst_mini_object_free (mini_object);
@@ -370,8 +413,112 @@ gst_mini_object_unref (GstMiniObject * mini_object)
 }
 
 /**
+ * gst_mini_object_weak_ref: (skip)
+ * @object: #GstMiniObject to reference weakly
+ * @notify: callback to invoke before the mini object is freed
+ * @data: extra data to pass to notify
+ *
+ * Adds a weak reference callback to a mini object. Weak references are
+ * used for notification when a mini object is finalized. They are called
+ * "weak references" because they allow you to safely hold a pointer
+ * to the mini object without calling gst_mini_object_ref()
+ * (gst_mini_object_ref() adds a strong reference, that is, forces the object
+ * to stay alive).
+ *
+ * Since: 0.10.36
+ */
+void
+gst_mini_object_weak_ref (GstMiniObject * object,
+    GstMiniObjectWeakNotify notify, gpointer data)
+{
+  guint i;
+
+  g_return_if_fail (GST_IS_MINI_OBJECT (object));
+  g_return_if_fail (notify != NULL);
+  g_return_if_fail (GST_MINI_OBJECT_REFCOUNT_VALUE (object) >= 1);
+
+  G_LOCK (weak_refs_mutex);
+
+  if (object->priv == NULL) {
+    object->priv = G_TYPE_INSTANCE_GET_PRIVATE (object, GST_TYPE_MINI_OBJECT,
+        GstMiniObjectPrivate);
+
+    /* object->priv->wstack will have been inited to NULL automatically */
+  }
+
+  if (object->priv->wstack) {
+    /* Don't add the weak reference if it already exists. */
+    for (i = 0; i < object->priv->wstack->n_weak_refs; i++) {
+      if (object->priv->wstack->weak_refs[i].notify == notify &&
+          object->priv->wstack->weak_refs[i].data == data) {
+        g_warning ("%s: Attempt to re-add existing weak ref %p(%p) failed.",
+            G_STRFUNC, notify, data);
+        goto found;
+      }
+    }
+
+    i = object->priv->wstack->n_weak_refs++;
+    object->priv->wstack =
+        g_realloc (object->priv->wstack, sizeof (*(object->priv->wstack)) +
+        sizeof (object->priv->wstack->weak_refs[0]) * i);
+  } else {
+    object->priv->wstack = g_renew (WeakRefStack, NULL, 1);
+    object->priv->wstack->object = object;
+    object->priv->wstack->n_weak_refs = 1;
+    i = 0;
+  }
+  object->priv->wstack->weak_refs[i].notify = notify;
+  object->priv->wstack->weak_refs[i].data = data;
+found:
+  G_UNLOCK (weak_refs_mutex);
+}
+
+/**
+ * gst_mini_object_weak_unref: (skip)
+ * @object: #GstMiniObject to remove a weak reference from
+ * @notify: callback to search for
+ * @data: data to search for
+ *
+ * Removes a weak reference callback to a mini object.
+ *
+ * Since: 0.10.36
+ */
+void
+gst_mini_object_weak_unref (GstMiniObject * object,
+    GstMiniObjectWeakNotify notify, gpointer data)
+{
+  gboolean found_one = FALSE;
+
+  g_return_if_fail (GST_IS_MINI_OBJECT (object));
+  g_return_if_fail (notify != NULL);
+
+  G_LOCK (weak_refs_mutex);
+
+  if (object->priv != NULL && object->priv->wstack != NULL) {
+    guint i;
+
+    for (i = 0; i < object->priv->wstack->n_weak_refs; i++)
+      if (object->priv->wstack->weak_refs[i].notify == notify &&
+          object->priv->wstack->weak_refs[i].data == data) {
+        found_one = TRUE;
+        object->priv->wstack->n_weak_refs -= 1;
+        if (i != object->priv->wstack->n_weak_refs)
+          object->priv->wstack->weak_refs[i] =
+              object->priv->wstack->weak_refs[object->priv->wstack->
+              n_weak_refs];
+
+        break;
+      }
+  }
+  G_UNLOCK (weak_refs_mutex);
+  if (!found_one)
+    g_warning ("%s: couldn't find weak ref %p(%p)", G_STRFUNC, notify, data);
+}
+
+/**
  * gst_mini_object_replace:
- * @olddata: pointer to a pointer to a mini-object to be replaced
+ * @olddata: (inout) (transfer full): pointer to a pointer to a mini-object to
+ *     be replaced
  * @newdata: pointer to new mini-object
  *
  * Modifies a pointer to point to a new mini-object.  The modification
@@ -385,11 +532,9 @@ gst_mini_object_replace (GstMiniObject ** olddata, GstMiniObject * newdata)
 
   g_return_if_fail (olddata != NULL);
 
-#ifdef DEBUG_REFCOUNT
   GST_CAT_TRACE (GST_CAT_REFCOUNTING, "replace %p (%d) with %p (%d)",
       *olddata, *olddata ? (*olddata)->refcount : 0,
       newdata, newdata ? newdata->refcount : 0);
-#endif
 
   olddata_val = g_atomic_pointer_get ((gpointer *) olddata);
 
@@ -477,8 +622,8 @@ gst_value_mini_object_lcopy (const GValue * value, guint n_collect_values,
 
 /**
  * gst_value_set_mini_object:
- * @value:       a valid #GValue of %GST_TYPE_MINI_OBJECT derived type
- * @mini_object: mini object value to set
+ * @value: a valid #GValue of %GST_TYPE_MINI_OBJECT derived type
+ * @mini_object: (transfer none): mini object value to set
  *
  * Set the contents of a %GST_TYPE_MINI_OBJECT derived #GValue to
  * @mini_object.
@@ -498,8 +643,8 @@ gst_value_set_mini_object (GValue * value, GstMiniObject * mini_object)
 
 /**
  * gst_value_take_mini_object:
- * @value:       a valid #GValue of %GST_TYPE_MINI_OBJECT derived type
- * @mini_object: mini object value to take
+ * @value: a valid #GValue of %GST_TYPE_MINI_OBJECT derived type
+ * @mini_object: (transfer full): mini object value to take
  *
  * Set the contents of a %GST_TYPE_MINI_OBJECT derived #GValue to
  * @mini_object.
@@ -529,7 +674,7 @@ gst_value_take_mini_object (GValue * value, GstMiniObject * mini_object)
  * Get the contents of a %GST_TYPE_MINI_OBJECT derived #GValue.
  * Does not increase the refcount of the returned object.
  *
- * Returns: mini object contents of @value
+ * Returns: (transfer none): mini object contents of @value
  */
 GstMiniObject *
 gst_value_get_mini_object (const GValue * value)
@@ -544,9 +689,10 @@ gst_value_get_mini_object (const GValue * value)
  * @value:   a valid #GValue of %GST_TYPE_MINI_OBJECT derived type
  *
  * Get the contents of a %GST_TYPE_MINI_OBJECT derived #GValue,
- * increasing its reference count.
+ * increasing its reference count. If the contents of the #GValue
+ * are %NULL, %NULL will be returned.
  *
- * Returns: mini object contents of @value
+ * Returns: (transfer full): mini object contents of @value
  *
  * Since: 0.10.20
  */
@@ -555,7 +701,8 @@ gst_value_dup_mini_object (const GValue * value)
 {
   g_return_val_if_fail (GST_VALUE_HOLDS_MINI_OBJECT (value), NULL);
 
-  return gst_mini_object_ref (value->data[0].v_pointer);
+  return value->data[0].v_pointer ? gst_mini_object_ref (value->
+      data[0].v_pointer) : NULL;
 }
 
 
@@ -635,7 +782,7 @@ gst_param_spec_mini_object_get_type (void)
  *
  * Creates a new #GParamSpec instance that hold #GstMiniObject references.
  *
- * Returns: a newly allocated #GParamSpec instance
+ * Returns: (transfer full): a newly allocated #GParamSpec instance
  */
 GParamSpec *
 gst_param_spec_mini_object (const char *name, const char *nick,

@@ -1,14 +1,15 @@
 # Bulgarian translation of gstreamer.
-# Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010 Free Software Fondation, Inc.
+# Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 Free Software Fondation, Inc.
 # This file is distributed under the same license as the gstreamer package.
-# Alexander Shopov <ash@contact.bg>, 2005, 2006, 2007, 2008, 2009, 2010.
+# Alexander Shopov <ash@contact.bg>, 2005, 2006, 2007, 2008, 2009, 2010, 2011.
+#
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.26.2\n"
+"Project-Id-Version: gstreamer 0.10.32.2\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-02-23 10:27+0200\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2011-04-26 22:40+0300\n"
 "Last-Translator: Alexander Shopov <ash@kambanaria.org>\n"
 "Language-Team: Bulgarian <dict@fsa-bg.org>\n"
 "Language: bg\n"
@@ -108,8 +109,8 @@ msgid ""
 "GStreamer error: state change failed and some element failed to post a "
 "proper error message with the reason for the failure."
 msgstr ""
-"Грешка на GStreamer: неуспех при промяната на състоянието, а някой от "
-"елементите пропусна да подаде съобщение за грешка с причината за това."
+"Грешка на GStreamer: неуспешна промяна на състоянието, а някой от елементите "
+"пропусна да подаде съобщение за грешка с причината за това."
 
 msgid "Internal GStreamer error: pad problem."
 msgstr "Вътрешна грешка на GStreamer: проблем в допълването."
@@ -156,6 +157,9 @@ msgstr "Помощната библиотека не може да бъде за
 
 msgid "Could not configure supporting library."
 msgstr "Помощната библиотека не може да бъде настроена."
+
+msgid "Encoding error."
+msgstr "Грешка при кодиране."
 
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer получи обща грешка в ресурс."
@@ -303,6 +307,12 @@ msgstr "дата"
 msgid "date the data was created (as a GDate structure)"
 msgstr "дата на създаване на данните (като структура GDate)"
 
+msgid "datetime"
+msgstr "момент"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr "момент на създаване на данните (като структура GstDateTime)"
+
 msgid "genre"
 msgstr "жанр"
 
@@ -395,6 +405,12 @@ msgstr "адрес за авторски права"
 
 msgid "URI to the copyright notice of the data"
 msgstr "адрес на означението на авторските права на данните"
+
+msgid "encoded by"
+msgstr "кодирано от"
+
+msgid "name of the encoding person or organization"
+msgstr "име на човека или организацията извършващи кодирането"
 
 msgid "contact"
 msgstr "контакт"
@@ -612,58 +628,62 @@ msgstr ""
 "надморска височина на мястото на запис или създаване на медията в метри "
 "според WGS84 (0 при средното морско равнище)"
 
-#, fuzzy
 msgid "geo location country"
-msgstr "географска дължина"
+msgstr "държава по координати"
 
-#, fuzzy
 msgid "country (english name) where the media has been recorded or produced"
-msgstr "разбираемо описание на мястото на запис или създаване на медията"
+msgstr "държавата на запис или създаване на медията (на английски)"
 
-#, fuzzy
 msgid "geo location city"
-msgstr "географска широчина"
+msgstr "град по координати"
 
-#, fuzzy
 msgid "city (english name) where the media has been recorded or produced"
-msgstr "разбираемо описание на мястото на запис или създаване на медията"
+msgstr "град на запис или създаване на медията (на английски)"
 
-#, fuzzy
 msgid "geo location sublocation"
-msgstr "надморска височина"
+msgstr "квартал по координати"
 
 msgid ""
 "a location whithin a city where the media has been produced or created (e.g. "
 "the neighborhood)"
-msgstr ""
+msgstr "квартал в града на запис или създаване на медията"
 
-#, fuzzy
+msgid "geo location horizontal error"
+msgstr "хоризонтална грешка по координати"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr "очаквана грешка по хоризонтал (в метри)"
+
 msgid "geo location movement speed"
-msgstr "географска дължина"
+msgstr "скорост по координати"
 
 msgid ""
 "movement speed of the capturing device while performing the capture in m/s"
-msgstr ""
+msgstr "скорост на движение на входното устройство при записа [m/s]"
 
-#, fuzzy
 msgid "geo location movement direction"
-msgstr "надморска височина"
+msgstr "посока на движение по координати"
 
 msgid ""
 "indicates the movement direction of the device performing the capture of a "
 "media. It is represented as degrees in floating point representation, 0 "
 "means the geographic north, and increases clockwise"
 msgstr ""
+"посока на движение на входното устройство при записа. Стойността е в градуси "
+"в десетично представяне. 0 е географският север. Стойността расте по посока "
+"на часовниковата стрелка"
 
-#, fuzzy
 msgid "geo location capture direction"
-msgstr "надморска височина"
+msgstr "посока на заснемане по координати"
 
 msgid ""
 "indicates the direction the device is pointing to when capturing  a media. "
 "It is represented as degrees in floating point  representation, 0 means the "
 "geographic north, and increases clockwise"
 msgstr ""
+"посока на входното устройство при записа. Стойността е в градуси в десетично "
+"представяне. 0 е географският север. Стойността расте по посока на "
+"часовниковата стрелка"
 
 #. TRANSLATORS: 'show name' = 'TV/radio/podcast show name' here
 msgid "show name"
@@ -717,34 +737,44 @@ msgstr ""
 "Сбира в една група произведение, което е от няколко части, напр. частите на "
 "концерт. Това ниво е по-високо от песен, но по-ниско от албум."
 
-#, fuzzy
 msgid "user rating"
-msgstr "продължителност"
+msgstr "оценка"
 
 msgid ""
 "Rating attributed by a user. The higher the rank, the more the user likes "
 "this media"
 msgstr ""
+"Оценка според потребителя. По-висока стойност означава по-силно предпочитание"
 
 msgid "device manufacturer"
-msgstr ""
+msgstr "производител на устройство"
 
-#, fuzzy
 msgid "Manufacturer of the device used to create this media"
-msgstr "версия на кодера, чрез който е кодиран този поток"
+msgstr "Производител на устройството, с което е създадена медията"
 
 msgid "device model"
-msgstr ""
+msgstr "модел на устройство"
 
-#, fuzzy
 msgid "Model of the device used to create this media"
-msgstr "версия на кодера, чрез който е кодиран този поток"
+msgstr "Модел на устройството, с което е създадена медията"
+
+msgid "application name"
+msgstr "име на програма"
+
+msgid "Application used to create the media"
+msgstr "Програмата, с което е създадена медията"
+
+msgid "application data"
+msgstr "данни от програмата"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr "Произволни данни от програма, поставени в медията"
 
 msgid "image orientation"
-msgstr ""
+msgstr "ориентация"
 
 msgid "How the image should be rotated or flipped before display"
-msgstr ""
+msgstr "Как да се завърти изображението при показване"
 
 msgid ", "
 msgstr ", "
@@ -880,16 +910,15 @@ msgstr "Файлът „%s“ е гнездо."
 msgid "Failed after iterations as requested."
 msgstr "Грешка след заявения брой повторения."
 
-#, fuzzy
-msgid "Error while writing to download file."
-msgstr "Грешка при запис във файл „%s“."
-
 msgid "No Temp directory specified."
 msgstr "Не е указана временна папка"
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "Не може да се създаде временният файл „%s“."
+
+msgid "Error while writing to download file."
+msgstr "Грешка при запис в сваления файл."
 
 msgid "caps"
 msgstr "възможности"
@@ -923,6 +952,20 @@ msgstr "с права за запис"
 
 msgid "controllable"
 msgstr "може да се контролира"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr ""
+"може да се променя само в състоянията NULL (зануляване), READY (готовност), "
+"PAUSED (на пауза) или PLAYING (изпълнение)"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr ""
+"може да се променя само в състоянията NULL (зануляване), READY (готовност) "
+"или PAUSED (на пауза)"
+
+msgid "changeable only in NULL or READY state"
+msgstr ""
+"може да се променя само в състоянията NULL (зануляване) или READY (готовност)"
 
 msgid "Blacklisted files:"
 msgstr "Забранени файлове:"
@@ -1011,6 +1054,9 @@ msgstr ""
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "ПРЕДУПРЕЖДЕНИЕ: елементът на име „%s“ не е открит.\n"
 
+msgid "Index statistics"
+msgstr "Статистика на индекса"
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "Получено е съобщение #%u от елемент „%s“ (%s): "
@@ -1080,6 +1126,10 @@ msgstr "Задаване на състоянието на %s по заявка �
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Прекъсване: Конвейерът се спира…\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "елементът „%s“ липсва"
+
 msgid "Output tags (also known as metadata)"
 msgstr "Изходни съобщения за етикетите (метаданните)"
 
@@ -1107,9 +1157,8 @@ msgstr "ФАЙЛ"
 msgid "Do not install a fault handler"
 msgstr "Да не се инсталира модул за обработка на грешки"
 
-#, fuzzy
 msgid "Do not install signal handlers for SIGUSR1 and SIGUSR2"
-msgstr "Да не се инсталира модул за обработка на грешки"
+msgstr "Да не се включват функции за обработка на сигналите SIGUSR1 и SIGUSR2"
 
 msgid "Print alloc trace (if enabled at compile time)"
 msgstr ""
@@ -1119,6 +1168,9 @@ msgstr ""
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr ""
 "Принудително извеждане на EOS за източниците преди спирането на конвейера"
+
+msgid "Gather and print index statistics"
+msgstr "Събиране и показване на статистика за индекса"
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

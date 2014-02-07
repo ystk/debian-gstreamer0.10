@@ -53,15 +53,18 @@
  *     controller = gst_object_control_properties (object, "prop1", "prop2",...);
  *   </para></listitem>
  *   <listitem><para>
- *     Get a #GstControlSource for the property and set it up.
+ *     create a #GstControlSource.
  *     csource = gst_interpolation_control_source_new ();
  *     gst_interpolation_control_source_set_interpolation_mode(csource, mode);
- *     gst_interpolation_control_source_set (csource,0 * GST_SECOND, value1);
- *     gst_interpolation_control_source_set (csource,1 * GST_SECOND, value2);
  *   </para></listitem>
  *   <listitem><para>
- *     Set the #GstControlSource in the controller.
+ *     Attach the #GstControlSource on the controller to a property.
  *     gst_controller_set_control_source (controller, "prop1", csource);
+ *   </para></listitem>
+ *   <listitem><para>
+ *     Set the control values
+ *     gst_interpolation_control_source_set (csource,0 * GST_SECOND, value1);
+ *     gst_interpolation_control_source_set (csource,1 * GST_SECOND, value2);
  *   </para></listitem>
  *   <listitem><para>
  *     start your pipeline
@@ -77,6 +80,7 @@
 #include "gstcontrollerprivate.h"
 #include "gstcontrolsource.h"
 #include "gstinterpolationcontrolsource.h"
+#include "gst/glib-compat-private.h"
 
 #define GST_CAT_DEFAULT controller_debug
 GST_DEBUG_CATEGORY_EXTERN (GST_CAT_DEFAULT);
@@ -206,7 +210,7 @@ gst_controller_find_controlled_property (GstController * self,
  * @self: the controller object or %NULL if none yet exists
  * @object: object to bind the property
  * @name: name of projecty in @object
- * @ref_existing: pointer to flag that tracks if we need to ref an existng
+ * @ref_existing: pointer to flag that tracks if we need to ref an existing
  *   controller still
  *
  * Creates a new #GstControlledProperty if there is none for property @name yet.
@@ -767,7 +771,7 @@ gst_controller_get_value_arrays (GstController * self,
  *
  * All fields of @value_array must be filled correctly. Especially the
  * @value_array->values array must be big enough to keep the requested amount
- * of values.
+ * of values (as indicated by the nbsamples field).
  *
  * The type of the values in the array is the same as the property's type.
  *

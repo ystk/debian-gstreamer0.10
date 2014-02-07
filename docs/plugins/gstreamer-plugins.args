@@ -271,7 +271,7 @@
 <ARG>
 <NAME>GstFakeSink::num-buffers</NAME>
 <TYPE>gint</TYPE>
-<RANGE>>= G_MAXULONG</RANGE>
+<RANGE>>= -1</RANGE>
 <FLAGS>rw</FLAGS>
 <NICK>num-buffers</NICK>
 <BLURB>Number of buffers to accept going EOS.</BLURB>
@@ -589,6 +589,16 @@
 </ARG>
 
 <ARG>
+<NAME>GstQueue::silent</NAME>
+<TYPE>gboolean</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Silent</NICK>
+<BLURB>Don't emit queue signals.</BLURB>
+<DEFAULT>FALSE</DEFAULT>
+</ARG>
+
+<ARG>
 <NAME>GstFileSink::location</NAME>
 <TYPE>gchar*</TYPE>
 <RANGE></RANGE>
@@ -839,6 +849,16 @@
 </ARG>
 
 <ARG>
+<NAME>GstMultiQueue::sync-by-running-time</NAME>
+<TYPE>gboolean</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Sync By Running Time</NICK>
+<BLURB>Synchronize deactivated or not-linked streams by running time.</BLURB>
+<DEFAULT>FALSE</DEFAULT>
+</ARG>
+
+<ARG>
 <NAME>GstBin::async-handling</NAME>
 <TYPE>gboolean</TYPE>
 <RANGE></RANGE>
@@ -884,7 +904,7 @@
 <RANGE>[0,100]</RANGE>
 <FLAGS>rw</FLAGS>
 <NICK>High percent</NICK>
-<BLURB>High threshold for buffering to finish.</BLURB>
+<BLURB>High threshold for buffering to finish. Only used if use-buffering is True.</BLURB>
 <DEFAULT>99</DEFAULT>
 </ARG>
 
@@ -894,7 +914,7 @@
 <RANGE>[0,100]</RANGE>
 <FLAGS>rw</FLAGS>
 <NICK>Low percent</NICK>
-<BLURB>Low threshold for buffering to start.</BLURB>
+<BLURB>Low threshold for buffering to start. Only used if use-buffering is True.</BLURB>
 <DEFAULT>10</DEFAULT>
 </ARG>
 
@@ -976,5 +996,95 @@
 <NICK>Remove the Temporary File</NICK>
 <BLURB>Remove the temp-location after use.</BLURB>
 <DEFAULT>TRUE</DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstQueue2::ring-buffer-max-size</NAME>
+<TYPE>guint64</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Max. ring buffer size (bytes)</NICK>
+<BLURB>Max. amount of data in the ring buffer (bytes, 0 = disabled).</BLURB>
+<DEFAULT>0</DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstValve::drop</NAME>
+<TYPE>gboolean</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Drop buffers and events</NICK>
+<BLURB>Whether to drop buffers and events or let them through.</BLURB>
+<DEFAULT>FALSE</DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstOutputSelector::active-pad</NAME>
+<TYPE>GstPad*</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Active pad</NICK>
+<BLURB>Currently active src pad.</BLURB>
+<DEFAULT></DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstOutputSelector::resend-latest</NAME>
+<TYPE>gboolean</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Resend latest buffer</NICK>
+<BLURB>Resend latest buffer after a switch to a new pad.</BLURB>
+<DEFAULT>FALSE</DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstOutputSelector::pad-negotiation-mode</NAME>
+<TYPE>GstOutputSelectorPadNegotiationMode</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Pad negotiation mode</NICK>
+<BLURB>The mode to be used for pad negotiation.</BLURB>
+<DEFAULT>All</DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstInputSelector::active-pad</NAME>
+<TYPE>GstPad*</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Active pad</NICK>
+<BLURB>The currently active sink pad.</BLURB>
+<DEFAULT></DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstInputSelector::n-pads</NAME>
+<TYPE>guint</TYPE>
+<RANGE></RANGE>
+<FLAGS>r</FLAGS>
+<NICK>Number of Pads</NICK>
+<BLURB>The number of sink pads.</BLURB>
+<DEFAULT>0</DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstInputSelector::select-all</NAME>
+<TYPE>gboolean</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Select all mode</NICK>
+<BLURB>Forwards data from all input pads.</BLURB>
+<DEFAULT>FALSE</DEFAULT>
+</ARG>
+
+<ARG>
+<NAME>GstInputSelector::sync-streams</NAME>
+<TYPE>gboolean</TYPE>
+<RANGE></RANGE>
+<FLAGS>rw</FLAGS>
+<NICK>Sync Streams</NICK>
+<BLURB>Synchronize inactive streams to the running time of the active stream.</BLURB>
+<DEFAULT>FALSE</DEFAULT>
 </ARG>
 

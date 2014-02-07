@@ -1,2 +1,4 @@
+79_multiarch-backwards-compat.patch
 80_ia32-hack.patch
 99_ltmain_as-needed.patch
+01_fix_webcam_stream_play_hang.patch

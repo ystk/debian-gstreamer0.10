@@ -50,7 +50,6 @@ typedef struct _GstBaseSinkPrivate GstBaseSinkPrivate;
 
 /**
  * GstBaseSink:
- * @element: the parent element.
  *
  * The opaque #GstBaseSink data structure.
  */
@@ -68,7 +67,7 @@ struct _GstBaseSink {
 
   /*< protected >*/ /* with PREROLL_LOCK */
   GQueue        *preroll_queue;
-  gint           preroll_queue_max_len;
+  gint           preroll_queue_max_len; /* FIXME-0.11: the property is guint */
   gint           preroll_queued;
   gint           buffers_queued;
   gint           events_queued;
@@ -134,6 +133,7 @@ struct _GstBaseSink {
  * @fixate: Only useful in pull mode, this vmethod will be called in response to
  *     gst_pad_fixate_caps() being called on the sink pad. Implement if you have
  *     ideas about what should be the default values for the caps you support.
+ * @query: perform a #GstQuery on the element. Since: 0.10.36
  *
  * Subclasses can override any of the available virtual methods or not, as
  * needed. At the minimum, the @render method should be overridden to
@@ -187,8 +187,11 @@ struct _GstBaseSinkClass {
   /* Render a BufferList */
   GstFlowReturn (*render_list)  (GstBaseSink *sink, GstBufferList *buffer_list);
 
+  /* notify subclass of query */
+  gboolean      (*query)        (GstBaseSink *sink, GstQuery *query);
+
   /*< private >*/
-  gpointer       _gst_reserved[GST_PADDING_LARGE-5];
+  gpointer       _gst_reserved[GST_PADDING_LARGE-6];
 };
 
 GType gst_base_sink_get_type(void);
@@ -218,7 +221,7 @@ GstClockTimeDiff gst_base_sink_get_ts_offset    (GstBaseSink *sink);
 
 /* last buffer */
 GstBuffer *     gst_base_sink_get_last_buffer   (GstBaseSink *sink);
-void            gst_base_sink_set_last_buffer_enabled (GstBaseSink *sink, gboolean enable);
+void            gst_base_sink_set_last_buffer_enabled (GstBaseSink *sink, gboolean enabled);
 gboolean        gst_base_sink_is_last_buffer_enabled (GstBaseSink *sink);
 
 /* latency */
@@ -233,6 +236,10 @@ GstClockTime    gst_base_sink_get_render_delay  (GstBaseSink *sink);
 /* blocksize */
 void            gst_base_sink_set_blocksize     (GstBaseSink *sink, guint blocksize);
 guint           gst_base_sink_get_blocksize     (GstBaseSink *sink);
+
+/* throttle-time */
+void            gst_base_sink_set_throttle_time (GstBaseSink *sink, guint64 throttle);
+guint64         gst_base_sink_get_throttle_time (GstBaseSink *sink);
 
 GstClockReturn  gst_base_sink_wait_clock        (GstBaseSink *sink, GstClockTime time,
                                                  GstClockTimeDiff * jitter);

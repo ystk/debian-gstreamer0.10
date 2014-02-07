@@ -5,10 +5,10 @@
 # Gabor Kelemen <kelemeng@gnome.hu>, 2006, 2007, 2008, 2009, 2010.
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.25.2\n"
+"Project-Id-Version: gstreamer 0.10.30.3\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-02-01 15:04+0100\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2010-11-01 13:39+0100\n"
 "Last-Translator: Gabor Kelemen <kelemeng@gnome.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
 "Language: hu\n"
@@ -53,7 +53,7 @@ msgid "Disable debugging"
 msgstr "Hibakeresés letiltása"
 
 msgid "Enable verbose plugin loading diagnostics"
-msgstr "Bőbeszédű bővítménybetöltési diagnosztika engedélyezése"
+msgstr "Részletes bővítménybetöltési diagnosztika engedélyezése"
 
 msgid "Colon-separated paths containing plugins"
 msgstr "Bővítményeket tartalmazó útvonalak vesszőkkel elválasztott listája"
@@ -150,6 +150,9 @@ msgstr "Nem zárható be a támogató programkönyvtár."
 
 msgid "Could not configure supporting library."
 msgstr "Nem állítható be a támogató programkönyvtár."
+
+msgid "Encoding error."
+msgstr "Kódolási hiba."
 
 msgid "GStreamer encountered a general resource error."
 msgstr "A GStreamer általános erőforráshibát észlelt."
@@ -298,6 +301,12 @@ msgstr "dátum"
 msgid "date the data was created (as a GDate structure)"
 msgstr "az adatok létrehozási dátuma (GDate struktúraként)"
 
+msgid "datetime"
+msgstr "dátumidő"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr "az adatok létrehozási dátuma és ideje (GstDateTime struktúraként)"
+
 msgid "genre"
 msgstr "műfaj"
 
@@ -392,6 +401,13 @@ msgstr "védjegy uri"
 
 msgid "URI to the copyright notice of the data"
 msgstr "Az adatok védjegymegjegyzésének URI címe"
+
+#, fuzzy
+msgid "encoded by"
+msgstr "kódoló"
+
+msgid "name of the encoding person or organization"
+msgstr ""
 
 msgid "contact"
 msgstr "névjegy"
@@ -612,62 +628,63 @@ msgstr ""
 "azon hely földrajzi magassága, ahol a média felvételre vagy előállításra "
 "került méterben, a WGS84-nek megfelelően (nulla az átlagos tengerszinten)"
 
-#, fuzzy
 msgid "geo location country"
-msgstr "földrajzi hely hosszúsága"
+msgstr "földrajzi hely országa"
 
-#, fuzzy
 msgid "country (english name) where the media has been recorded or produced"
-msgstr ""
-"emberek által olvasható leíró jellegű hely, ahol a média felvételre vagy "
-"előállításra került"
+msgstr "ország (angol név), ahol a média felvételre vagy előállításra került"
 
-#, fuzzy
 msgid "geo location city"
-msgstr "földrajzi hely szélessége"
+msgstr "földrajzi hely városa"
 
-#, fuzzy
 msgid "city (english name) where the media has been recorded or produced"
-msgstr ""
-"emberek által olvasható leíró jellegű hely, ahol a média felvételre vagy "
-"előállításra került"
+msgstr "város (angol név), ahol a média felvételre vagy előállításra került"
 
-#, fuzzy
 msgid "geo location sublocation"
-msgstr "földrajzi hely magassága"
+msgstr "földrajzi hely részhelye"
 
 msgid ""
 "a location whithin a city where the media has been produced or created (e.g. "
 "the neighborhood)"
 msgstr ""
+"a városon belüli hely, ahol a média előállításra vagy létrehozásra került "
+"(például környék)"
 
-#, fuzzy
+msgid "geo location horizontal error"
+msgstr "földrajzi hely vízszintes hibája"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr "a vízszintes pozícionálási értékek várt hibája (méterben)"
+
 msgid "geo location movement speed"
-msgstr "földrajzi hely hosszúsága"
+msgstr "földrajzi hely mozgási sebessége"
 
 msgid ""
 "movement speed of the capturing device while performing the capture in m/s"
-msgstr ""
+msgstr "a felvevőeszköz mozgási sebessége a felvétel készítésekor, m/s-ban"
 
-#, fuzzy
 msgid "geo location movement direction"
-msgstr "földrajzi hely magassága"
+msgstr "földrajzi hely mozgási iránya"
 
 msgid ""
 "indicates the movement direction of the device performing the capture of a "
 "media. It is represented as degrees in floating point representation, 0 "
 "means the geographic north, and increases clockwise"
 msgstr ""
+"a média felvételét végző eszköz mozgási irányát jelzi. lebegőpontosan "
+"ábrázolt fokok képviselik, a 0 a földrajzi északot jelzi és az óra járásának "
+"irányába nő."
 
-#, fuzzy
 msgid "geo location capture direction"
-msgstr "földrajzi hely magassága"
+msgstr "földrajzi hely felvételi iránya"
 
 msgid ""
 "indicates the direction the device is pointing to when capturing  a media. "
 "It is represented as degrees in floating point  representation, 0 means the "
 "geographic north, and increases clockwise"
 msgstr ""
+"a média felvételét végző eszköz irányát jelzi. lebegőpontosan ábrázolt fokok "
+"képviselik, a 0 a földrajzi északot jelzi és az óra járásának irányába nő."
 
 #. TRANSLATORS: 'show name' = 'TV/radio/podcast show name' here
 msgid "show name"
@@ -719,34 +736,45 @@ msgstr ""
 "Több számot átfogó média csoportosítása, például egy koncert különböző "
 "darabjai. Magasabb szintű a számnál, de alacsonyabb az albumnál"
 
-#, fuzzy
 msgid "user rating"
-msgstr "időtartam"
+msgstr "felhasználói értékelés"
 
 msgid ""
 "Rating attributed by a user. The higher the rank, the more the user likes "
 "this media"
 msgstr ""
+"Felhasználó által társított értékelés. Minél magasabb, annál jobban kedveli "
+"a felhasználó a médiát"
 
 msgid "device manufacturer"
-msgstr ""
+msgstr "eszköz gyártója"
 
-#, fuzzy
 msgid "Manufacturer of the device used to create this media"
-msgstr "az adatfolyam kódolására használt kódoló verziószáma"
+msgstr "A média előállításához használt eszköz gyártója"
 
 msgid "device model"
-msgstr ""
+msgstr "eszközmodell"
 
-#, fuzzy
 msgid "Model of the device used to create this media"
-msgstr "az adatfolyam kódolására használt kódoló verziószáma"
+msgstr "A média létrehozására használt eszközmodell"
+
+msgid "application name"
+msgstr "alkalmazás neve"
+
+msgid "Application used to create the media"
+msgstr "A média létrehozására használt alkalmazás"
+
+msgid "application data"
+msgstr "alkalmazásadatok"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr "Tetszőleges, a médiába mentendő alkalmazásadatok"
 
 msgid "image orientation"
-msgstr ""
+msgstr "kép tájolása"
 
 msgid "How the image should be rotated or flipped before display"
-msgstr ""
+msgstr "A kép hogyan forgatandó vagy tükrözendő megjelenítés előtt"
 
 msgid ", "
 msgstr ", "
@@ -882,16 +910,15 @@ msgstr "A(z) „%s” fájl egy foglalat."
 msgid "Failed after iterations as requested."
 msgstr "Ismétlések után kérésére meghiúsult."
 
-#, fuzzy
-msgid "Error while writing to download file."
-msgstr "Hiba a(z) „%s” fájl írása közben."
-
 msgid "No Temp directory specified."
 msgstr "Nincs megadva ideiglenes könyvtár."
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "Nem hozható létre a következő ideiglenes fájl: „%s”."
+
+msgid "Error while writing to download file."
+msgstr "Hiba a letöltési fájl írása közben."
 
 msgid "caps"
 msgstr "képességek"
@@ -925,6 +952,15 @@ msgstr "írható"
 
 msgid "controllable"
 msgstr "vezérelhető"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr "módosítható a NULL, KÉSZ, SZÜNETEL vagy LEJÁTSZÁS állapotban"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr "csak a NULL, KÉSZ vagy SZÜNETEL állapotban módosítható"
+
+msgid "changeable only in NULL or READY state"
+msgstr "csak a NULL vagy KÉSZ állapotban módosítható"
 
 msgid "Blacklisted files:"
 msgstr "Feketelistás fájlok:"
@@ -1009,6 +1045,9 @@ msgstr "HIBA: nem elemezhető a(z) %d. parancssori argumentum: %s.\n"
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "FIGYELMEZTETÉS: a(z) „%s” nevű elem nem található.\n"
 
+msgid "Index statistics"
+msgstr ""
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "%u számú üzenet érkezett a következő elemtől: „%s” (%s)."
@@ -1078,6 +1117,10 @@ msgstr "Állapot beállítása erre: %s, %s kérésének megfelelően…\n"
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Megszakítás: Adatcsatorna leállítása…\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "nincs „%s” elem"
+
 msgid "Output tags (also known as metadata)"
 msgstr "Kimeneti címkék (metaadatok)"
 
@@ -1105,15 +1148,17 @@ msgstr "FÁJL"
 msgid "Do not install a fault handler"
 msgstr "Ne telepítsen hibakezelőt"
 
-#, fuzzy
 msgid "Do not install signal handlers for SIGUSR1 and SIGUSR2"
-msgstr "Ne telepítsen hibakezelőt"
+msgstr "Ne telepítsen szignálkezelőket a SIGUSR1 és SIGUSR2 szignálokhoz"
 
 msgid "Print alloc trace (if enabled at compile time)"
 msgstr "Foglalási nyomkövetés kiírása (ha fordításkor engedélyezték)"
 
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "EOS kényszerítése a forrásokra az adatcsatorna leállítása előtt"
+
+msgid "Gather and print index statistics"
+msgstr ""
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

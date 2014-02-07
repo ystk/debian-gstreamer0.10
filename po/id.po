@@ -1,13 +1,13 @@
 # Indonesian translations for gstreamer package.
 # This file is put in the public domain.
-# Andhika Padmawan <andhika.padmawan@gmail.com>, 2010.
+# Andhika Padmawan <andhika.padmawan@gmail.com>, 2010-2012.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.29.2\n"
+"Project-Id-Version: gstreamer 0.10.32.2\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-06-29 21:55+0700\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2012-01-28 11:44+0700\n"
 "Last-Translator: Andhika Padmawan <andhika.padmawan@gmail.com>\n"
 "Language-Team: Indonesian <translation-team-id@lists.sourceforge.net>\n"
 "Language: id\n"
@@ -151,6 +151,9 @@ msgstr "Tak dapat menutup pustaka pendukung."
 
 msgid "Could not configure supporting library."
 msgstr "Tak dapat mengatur pustaka pendukung."
+
+msgid "Encoding error."
+msgstr "Galat penyandian."
 
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer menghadapi galat umum sumber daya."
@@ -300,6 +303,12 @@ msgstr "tanggal"
 msgid "date the data was created (as a GDate structure)"
 msgstr "tanggal data dibuat (menurut struktur GDate)"
 
+msgid "datetime"
+msgstr "tanggalwaktu"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr "tanggal dan waktu data dibuat (menurut struktur GDateTime)"
+
 msgid "genre"
 msgstr "genre"
 
@@ -393,6 +402,12 @@ msgstr "uri hak cipta"
 
 msgid "URI to the copyright notice of the data"
 msgstr "URI ke keterangan hak cipta data"
+
+msgid "encoded by"
+msgstr "disandikan oleh"
+
+msgid "name of the encoding person or organization"
+msgstr "nama penyandian orang atau organisasi"
 
 msgid "contact"
 msgstr "kontak"
@@ -635,6 +650,12 @@ msgstr ""
 "lokasi di dalam kota tempat media dihasilkan atau dibuat (misalnya "
 "lingkungan)"
 
+msgid "geo location horizontal error"
+msgstr "galat horizontal lokasi geografis"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr "galat yang diharapkan dari pengukuran posisi horizontal (dalam meter)"
+
 msgid "geo location movement speed"
 msgstr "kecepatan gerak lokasi geografis"
 
@@ -739,6 +760,18 @@ msgstr "model divais"
 
 msgid "Model of the device used to create this media"
 msgstr "Model divais yang digunakan untuk membuat media ini"
+
+msgid "application name"
+msgstr "nama aplikasi"
+
+msgid "Application used to create the media"
+msgstr "Aplikasi yang digunakan untuk membuat media"
+
+msgid "application data"
+msgstr "data aplikasi"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr "Data aplikasi wajib yang akan diurutkan dalam media"
 
 msgid "image orientation"
 msgstr "orientasi gambar"
@@ -880,15 +913,15 @@ msgstr "Berkas \"%s\" adalah soket."
 msgid "Failed after iterations as requested."
 msgstr "Gagal setelah pengulangan seperti yang diminta."
 
-msgid "Error while writing to download file."
-msgstr "Galat ketika menulis ke berkas unduhan."
-
 msgid "No Temp directory specified."
 msgstr "Tak ada direktori Temp yang ditentukan."
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "Tak bisa membuat berkas temp \"%s\"."
+
+msgid "Error while writing to download file."
+msgstr "Galat ketika menulis ke berkas unduhan."
 
 msgid "caps"
 msgstr "huruf"
@@ -922,6 +955,15 @@ msgstr "dapat ditulis"
 
 msgid "controllable"
 msgstr "dapat dikendalikan"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr "dapat diubah dalam kondisi NULL, READY, PAUSED atau PLAYING"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr "hanya dapat diubah dalam kondisi NULL, READY, atau PAUSED"
+
+msgid "changeable only in NULL or READY state"
+msgstr "hanya dapat diubah dalam kondisi NULL atau READY"
 
 msgid "Blacklisted files:"
 msgstr "Berkas yang dilarang:"
@@ -1004,6 +1046,9 @@ msgstr "GALAT: tak dapat menguraikan argumen baris perintah %d: %s.\n"
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "GALAT: elemen yang dinamakan '%s' tak ditemukan.\n"
 
+msgid "Index statistics"
+msgstr "Statistik indeks"
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "Mendapat pesan #%u dari elemen \"%s\" (%s): "
@@ -1073,6 +1118,10 @@ msgstr "Mengatur tingkat ke %s seperti diminta oleh %s...\n"
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Interupsi: Menghentikan baris pipa ...\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "tak ada elemen \"%s\""
+
 msgid "Output tags (also known as metadata)"
 msgstr "Tag keluaran (juga dikenal sebagai metadata)"
 
@@ -1108,6 +1157,9 @@ msgstr "Cetak jejak alokasi (jika diaktifkan sewaktu kompilasi)"
 
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "Paksa EOS pada sumber sebelum mematikan pemipaan"
+
+msgid "Gather and print index statistics"
+msgstr "Kumpulkan dan cetak statistik indeks"
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

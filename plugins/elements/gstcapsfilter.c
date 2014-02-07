@@ -24,6 +24,13 @@
  *
  * The element does not modify data as such, but can enforce limitations on the
  * data format.
+ *
+ * <refsect2>
+ * <title>Example launch line</title>
+ * |[
+ * gst-launch videotestsrc ! video/x-raw-gray ! ffmpegcolorspace ! autovideosink
+ * ]| Limits acceptable video from videotestsrc to be grayscale.
+ * </refsect2>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -197,9 +204,10 @@ gst_capsfilter_set_property (GObject * object, guint prop_id,
         }
       } else {
         GST_DEBUG_OBJECT (capsfilter, "no negotiated caps");
-        /* no previous caps, the getcaps function will be used to find suitable
-         * caps */
-        suggest = NULL;
+        /* Suggest the new caps, we can't just rely on _get_caps as this may
+         * already be called at this point even though no buffer has been
+         * pushed yet */
+        suggest = gst_caps_copy (new_caps);
       }
       GST_OBJECT_UNLOCK (GST_BASE_TRANSFORM_SINK_PAD (object));
 
@@ -320,7 +328,7 @@ gst_capsfilter_prepare_buf (GstBaseTransform * trans, GstBuffer * input,
 
   if (GST_BUFFER_CAPS (input) != NULL) {
     /* Output buffer already has caps */
-    GST_LOG_OBJECT (trans, "Input buffer already has caps (implicitely fixed)");
+    GST_LOG_OBJECT (trans, "Input buffer already has caps (implicitly fixed)");
     /* FIXME : Move this behaviour to basetransform. The given caps are the ones
      * of the source pad, therefore our outgoing buffers should always have
      * those caps. */

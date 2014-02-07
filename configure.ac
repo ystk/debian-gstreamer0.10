@@ -3,7 +3,7 @@ AC_PREREQ(2.60)
 dnl initialize autoconf
 dnl when going to/from release please set the nano (fourth number) right !
 dnl releases only do Wall, git and prerelease does Werror too
-AC_INIT(GStreamer, 0.10.30,
+AC_INIT(GStreamer, 0.10.36,
     http://bugzilla.gnome.org/enter_bug.cgi?product=GStreamer,
     gstreamer)
 AG_GST_INIT
@@ -48,7 +48,7 @@ dnl - interfaces added/removed/changed -> increment CURRENT, REVISION = 0
 dnl - interfaces added -> increment AGE
 dnl - interfaces removed -> AGE = 0
 dnl sets GST_LT_LDFLAGS
-AS_LIBTOOL(GST, 26, 0, 26)
+AS_LIBTOOL(GST, 30, 0, 30)
 
 dnl FIXME: this macro doesn't actually work;
 dnl the generated libtool script has no support for the listed tags.
@@ -129,6 +129,12 @@ AG_GST_ARG_EXAMPLES
 AG_GST_ARG_WITH_PKG_CONFIG_PATH
 AG_GST_ARG_WITH_PACKAGE_NAME
 AG_GST_ARG_WITH_PACKAGE_ORIGIN
+
+AG_GST_PKG_CONFIG_PATH
+
+AG_GST_SET_PACKAGE_RELEASE_DATETIME_WITH_NANO([$PACKAGE_VERSION_NANO],
+  ["${srcdir}/gstreamer.doap"],
+  [$PACKAGE_VERSION_MAJOR.$PACKAGE_VERSION_MINOR.$PACKAGE_VERSION_MICRO])
 
 dnl building of tests
 AC_ARG_ENABLE(tests,
@@ -214,12 +220,23 @@ dnl *** checks for programs ***
 
 dnl find a compiler
 AC_PROG_CC
+AC_PROG_CC_STDC
 
 dnl check if the compiler supports '-c' and '-o' options
 AM_PROG_CC_C_O
 
 dnl find an assembler
 AM_PROG_AS
+
+dnl determine if c++ is available on this system
+AC_PROG_CXX
+dnl CXX may be set to some default even if no c++ compiler is available
+dnl (thanks autotools!), so just try to compile some c++ code to make sure
+AC_LANG_PUSH([C++])
+AC_TRY_COMPILE([ class Foo { int bar; };], , working_cxx=yes, working_cxx=no)
+AC_LANG_POP([C++])
+AC_MSG_NOTICE([working c++ compiler found: $working_cxx])
+AM_CONDITIONAL(HAVE_CXX, test "x$working_cxx" = "xyes")
 
 dnl Perl is used in building documentation and in the version checks
 AC_PATH_PROG(PERL_PATH, perl, no)
@@ -237,7 +254,7 @@ AC_PATH_PROG(VALGRIND_PATH, valgrind, no)
 AM_CONDITIONAL(HAVE_VALGRIND, test ! "x$VALGRIND_PATH" = "xno")
 
 dnl check for gobject-introspection
-GOBJECT_INTROSPECTION_CHECK([0.6.3])
+GOBJECT_INTROSPECTION_CHECK([0.6.8])
 
 dnl check for documentation tools
 AG_GST_DOCBOOK_CHECK
@@ -338,8 +355,26 @@ if test x$gst_cv_uint128_t = xyes; then
   AC_DEFINE(HAVE_UINT128_T, 1, [Have __uint128_t type])
 fi
 
+dnl *** checking for tm_gmtoff ***
+AC_MSG_CHECKING([for tm_gmtoff])
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
+	#include <time.h>
+	int main(void) {
+	  struct tm t;
+	  t.tm_gmtoff = 0;
+	  exit(0);
+	}]])],
+  [have_tm_gmtoff=yes
+   AC_DEFINE(HAVE_TM_GMTOFF,1,[Have tm_gmtoff field in struct tm])],
+  [have_tm_gmtoff=no],
+  [have_tm_gmtoff="no (cross compiling)"])
+AC_MSG_RESULT($have_tm_gmtoff)
+
+
 dnl *** checks for library functions ***
 
+AC_CHECK_FUNCS([gmtime_r])
+AC_CHECK_FUNCS([localtime_r])
 AC_CHECK_FUNCS([sigaction])
 
 dnl check for fseeko()
@@ -354,6 +389,8 @@ dnl check for poll(), ppoll() and pselect()
 AC_CHECK_FUNCS([poll])
 AC_CHECK_FUNCS([ppoll])
 AC_CHECK_FUNCS([pselect])
+
+AC_CHECK_HEADERS([sys/poll.h])
 
 dnl ****************************************
 dnl *** GLib POLL* compatibility defines ***
@@ -500,7 +537,7 @@ LIBS="$save_libs"
 dnl *** checks for dependency libraries ***
 
 dnl GLib
-GLIB_REQ=2.20
+GLIB_REQ=2.24
 
 AG_GST_GLIB_CHECK([$GLIB_REQ])
 
@@ -566,6 +603,22 @@ AC_ARG_WITH([buffer-alignment],
   ]
 )
 
+dnl Check for -Bsymbolic-functions linker flag used to avoid
+dnl intra-library PLT jumps, if available.
+AC_ARG_ENABLE(Bsymbolic,
+              [AC_HELP_STRING([--disable-Bsymbolic],
+                              [avoid linking with -Bsymbolic])],,
+              [SAVED_LDFLAGS="${LDFLAGS}"
+               AC_MSG_CHECKING([for -Bsymbolic-functions linker flag])
+               LDFLAGS=-Wl,-Bsymbolic-functions
+               AC_TRY_LINK([], [int main (void) { return 0; }],
+                           AC_MSG_RESULT(yes)
+                           enable_Bsymbolic=yes,
+                           AC_MSG_RESULT(no)
+                           enable_Bsymbolic=no)
+               LDFLAGS="${SAVED_LDFLAGS}"])
+
+
 dnl *** set variables based on configure arguments
 
 dnl set license and copyright notice
@@ -586,8 +639,14 @@ dnl FIXME: add LIBXML_PKG here if we use it
 GST_PKG_DEPS="glib-2.0, gobject-2.0, gmodule-no-export-2.0, gthread-2.0"
 AC_SUBST(GST_PKG_DEPS)
 
+dnl make sure it doesn't complain about unused variables if debugging is disabled
+NO_WARNINGS=""
+if test "x${GST_DISABLE_GST_DEBUG}" = "xyes"; then
+  NO_WARNINGS="-Wno-unused"
+fi
+
 dnl define an ERROR_CFLAGS Makefile variable
-AG_GST_SET_ERROR_CFLAGS($GST_GIT, [-Wmissing-declarations -Wmissing-prototypes -Wredundant-decls -Wundef -Wwrite-strings -Wformat-nonliteral -Wformat-security -Wold-style-definition -Winit-self -Wmissing-include-dirs -Waddress -Waggregate-return -Wno-multichar -Wnested-externs])
+AG_GST_SET_ERROR_CFLAGS($GST_GIT, [-Wmissing-declarations -Wmissing-prototypes -Wredundant-decls -Wundef -Wwrite-strings -Wformat-nonliteral -Wformat-security -Wold-style-definition -Winit-self -Wmissing-include-dirs -Waddress -Waggregate-return -Wno-multichar -Wnested-externs $NO_WARNINGS])
 
 dnl define correct level for debugging messages
 AG_GST_SET_LEVEL_DEFAULT($GST_GIT)
@@ -623,7 +682,9 @@ AC_SUBST(DEPRECATED_CFLAGS)
 dnl every flag in GST_OPTION_CFLAGS can be overridden at make time via e.g.
 dnl make DEPRECATED_CFLAGS=''
 GST_OPTION_CFLAGS="\$(WARNING_CFLAGS) \$(DEBUG_CFLAGS) \$(PROFILE_CFLAGS) \$(GCOV_CFLAGS) \$(OPT_CFLAGS) \$(DEPRECATED_CFLAGS)"
+GST_OPTION_CXXFLAGS="\$(WARNING_CXXFLAGS) \$(ERROR_CXXFLAGS) \$(DEBUG_CFLAGS) \$(PROFILE_CFLAGS) \$(GCOV_CFLAGS) \$(OPT_CFLAGS) \$(DEPRECATED_CFLAGS)"
 AC_SUBST(GST_OPTION_CFLAGS)
+AC_SUBST(GST_OPTION_CXXFLAGS)
 
 dnl GST_ALL_*
 dnl vars common to for all internal objects (core libs, elements, applications)
@@ -633,7 +694,8 @@ dnl - src and build dirs need to be added because every piece that gets built
 dnl   will need the GStreamer source and generated headers
 dnl LIBS: XML doesn't need to be added because we don't explicitly use symbols
 dnl       from LibXML except for in the core library
-GST_ALL_CFLAGS="-I\$(top_srcdir)/libs -I\$(top_srcdir) -I\$(top_builddir)/libs -I\$(top_builddir) $GLIB_CFLAGS $GLIB_EXTRA_CFLAGS $XML_CFLAGS \$(GST_OPTION_CFLAGS) \$(ERROR_CFLAGS)"
+GST_ALL_CXXFLAGS="-I\$(top_srcdir)/libs -I\$(top_srcdir) -I\$(top_builddir)/libs -I\$(top_builddir) $GLIB_CFLAGS \$(GLIB_EXTRA_CFLAGS) $XML_CFLAGS \$(GST_OPTION_CXXFLAGS) \$(ERROR_CXXFLAGS)"
+GST_ALL_CFLAGS="-I\$(top_srcdir)/libs -I\$(top_srcdir) -I\$(top_builddir)/libs -I\$(top_builddir) $GLIB_CFLAGS \$(GLIB_EXTRA_CFLAGS) $XML_CFLAGS \$(GST_OPTION_CFLAGS) \$(ERROR_CFLAGS)"
 
 dnl FIXME: check if LTLIBINTL is needed everywhere
 dnl I presume it is given that it contains the symbols that _() stuff maps to
@@ -642,8 +704,12 @@ GST_ALL_LIBS="$GLIB_LIBS $LTLIBINTL \$(GCOV_LIBS)"
 dnl LDFLAGS really should only contain flags, not libs - they get added before
 dnl whatevertarget_LIBS and -L flags here affect the rest of the linking
 GST_ALL_LDFLAGS="-no-undefined"
+if test "x${enable_Bsymbolic}" = "xyes"; then
+  GST_ALL_LDFLAGS="$GST_ALL_LDFLAGS -Wl,-Bsymbolic-functions"
+fi
 
 AC_SUBST(GST_ALL_CFLAGS)
+AC_SUBST(GST_ALL_CXXFLAGS)
 AC_SUBST(GST_ALL_LIBS)
 AC_SUBST(GST_ALL_LDFLAGS)
 
@@ -657,13 +723,15 @@ dnl GST_OBJ_*
 dnl default vars for all internal objects built on libgstreamer
 dnl includes GST_ALL_*
 GST_OBJ_CFLAGS="\$(GST_ALL_CFLAGS)"
+GST_OBJ_CXXFLAGS="\$(GST_ALL_CXXFLAGS)"
 GST_OBJ_LIBS="\$(top_builddir)/gst/libgstreamer-$GST_MAJORMINOR.la \$(GST_ALL_LIBS)"
 AC_SUBST(GST_OBJ_CFLAGS)
+AC_SUBST(GST_OBJ_CXXFLAGS)
 AC_SUBST(GST_OBJ_LIBS)
 
 dnl GST_PLUGIN_LDFLAGS
 dnl LDFLAGS for plugins; includes GST_ALL_LDFLAGS
-GST_PLUGIN_LDFLAGS="-module -avoid-version -export-symbols-regex '^[_]*gst_plugin_desc\$\$' $GST_ALL_LDFLAGS"
+GST_PLUGIN_LDFLAGS="-module -avoid-version -export-symbols-regex '^[_]*gst_plugin_desc.*' $GST_ALL_LDFLAGS"
 AC_SUBST(GST_PLUGIN_LDFLAGS, "$GST_PLUGIN_LDFLAGS")
 
 dnl plugin scanner locations
@@ -756,6 +824,7 @@ sed \
     -e 's/.* GST_MAJORMINOR$/#define GST_MAJORMINOR "'$GST_MAJORMINOR'"/' \
     -e "s,.* GST_PACKAGE_NAME$,#define GST_PACKAGE_NAME \"${GST_PACKAGE_NAME}\"," \
     -e 's/.* GST_PACKAGE_ORIGIN$/#define GST_PACKAGE_ORIGIN "Unknown package origin"/' \
+    -e "s,.* GST_PACKAGE_RELEASE_DATETIME$,#define GST_PACKAGE_RELEASE_DATETIME \"${GST_PACKAGE_RELEASE_DATETIME}\"," \
     -e 's/.* HAVE_CPU_I386$/#define HAVE_CPU_I386 1/' \
     -e 's/.* HAVE_FGETPOS$/#define HAVE_FGETPOS 1/' \
     -e 's/.* HAVE_FSETPOS$/#define HAVE_FSETPOS 1/' \

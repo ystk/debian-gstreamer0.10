@@ -62,7 +62,6 @@ static GstStaticPadTemplate srctemplate = GST_STATIC_PAD_TEMPLATE ("src",
 GST_DEBUG_CATEGORY_STATIC (gst_fake_src_debug);
 #define GST_CAT_DEFAULT gst_fake_src_debug
 
-
 /* FakeSrc signals and args */
 enum
 {
@@ -226,6 +225,8 @@ static GstFlowReturn gst_fake_src_create (GstBaseSrc * src, guint64 offset,
 
 static guint gst_fake_src_signals[LAST_SIGNAL] = { 0 };
 
+static GParamSpec *pspec_last_message = NULL;
+
 static void
 marshal_VOID__MINIOBJECT_OBJECT (GClosure * closure, GValue * return_value,
     guint n_param_values, const GValue * param_values, gpointer invocation_hint,
@@ -324,10 +325,11 @@ gst_fake_src_class_init (GstFakeSrcClass * klass)
   g_object_class_install_property (gobject_class, PROP_PATTERN,
       g_param_spec_string ("pattern", "pattern", "pattern", DEFAULT_PATTERN,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  pspec_last_message = g_param_spec_string ("last-message", "last-message",
+      "The last status message", NULL,
+      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (gobject_class, PROP_LAST_MESSAGE,
-      g_param_spec_string ("last-message", "last-message",
-          "The last status message", NULL,
-          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+      pspec_last_message);
   g_object_class_install_property (gobject_class, PROP_SILENT,
       g_param_spec_boolean ("silent", "Silent",
           "Don't produce last_message events", DEFAULT_SILENT,
@@ -443,12 +445,17 @@ gst_fake_src_event_handler (GstBaseSrc * basesrc, GstEvent * event)
       sstr = g_strdup ("");
 
     src->last_message =
-        g_strdup_printf ("event   ******* E (type: %d, %s) %p",
+        g_strdup_printf ("event   ******* (%s:%s) E (type: %d, %s) %p",
+        GST_DEBUG_PAD_NAME (GST_BASE_SRC_CAST (src)->srcpad),
         GST_EVENT_TYPE (event), sstr, event);
     g_free (sstr);
     GST_OBJECT_UNLOCK (src);
 
-    g_object_notify (G_OBJECT (src), "last_message");
+#if !GLIB_CHECK_VERSION(2,26,0)
+    g_object_notify ((GObject *) src, "last-message");
+#else
+    g_object_notify_by_pspec ((GObject *) src, pspec_last_message);
+#endif
   }
 
   return GST_BASE_SRC_CLASS (parent_class)->event (basesrc, event);
@@ -717,12 +724,8 @@ static GstBuffer *
 gst_fake_src_create_buffer (GstFakeSrc * src)
 {
   GstBuffer *buf;
-  guint size;
+  guint size = gst_fake_src_get_size (src);
   gboolean dump = src->dump;
-
-  size = gst_fake_src_get_size (src);
-  if (size == 0)
-    return gst_buffer_new ();
 
   switch (src->data) {
     case FAKE_SRC_DATA_ALLOCATE:
@@ -825,6 +828,7 @@ gst_fake_src_create (GstBaseSrc * basesrc, guint64 offset, guint length,
 
   if (!src->silent) {
     gchar ts_str[64], dur_str[64];
+    gchar flag_str[100];
 
     GST_OBJECT_LOCK (src);
     g_free (src->last_message);
@@ -843,15 +847,41 @@ gst_fake_src_create (GstBaseSrc * basesrc, guint64 offset, guint length,
       g_strlcpy (dur_str, "none", sizeof (dur_str));
     }
 
+    {
+      const char *flag_list[12] = {
+        "ro", "media4", "", "",
+        "preroll", "discont", "incaps", "gap",
+        "delta_unit", "media1", "media2", "media3"
+      };
+      int i;
+      char *end = flag_str;
+      end[0] = '\0';
+      for (i = 0; i < 12; i++) {
+        if (GST_MINI_OBJECT_CAST (buf)->flags & (1 << i)) {
+          strcpy (end, flag_list[i]);
+          end += strlen (end);
+          end[0] = ' ';
+          end[1] = '\0';
+          end++;
+        }
+      }
+    }
+
     src->last_message =
-        g_strdup_printf ("get      ******* > (%5d bytes, timestamp: %s"
+        g_strdup_printf ("create   ******* (%s:%s) (%u bytes, timestamp: %s"
         ", duration: %s, offset: %" G_GINT64_FORMAT ", offset_end: %"
-        G_GINT64_FORMAT ", flags: %d) %p", GST_BUFFER_SIZE (buf), ts_str,
-        dur_str, GST_BUFFER_OFFSET (buf), GST_BUFFER_OFFSET_END (buf),
-        GST_MINI_OBJECT (buf)->flags, buf);
+        G_GINT64_FORMAT ", flags: %d %s) %p",
+        GST_DEBUG_PAD_NAME (GST_BASE_SRC_CAST (src)->srcpad),
+        GST_BUFFER_SIZE (buf), ts_str, dur_str, GST_BUFFER_OFFSET (buf),
+        GST_BUFFER_OFFSET_END (buf), GST_MINI_OBJECT (buf)->flags, flag_str,
+        buf);
     GST_OBJECT_UNLOCK (src);
 
-    g_object_notify (G_OBJECT (src), "last_message");
+#if !GLIB_CHECK_VERSION(2,26,0)
+    g_object_notify ((GObject *) src, "last-message");
+#else
+    g_object_notify_by_pspec ((GObject *) src, pspec_last_message);
+#endif
   }
 
   if (src->signal_handoffs) {

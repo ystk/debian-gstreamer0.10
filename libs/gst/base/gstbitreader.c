@@ -22,6 +22,7 @@
 #include "config.h"
 #endif
 
+#define GST_BIT_READER_DISABLE_INLINES
 #include "gstbitreader.h"
 
 #include <string.h>
@@ -42,7 +43,9 @@
  *
  * Create a new #GstBitReader instance, which will read from @data.
  *
- * Returns: a new #GstBitReader instance
+ * Free-function: gst_bit_reader_free
+ *
+ * Returns: (transfer full): a new #GstBitReader instance
  *
  * Since: 0.10.22
  */
@@ -64,7 +67,9 @@ gst_bit_reader_new (const guint8 * data, guint size)
  * Create a new #GstBitReader instance, which will read from the
  * #GstBuffer @buffer.
  *
- * Returns: a new #GstBitReader instance
+ * Free-function: gst_bit_reader_free
+ *
+ * Returns: (transfer full): a new #GstBitReader instance
  *
  * Since: 0.10.22
  */
@@ -79,7 +84,7 @@ gst_bit_reader_new_from_buffer (const GstBuffer * buffer)
 
 /**
  * gst_bit_reader_free:
- * @reader: a #GstBitReader instance
+ * @reader: (in) (transfer full): a #GstBitReader instance
  *
  * Frees a #GstBitReader instance, which was previously allocated by
  * gst_bit_reader_new() or gst_bit_reader_new_from_buffer().
@@ -97,7 +102,7 @@ gst_bit_reader_free (GstBitReader * reader)
 /**
  * gst_bit_reader_init:
  * @reader: a #GstBitReader instance
- * @data: Data from which the #GstBitReader should read
+ * @data: (in) (array length=size): data from which the bit reader should read
  * @size: Size of @data in bytes
  *
  * Initializes a #GstBitReader instance to read from @data. This function
@@ -118,7 +123,7 @@ gst_bit_reader_init (GstBitReader * reader, const guint8 * data, guint size)
 /**
  * gst_bit_reader_init_from_buffer:
  * @reader: a #GstBitReader instance
- * @buffer: Buffer from which the #GstBitReader should read
+ * @buffer: (transfer none): Buffer from which the #GstBitReader should read
  *
  * Initializes a #GstBitReader instance to read from @buffer. This function
  * can be called on already initialized instances.
@@ -174,9 +179,7 @@ gst_bit_reader_set_pos (GstBitReader * reader, guint pos)
 guint
 gst_bit_reader_get_pos (const GstBitReader * reader)
 {
-  g_return_val_if_fail (reader != NULL, 0);
-
-  return reader->byte * 8 + reader->bit;
+  return _gst_bit_reader_get_pos_inline (reader);
 }
 
 /**
@@ -192,9 +195,7 @@ gst_bit_reader_get_pos (const GstBitReader * reader)
 guint
 gst_bit_reader_get_remaining (const GstBitReader * reader)
 {
-  g_return_val_if_fail (reader != NULL, 0);
-
-  return reader->size * 8 - (reader->byte * 8 + reader->bit);
+  return _gst_bit_reader_get_remaining_inline (reader);
 }
 
 /**
@@ -210,9 +211,7 @@ gst_bit_reader_get_remaining (const GstBitReader * reader)
 guint
 gst_bit_reader_get_size (const GstBitReader * reader)
 {
-  g_return_val_if_fail (reader != NULL, 0);
-
-  return reader->size * 8;
+  return _gst_bit_reader_get_size_inline (reader);
 }
 
 /**
@@ -229,16 +228,7 @@ gst_bit_reader_get_size (const GstBitReader * reader)
 gboolean
 gst_bit_reader_skip (GstBitReader * reader, guint nbits)
 {
-  g_return_val_if_fail (reader != NULL, FALSE);
-
-  if (gst_bit_reader_get_remaining (reader) < nbits)
-    return FALSE;
-
-  reader->bit += nbits;
-  reader->byte += reader->bit / 8;
-  reader->bit = reader->bit % 8;
-
-  return TRUE;
+  return _gst_bit_reader_skip_inline (reader, nbits);
 }
 
 /**
@@ -254,23 +244,13 @@ gst_bit_reader_skip (GstBitReader * reader, guint nbits)
 gboolean
 gst_bit_reader_skip_to_byte (GstBitReader * reader)
 {
-  g_return_val_if_fail (reader != NULL, FALSE);
-
-  if (reader->byte > reader->size)
-    return FALSE;
-
-  if (reader->bit) {
-    reader->bit = 0;
-    reader->byte++;
-  }
-
-  return TRUE;
+  return _gst_bit_reader_skip_to_byte_inline (reader);
 }
 
 /**
  * gst_bit_reader_get_bits_uint8:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint8 to store the result
+ * @val: (out): Pointer to a #guint8 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
@@ -283,7 +263,7 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 /**
  * gst_bit_reader_get_bits_uint16:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint16 to store the result
+ * @val: (out): Pointer to a #guint16 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
@@ -296,7 +276,7 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 /**
  * gst_bit_reader_get_bits_uint32:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint32 to store the result
+ * @val: (out): Pointer to a #guint32 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
@@ -309,7 +289,7 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 /**
  * gst_bit_reader_get_bits_uint64:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint64 to store the result
+ * @val: (out): Pointer to a #guint64 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
@@ -322,7 +302,7 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 /**
  * gst_bit_reader_peek_bits_uint8:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint8 to store the result
+ * @val: (out): Pointer to a #guint8 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
@@ -335,7 +315,7 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 /**
  * gst_bit_reader_peek_bits_uint16:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint16 to store the result
+ * @val: (out): Pointer to a #guint16 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
@@ -348,7 +328,7 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 /**
  * gst_bit_reader_peek_bits_uint32:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint32 to store the result
+ * @val: (out): Pointer to a #guint32 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
@@ -361,7 +341,7 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 /**
  * gst_bit_reader_peek_bits_uint64:
  * @reader: a #GstBitReader instance
- * @val: Pointer to a #guint64 to store the result
+ * @val: (out): Pointer to a #guint64 to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
@@ -373,43 +353,15 @@ gst_bit_reader_skip_to_byte (GstBitReader * reader)
 
 #define GST_BIT_READER_READ_BITS(bits) \
 gboolean \
-gst_bit_reader_get_bits_uint##bits (GstBitReader *reader, guint##bits *val, guint nbits) \
+gst_bit_reader_peek_bits_uint##bits (const GstBitReader *reader, guint##bits *val, guint nbits) \
 { \
-  guint##bits ret = 0; \
-  \
-  g_return_val_if_fail (reader != NULL, FALSE); \
-  g_return_val_if_fail (val != NULL, FALSE); \
-  g_return_val_if_fail (nbits <= bits, FALSE); \
-  \
-  if (reader->byte * 8 + reader->bit + nbits > reader->size * 8) \
-    return FALSE; \
-  \
-  while (nbits > 0) { \
-    guint toread = MIN (nbits, 8 - reader->bit); \
-    \
-    ret <<= toread; \
-    ret |= (reader->data[reader->byte] & (0xff >> reader->bit)) >> (8 - toread - reader->bit); \
-    \
-    reader->bit += toread; \
-    if (reader->bit >= 8) { \
-      reader->byte++; \
-      reader->bit = 0; \
-    } \
-    nbits -= toread; \
-  } \
-  \
-  *val = ret; \
-  return TRUE; \
+  return _gst_bit_reader_peek_bits_uint##bits##_inline (reader, val, nbits); \
 } \
 \
 gboolean \
-gst_bit_reader_peek_bits_uint##bits (const GstBitReader *reader, guint##bits *val, guint nbits) \
+gst_bit_reader_get_bits_uint##bits (GstBitReader *reader, guint##bits *val, guint nbits) \
 { \
-  GstBitReader tmp; \
-  \
-  g_return_val_if_fail (reader != NULL, FALSE); \
-  tmp = *reader; \
-  return gst_bit_reader_get_bits_uint##bits (&tmp, val, nbits); \
+  return _gst_bit_reader_get_bits_uint##bits##_inline (reader, val, nbits); \
 }
 
 GST_BIT_READER_READ_BITS (8);

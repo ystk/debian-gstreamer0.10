@@ -31,12 +31,14 @@
 #include <gst/gstenumtypes.h>
 #include <gst/gstversion.h>
 
+#include <gst/gstatomicqueue.h>
 #include <gst/gstbin.h>
 #include <gst/gstbuffer.h>
 #include <gst/gstbufferlist.h>
 #include <gst/gstcaps.h>
 #include <gst/gstchildproxy.h>
 #include <gst/gstclock.h>
+#include <gst/gstdatetime.h>
 #include <gst/gstdebugutils.h>
 #include <gst/gstelement.h>
 #include <gst/gsterror.h>
@@ -84,6 +86,7 @@ G_BEGIN_DECLS
 void		gst_init			(int *argc, char **argv[]);
 gboolean	gst_init_check			(int *argc, char **argv[],
 						 GError ** err);
+gboolean        gst_is_initialized              (void);
 GOptionGroup *	gst_init_get_option_group	(void);
 void		gst_deinit			(void);
 

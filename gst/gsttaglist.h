@@ -23,6 +23,7 @@
 #ifndef __GST_TAGLIST_H__
 #define __GST_TAGLIST_H__
 
+#include <gst/gstdatetime.h>
 #include <gst/gstbuffer.h>
 #include <gst/gststructure.h>
 #include <gst/glib-compat.h>
@@ -204,25 +205,30 @@ void      gst_tag_merge_strings_with_comma (GValue * dest, const GValue * src);
 /* basic tag support */
 gboolean               gst_tag_exists          (const gchar * tag);
 GType                  gst_tag_get_type        (const gchar * tag);
-G_CONST_RETURN gchar * gst_tag_get_nick        (const gchar * tag);
-G_CONST_RETURN gchar * gst_tag_get_description (const gchar * tag);
+const gchar *          gst_tag_get_nick        (const gchar * tag);
+const gchar *          gst_tag_get_description (const gchar * tag);
 GstTagFlag             gst_tag_get_flag        (const gchar * tag);
 gboolean               gst_tag_is_fixed        (const gchar * tag);
 
 /* tag lists */
-GstTagList * gst_tag_list_new               (void);
-GstTagList * gst_tag_list_new_full          (const gchar * tag, ...);
-GstTagList * gst_tag_list_new_full_valist   (va_list var_args);
+GstTagList * gst_tag_list_new               (void) G_GNUC_MALLOC;
+GstTagList * gst_tag_list_new_full          (const gchar * tag, ...) G_GNUC_MALLOC;
+GstTagList * gst_tag_list_new_full_valist   (va_list var_args) G_GNUC_MALLOC;
+
+gchar      * gst_tag_list_to_string         (const GstTagList * list) G_GNUC_MALLOC;
+GstTagList * gst_tag_list_new_from_string   (const gchar      * str) G_GNUC_MALLOC;
 
 gboolean     gst_is_tag_list                (gconstpointer p);
-GstTagList * gst_tag_list_copy              (const GstTagList * list);
+GstTagList * gst_tag_list_copy              (const GstTagList * list) G_GNUC_MALLOC;
 gboolean     gst_tag_list_is_empty          (const GstTagList * list);
+gboolean     gst_tag_list_is_equal          (const GstTagList * list1,
+                                             const GstTagList * list2);
 void         gst_tag_list_insert            (GstTagList       * into,
                                              const GstTagList * from,
                                              GstTagMergeMode    mode);
 GstTagList * gst_tag_list_merge             (const GstTagList * list1,
                                              const GstTagList * list2,
-                                             GstTagMergeMode    mode);
+                                             GstTagMergeMode    mode) G_GNUC_MALLOC;
 void         gst_tag_list_free              (GstTagList       * list);
 guint        gst_tag_list_get_tag_size      (const GstTagList * list,
                                              const gchar      * tag);
@@ -252,7 +258,7 @@ void         gst_tag_list_foreach           (const GstTagList * list,
                                              GstTagForeachFunc  func,
                                              gpointer           user_data);
 
-G_CONST_RETURN GValue *
+const GValue *
              gst_tag_list_get_value_index   (const GstTagList * list,
                                              const gchar      * tag,
                                              guint              index);
@@ -363,6 +369,13 @@ gboolean     gst_tag_list_get_date_index    (const GstTagList * list,
                                              const gchar      * tag,
                                              guint              index,
                                              GDate           ** value);
+gboolean     gst_tag_list_get_date_time     (const GstTagList * list,
+                                             const gchar      * tag,
+                                             GstDateTime     ** value);
+gboolean     gst_tag_list_get_date_time_index (const GstTagList * list,
+                                             const gchar      * tag,
+                                             guint              index,
+                                             GstDateTime     ** value);
 gboolean     gst_tag_list_get_buffer        (const GstTagList * list,
                                              const gchar      * tag,
                                              GstBuffer       ** value);
@@ -459,6 +472,14 @@ gboolean     gst_tag_list_get_buffer_index  (const GstTagList * list,
  * date the data was created (#GDate structure)
  */
 #define GST_TAG_DATE                   "date"
+/**
+ * GST_TAG_DATE_TIME:
+ *
+ * date and time the data was created (#GstDateTime structure)
+ *
+ * Since: 0.10.31
+ */
+#define GST_TAG_DATE_TIME              "datetime"
 /**
  * GST_TAG_GENRE:
  *
@@ -564,6 +585,19 @@ gboolean     gst_tag_list_get_buffer_index  (const GstTagList * list,
  */
 #define GST_TAG_COPYRIGHT_URI          "copyright-uri"
 /**
+ * GST_TAG_ENCODED_BY:
+ *
+ * name of the person or organisation that encoded the file. May contain a
+ * copyright message if the person or organisation also holds the copyright
+ * (string)
+ *
+ * Note: do not use this field to describe the encoding application. Use
+ * #GST_TAG_APPLICATION_NAME or #GST_TAG_COMMENT for that.
+ *
+ * Since: 0.10.33
+ */
+#define GST_TAG_ENCODED_BY             "encoded-by"
+/**
  * GST_TAG_CONTACT:
  *
  * contact information (string)
@@ -638,7 +672,8 @@ gboolean     gst_tag_list_get_buffer_index  (const GstTagList * list,
 /**
  * GST_TAG_NOMINAL_BITRATE:
  *
- * nominal bitrate in bits/s (unsigned integer)
+ * nominal bitrate in bits/s (unsigned integer). The actual bitrate might be
+ * different from this target bitrate.
  */
 #define GST_TAG_NOMINAL_BITRATE        "nominal-bitrate"
 /**
@@ -827,6 +862,15 @@ gboolean     gst_tag_list_get_buffer_index  (const GstTagList * list,
  */
 #define GST_TAG_GEO_LOCATION_SUBLOCATION             "geo-location-sublocation"
 /**
+ * GST_TAG_GEO_LOCATION_HORIZONTAL_ERROR:
+ *
+ * Represents the expected error on the horizontal positioning in
+ * meters (double).
+ *
+ * Since: 0.10.31
+ */
+#define GST_TAG_GEO_LOCATION_HORIZONTAL_ERROR   "geo-location-horizontal-error"
+/**
  * GST_TAG_GEO_LOCATION_MOVEMENT_SPEED:
  *
  * Speed of the capturing device when performing the capture.
@@ -944,6 +988,25 @@ gboolean     gst_tag_list_get_buffer_index  (const GstTagList * list,
  * Since: 0.10.30
  */
 #define GST_TAG_DEVICE_MODEL                      "device-model"
+/**
+ * GST_TAG_APPLICATION_NAME:
+ *
+ * Name of the application used to create the media (string)
+ *
+ * Since: 0.10.31
+ */
+#define GST_TAG_APPLICATION_NAME                  "application-name"
+/**
+ * GST_TAG_APPLICATION_DATA:
+ *
+ * Arbitrary application data (buffer)
+ *
+ * Some formats allow application's to add their own arbitrary data
+ * into files. This data is application's dependent.
+ *
+ * Since: 0.10.31
+ */
+#define GST_TAG_APPLICATION_DATA          "application-data"
 /**
  * GST_TAG_IMAGE_ORIENTATION:
  *

@@ -1,3 +1,272 @@
+gstreamer0.10 (0.10.36-1.2) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Added patch 01_fix_webcam_stream_play_hang.patch (closes: #676648,
+    LP: #966294).
+
+ -- Micha Lenk <micha@debian.org>  Mon, 22 Apr 2013 21:14:44 +0200
+
+gstreamer0.10 (0.10.36-1.1) unstable; urgency=low
+
+  [ Julien Cristau ]
+  * Non-maintainer upload
+  * Rebuild against GLib 2.32 (closes: #697025)
+  * Bump shlibs and symbols version for GstCollectPads2.
+
+  [ Sebastian Dröge ]
+  * debian/changelog:
+    + Remove merge conflict marker (Closes: #660798).
+
+  [ Iain Lane ]
+  * debian/control:
+    + Add Vcs- headers
+
+ -- Julien Cristau <jcristau@debian.org>  Sat, 26 Jan 2013 11:24:16 +0000
+
+gstreamer0.10 (0.10.36-1) unstable; urgency=low
+
+  [ Loïc Minier ]
+  * Only track 0.10.* versions in watch file.
+  * Update my email address in control.
+
+  [ Sebastian Dröge ]
+  * New upstream stable release, "Harder":
+    + debian/libgstreamer.symbols:
+      - Update for the stable release version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Tue, 21 Feb 2012 10:34:24 +0100
+
+gstreamer0.10 (0.10.35.3-1) experimental; urgency=low
+
+  * New upstream pre-release.
+
+ -- Sebastian Dröge <slomo@debian.org>  Mon, 06 Feb 2012 09:21:14 +0100
+
+gstreamer0.10 (0.10.35.2-3) experimental; urgency=low
+
+  * debian/control.in:
+    + Build-depend on automake (>= 1.10), autoconf (>= 2.60) and
+      libtool (>= 2.0) to make dh-autoreconf actually work.
+
+ -- Sebastian Dröge <slomo@debian.org>  Wed, 14 Dec 2011 12:08:18 +0100
+
+gstreamer0.10 (0.10.35.2-2) experimental; urgency=low
+
+  * debian/dh_gstscancodecs:
+    + Fix for multi-arch to look in the correct directories (Closes: #651920).
+      Patch by YunQiang Su <wzssyqa@gmail.com>.
+
+ -- Sebastian Dröge <slomo@debian.org>  Tue, 13 Dec 2011 10:08:11 +0100
+
+gstreamer0.10 (0.10.35.2-1) experimental; urgency=low
+
+  * New upstream pre-release:
+    + debian/control.in:
+      - Build-depend on GLib >= 2.24.
+    + debian/patches/99_ltmain_as-needed.patch:
+      - Refreshed to apply cleanly again.
+    + debian/libgstreamer.symbols:
+      - Update symbols file with new API.
+  * debian/rules:
+    + Remove all dependency_libs from the .la files (Closes: #633319).
+  * debian/control.in:
+    + Put GI package into section introspection.
+  * debian/compat,
+    debian/control.in,
+    debian/gir1.2-gstreamer.install,
+    debian/libgstreamer-dev.install,
+    debian/libgstreamer.install,
+    debian/patches/79_multiarch-backwards-compat.patch,
+    debian/patches/80_ia32-hack.patch,
+    debian/rules:
+    + Transition package to multi-arch (Closes: #647481).
+      Patch taken from the Ubuntu package.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sun, 11 Dec 2011 18:52:12 +0100
+
+gstreamer0.10 (0.10.35-1) unstable; urgency=low
+
+  * New upstream bugfix release, "Nuclear Fission".
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 23 Jun 2011 08:48:30 +0200
+
+gstreamer0.10 (0.10.34-1) unstable; urgency=low
+
+  * New upstream bugfix release, "Misfits".
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 14 May 2011 11:41:04 +0200
+
+gstreamer0.10 (0.10.33-1) unstable; urgency=low
+
+  * New upstream release, "Prior Spaceflight Experience is an Advantage":
+    + debian/libgstreamer.symbols:
+      - Update version of new symbols to 0.10.33.
+
+ -- Sebastian Dröge <slomo@debian.org>  Tue, 10 May 2011 15:45:19 +0200
+
+gstreamer0.10 (0.10.32.3-1) experimental; urgency=low
+
+  * New upstream pre-release.
+
+ -- Sebastian Dröge <slomo@debian.org>  Wed, 27 Apr 2011 14:04:36 +0200
+
+gstreamer0.10 (0.10.32.2-1) experimental; urgency=low
+
+  * debian/control.in:
+    + Let the -dev package depend on the GIR package as required by
+      the new gobject-introspection policy.
+
+  [ Alessandro Decina ]
+  * debian/control.in:
+    + Add build dependency on dh-autoreconf.
+  * debian/rules:
+    + Include dh-autoreconf cdbs rule.
+
+  [ Sebastian Dröge ]
+  * New upstream pre-release:
+    + debian/patches/01_valve-only-set-discont-once.patch:
+      - Dropped, merged upstream.
+    + debian/libgstreamer.symbols:
+      - Add new API.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sun, 17 Apr 2011 09:45:41 +0200
+
+gstreamer0.10 (0.10.32-6) unstable; urgency=low
+
+  * Upload to unstable for the gobject-introspection transition.
+
+ -- Sebastian Dröge <slomo@debian.org>  Tue, 22 Mar 2011 13:58:41 +0100
+
+gstreamer0.10 (0.10.32-5) experimental; urgency=low
+
+  * debian/control.in:
+    + Revert gobject-introspection versio revert and provide
+      gir1.2-gstreamer-0.10 again.
+
+ -- Sebastian Dröge <slomo@debian.org>  Mon, 07 Mar 2011 09:26:32 +0100
+
+gstreamer0.10 (0.10.32-4) unstable; urgency=low
+
+  * debian/control.in: Remove Conflict on gst-plugins-bad, the registry
+    itself works around it.
+  * debian/control.in: Move back to the old gobject-introspection stack as it
+    hasn't migrated to unstable yet
+  * Both of the above fixes FTBS on unstable (Closes: #615911)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Wed, 02 Mar 2011 00:18:29 +0000
+
+gstreamer0.10 (0.10.32-3) unstable; urgency=low
+
+  * debian/patches/01_valve-only-set-discont-once.patch
+    - Added. Fixes bad audio quality in calls from Empathy (From upstream git)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 28 Feb 2011 18:42:54 +0000
+
+gstreamer0.10 (0.10.32-2) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Sebastian Dröge <slomo@debian.org>  Tue, 08 Feb 2011 10:55:58 +0100
+
+gstreamer0.10 (0.10.32-1) experimental; urgency=low
+
+  * New upstream stable release, "Take Me to the Bonus Level":
+    + debian/libgstreamer.symbols:
+      - Update new symbols to the release version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 22 Jan 2011 12:54:28 +0100
+
+gstreamer0.10 (0.10.31.4-1) experimental; urgency=low
+
+  * New upstream pre-release:
+    + debian/libgstreamer.symbols:
+      - Update new symbols to the latest pre-release version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Wed, 19 Jan 2011 21:09:58 +0100
+
+gstreamer0.10 (0.10.31.3-1) experimental; urgency=low
+
+  * debian/control.in:
+    + Conflict with gstreamer0.10-plugins-bad0.10 (<< 0.10.20.2) because
+      of the moved selector and valve plugins. There's no file conflict.
+  * New upstream pre-release:
+    + debian/libgstreamer.symbols:
+      - Update new symbols to the latest pre-release version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 13 Jan 2011 11:47:02 +0100
+
+gstreamer0.10 (0.10.31.2-1) experimental; urgency=low
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in,
+    debian/rules:
+    + Use dpkg-vendor instead of lsb_release.
+
+  [ Sebastian Dröge ]
+  * debian/control.in:
+    + Suggest gstreamer0.10-plugins-base instead of the non-existing
+      gstreamer0.10-plugins package (Closes: #607466).
+  * New upstream pre-release:
+    + debian/control.in:
+      - Require GLib >= 2.22.
+    + debian/patches/*.patch:
+      - Refreshed.
+    + debian/libgstreamer.symbols:
+      - Add new API symbols.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 08 Jan 2011 17:05:50 +0100
+
+gstreamer0.10 (0.10.31-2) experimental; urgency=low
+
+  * Transition from gir1.0-gstreamer-0.10 to gir1.2-gstreamer-0.10
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 12 Dec 2010 19:45:03 +0000
+
+gstreamer0.10 (0.10.31-1) experimental; urgency=low
+
+  * New upstream release, "Safety Pins":
+    + debian/libgstreamer.symbols:
+      - Update symbols.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 02 Dec 2010 10:30:18 +0100
+
+gstreamer0.10 (0.10.30.5-1) experimental; urgency=low
+
+  * debian/control.in:
+    + Drop gir-repository-dev build dependency. It's not needed and
+      only pulls in half of Gnome.
+  * New upstream pre-release:
+    + debian/libgstreamer.symbols:
+      - Update symbols.
+
+ -- Sebastian Dröge <slomo@debian.org>  Fri, 19 Nov 2010 11:26:27 +0100
+
+gstreamer0.10 (0.10.30.4-1) experimental; urgency=low
+
+  * New upstream pre-release:
+    + debian/libgstreamer.symbols:
+      - Update symbols.
+
+ -- Sebastian Dröge <slomo@debian.org>  Mon, 01 Nov 2010 20:11:56 +0100
+
+gstreamer0.10 (0.10.30.3-1) experimental; urgency=low
+
+  * New upstream pre-release:
+    + debian/libgstreamer.symbols:
+      - Update symbols.
+
+ -- Sebastian Dröge <slomo@debian.org>  Fri, 22 Oct 2010 19:51:53 +0200
+
+gstreamer0.10 (0.10.30.2-1) experimental; urgency=low
+
+  * New upstream pre-release:
+    + debian/patches/80_ia32-hack.patch:
+      - Refreshed.
+    + debian/libgstreamer.symbols:
+      - Add new symbols.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 16 Oct 2010 11:14:39 +0200
+
 gstreamer0.10 (0.10.30-1) unstable; urgency=low
 
   * New upstream stable release, "Safety First":

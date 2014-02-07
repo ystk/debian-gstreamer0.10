@@ -3,9 +3,15 @@
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/rules/utils.mk
+-include /usr/share/cdbs/1/rules/autoreconf.mk
 include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
 
 export HOME=$(CURDIR)/fake-home
+
+# make autoreconf not call libtoolize since we ship a patch for ltmain.sh
+export LIBTOOLIZE=true
+# make autoreconf not call autopoint since we ship a patch for po/Makefile.in.in
+export AUTOPOINT=true
 
 CFLAGS += -Wno-error
 CXXFLAGS += -Wno-error
@@ -25,7 +31,7 @@ gst_lib_prefix=libgstreamer$(gst_abi)
 gst_lib=$(gst_lib_prefix)-0
 gst_lib_dev=$(gst_lib_prefix)-dev
 # gstreamer shlibs
-gst_shlibs_dep="$(gst_lib) (>= $(gst_version))"
+gst_shlibs_dep="$(gst_lib) (>= 0.10.36-1.1)"
 
 # debug package
 DEB_DH_STRIP_ARGS := --dbg-package=$(gst_lib)-dbg
@@ -51,10 +57,10 @@ PKGFILES=\
 	debian/$(gst_pkgname)-tools.install \
 	debian/$(gst_pkgname)-tools.links \
 	debian/$(gst_pkgname)-tools.manpages \
-	debian/gir1.0-gstreamer-$(gst_abi).install
+	debian/gir1.2-gstreamer-$(gst_abi).install
 
 # Let's decide the package name and url depending on the distribution
-DISTRO = "$(shell lsb_release -si)"
+DISTRO = "$(shell dpkg-vendor --query vendor)"
 
 GST_PACKAGE_NAME := "GStreamer (unknown Debian derivative)"
 GST_PACKAGE_ORIGIN="http://packages.qa.debian.org/gstreamer$(gst_abi)"
@@ -100,7 +106,7 @@ debian/$(gst_lib).symbols: debian/libgstreamer.symbols debian/rules
 	rm -f $@
 	cp -v $< $@
 
-debian/gir1.0-gstreamer-$(gst_abi).install: debian/gir1.0-gstreamer.install debian/rules
+debian/gir1.2-gstreamer-$(gst_abi).install: debian/gir1.2-gstreamer.install debian/rules
 	rm -f $@
 	cp -v $< $@
 
@@ -176,6 +182,8 @@ common_conf_flags = \
 	--disable-examples \
 	--enable-DEBUG \
 	--enable-debug \
+	--libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
+	--libexecdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH)/gstreamer0.10 \
 	--with-package-name=$(GST_PACKAGE_NAME) \
 	--with-package-origin=$(GST_PACKAGE_ORIGIN)
 
@@ -202,9 +210,9 @@ common-install-indep::
 	mkdir -p debian/$(gst_pkgname)-doc/usr/share/lintian/overrides/
 	cp -a debian/$(gst_pkgname)-doc.lintian debian/$(gst_pkgname)-doc/usr/share/lintian/overrides/$(gst_pkgname)-doc
 
-DEB_DH_MAKESHLIBS_ARGS_$(gst_lib) += -X "/usr/lib/gstreamer-$(gst_abi)" -V $(gst_shlibs_dep) -- -c4
+DEB_DH_MAKESHLIBS_ARGS_$(gst_lib) += -X "/usr/lib/$(DEB_HOST_MULTIARCH)/gstreamer-$(gst_abi)" -V $(gst_shlibs_dep) -- -c4
 DEB_INSTALL_DOCS_ALL += debian/README.Debian NEWS
-DEB_SHLIBDEPS_INCLUDE += debian/$(gst_lib)/usr/lib
+DEB_SHLIBDEPS_INCLUDE += debian/$(gst_lib)/usr/lib/$(DEB_HOST_MULTIARCH)
 
 # override shlibs for libraries from this source before computing dependencies
 # of packages generated from this source; we already have inter-dependencies
@@ -214,7 +222,7 @@ DEB_SHLIBDEPS_INCLUDE += debian/$(gst_lib)/usr/lib
 common-binary-fixup-arch::
 	mkdir -p $(CURDIR)/fake-home
 	HOME=$(CURDIR)/fake-home \
-	dh_girepository -pgir1.0-gstreamer-$(gst_abi)
+	dh_girepository -pgir1.2-gstreamer-$(gst_abi)
 	rm -rf $(CURDIR)/fake-home
 	-rm -f debian/shlibs.local
 	cat debian/*/DEBIAN/shlibs | \
@@ -226,7 +234,7 @@ common-binary-predeb-arch::
 	-rm -f debian/shlibs.local
 
 install/$(gst_lib_dev)::
-	gcc -o debian/tmp/usr/bin/gst-codec-info-0.10 debian/gst-codec-info.c $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) `pkg-config --libs --cflags glib-2.0 gthread-2.0 gmodule-no-export-2.0 gobject-2.0 libxml-2.0` debian/tmp/usr/lib/libgstreamer-0.10.so -Idebian/tmp/usr/include/gstreamer-0.10
+	gcc -o debian/tmp/usr/bin/gst-codec-info-0.10 debian/gst-codec-info.c $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) `pkg-config --libs --cflags glib-2.0 gthread-2.0 gmodule-no-export-2.0 gobject-2.0 libxml-2.0` debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libgstreamer-0.10.so -Idebian/tmp/usr/include/gstreamer-0.10
 	perldoc -o man debian/dh_gstscancodecs > debian/tmp/usr/share/man/man1/dh_gstscancodecs.1
 
 .PHONY: maint

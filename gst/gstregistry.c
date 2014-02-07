@@ -46,7 +46,7 @@
  * means of doing so is to load every plugin and look at the resulting
  * information that is gathered in the default registry. Clearly, this is a time
  * consuming process, so we cache information in the registry file. The format
- * and location of the cache file is internal to gstreamer. 
+ * and location of the cache file is internal to gstreamer.
  *
  * On startup, plugins are searched for in the plugin search path. The following
  * locations are checked in this order:
@@ -103,7 +103,7 @@
  * different sets of plugins. For various reasons, at init time, the cache is
  * stored in the default registry, and plugins not relevant to the current
  * process are marked with the %GST_PLUGIN_FLAG_CACHED bit. These plugins are
- * removed at the end of intitialization.
+ * removed at the end of initialization.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -135,6 +135,7 @@
 #include "gst-i18n-lib.h"
 
 #include "gst.h"
+#include "glib-compat-private.h"
 
 #ifdef G_OS_WIN32
 #include <windows.h>
@@ -174,6 +175,8 @@ extern GList *_priv_gst_plugin_paths;
 
 /* Set to TRUE when the registry cache should be disabled */
 gboolean _gst_disable_registry_cache = FALSE;
+
+static gboolean __registry_reuse_plugin_scanner = TRUE;
 #endif
 
 /* Element signals and args */
@@ -279,7 +282,7 @@ gst_registry_finalize (GObject * object)
     if (feature) {
       GST_LOG_OBJECT (registry, "removing feature %p (%s)",
           feature, gst_plugin_feature_get_name (feature));
-      gst_object_unref (feature);
+      gst_object_unparent (GST_OBJECT_CAST (feature));
     }
     f = g_list_next (f);
   }
@@ -309,7 +312,7 @@ gst_registry_finalize (GObject * object)
  * Retrieves the default registry. The caller does not own a reference on the
  * registry, as it is alive as long as GStreamer is initialized.
  *
- * Returns: The default #GstRegistry.
+ * Returns: (transfer none): The default #GstRegistry.
  */
 GstRegistry *
 gst_registry_get_default (void)
@@ -374,7 +377,8 @@ was_added:
  *
  * Get the list of paths for the given registry.
  *
- * Returns: A Glist of paths as strings. g_list_free after use.
+ * Returns: (transfer container) (element-type char*): A #GList of paths as
+ *     strings. g_list_free after use.
  *
  * MT safe.
  */
@@ -398,7 +402,7 @@ gst_registry_get_path_list (GstRegistry * registry)
 /**
  * gst_registry_add_plugin:
  * @registry: the registry to add the plugin to
- * @plugin: the plugin to add
+ * @plugin: (transfer full): the plugin to add
  *
  * Add the plugin to the registry. The plugin-added signal will be emitted.
  * This function will sink @plugin.
@@ -422,8 +426,20 @@ gst_registry_add_plugin (GstRegistry * registry, GstPlugin * plugin)
         gst_registry_lookup_bn_locked (registry, plugin->basename);
     if (existing_plugin) {
       GST_DEBUG_OBJECT (registry,
-          "Replacing existing plugin %p with new plugin %p for filename \"%s\"",
-          existing_plugin, plugin, GST_STR_NULL (plugin->filename));
+          "Replacing existing plugin \"%s\" %p with new plugin %p for filename \"%s\"",
+          GST_STR_NULL (existing_plugin->filename), existing_plugin, plugin,
+          GST_STR_NULL (plugin->filename));
+      /* If the new plugin is blacklisted and the existing one isn't cached, do not
+       * accept if it's from a different location than the existing one */
+      if ((plugin->flags & GST_PLUGIN_FLAG_BLACKLISTED) &&
+          strcmp (plugin->filename, existing_plugin->filename)) {
+        GST_WARNING_OBJECT (registry,
+            "Not replacing plugin because new one (%s) is blacklisted but for a different location than existing one (%s)",
+            plugin->filename, existing_plugin->filename);
+        gst_object_unref (plugin);
+        GST_OBJECT_UNLOCK (registry);
+        return FALSE;
+      }
       registry->plugins = g_list_remove (registry->plugins, existing_plugin);
       if (G_LIKELY (existing_plugin->basename))
         g_hash_table_remove (registry->basename_hash,
@@ -454,12 +470,9 @@ gst_registry_remove_features_for_plugin_unlocked (GstRegistry * registry,
     GstPlugin * plugin)
 {
   GList *f;
-  const gchar *name;
 
   g_return_if_fail (GST_IS_REGISTRY (registry));
   g_return_if_fail (GST_IS_PLUGIN (plugin));
-
-  name = gst_plugin_get_name (plugin);
 
   /* Remove all features for this plugin */
   f = registry->features;
@@ -467,13 +480,14 @@ gst_registry_remove_features_for_plugin_unlocked (GstRegistry * registry,
     GList *next = g_list_next (f);
     GstPluginFeature *feature = f->data;
 
-    if (G_UNLIKELY (feature && !strcmp (feature->plugin_name, name))) {
-      GST_DEBUG_OBJECT (registry, "removing feature %p (%s) for plugin %s",
-          feature, gst_plugin_feature_get_name (feature), name);
+    if (G_UNLIKELY (feature && feature->plugin == plugin)) {
+      GST_DEBUG_OBJECT (registry, "removing feature %p (%s) for plugin %p (%s)",
+          feature, gst_plugin_feature_get_name (feature), plugin,
+          plugin->desc.name);
 
       registry->features = g_list_delete_link (registry->features, f);
       g_hash_table_remove (registry->feature_hash, feature->name);
-      gst_object_unref (feature);
+      gst_object_unparent (GST_OBJECT_CAST (feature));
     }
     f = next;
   }
@@ -483,7 +497,7 @@ gst_registry_remove_features_for_plugin_unlocked (GstRegistry * registry,
 /**
  * gst_registry_remove_plugin:
  * @registry: the registry to remove the plugin from
- * @plugin: the plugin to remove
+ * @plugin: (transfer none): the plugin to remove
  *
  * Remove the plugin from the registry.
  *
@@ -510,7 +524,7 @@ gst_registry_remove_plugin (GstRegistry * registry, GstPlugin * plugin)
 /**
  * gst_registry_add_feature:
  * @registry: the registry to add the plugin to
- * @feature: the feature to add
+ * @feature: (transfer full): the feature to add
  *
  * Add the feature to the registry. The feature-added signal will be emitted.
  * This function sinks @feature.
@@ -549,10 +563,10 @@ gst_registry_add_feature (GstRegistry * registry, GstPluginFeature * feature)
   if (G_UNLIKELY (existing_feature)) {
     /* We unref now. No need to remove the feature name from the hash table, it
      * got replaced by the new feature */
-    gst_object_unref (existing_feature);
+    gst_object_unparent (GST_OBJECT_CAST (existing_feature));
   }
 
-  gst_object_ref_sink (feature);
+  gst_object_set_parent (GST_OBJECT_CAST (feature), GST_OBJECT_CAST (registry));
 
   registry->priv->cookie++;
   GST_OBJECT_UNLOCK (registry);
@@ -566,7 +580,7 @@ gst_registry_add_feature (GstRegistry * registry, GstPluginFeature * feature)
 /**
  * gst_registry_remove_feature:
  * @registry: the registry to remove the feature from
- * @feature: the feature to remove
+ * @feature: (transfer none): the feature to remove
  *
  * Remove the feature from the registry.
  *
@@ -586,15 +600,16 @@ gst_registry_remove_feature (GstRegistry * registry, GstPluginFeature * feature)
   g_hash_table_remove (registry->feature_hash, feature->name);
   registry->priv->cookie++;
   GST_OBJECT_UNLOCK (registry);
-  gst_object_unref (feature);
+
+  gst_object_unparent ((GstObject *) feature);
 }
 
 /**
  * gst_registry_plugin_filter:
  * @registry: registry to query
- * @filter: the filter to use
+ * @filter: (scope call): the filter to use
  * @first: only return first match
- * @user_data: user data passed to the filter function
+ * @user_data: (closure): user data passed to the filter function
  *
  * Runs a filter against all plugins in the registry and returns a #GList with
  * the results. If the first flag is set, only the first match is
@@ -602,7 +617,8 @@ gst_registry_remove_feature (GstRegistry * registry, GstPluginFeature * feature)
  * Every plugin is reffed; use gst_plugin_list_free() after use, which
  * will unref again.
  *
- * Returns: a #GList of #GstPlugin. Use gst_plugin_list_free() after usage.
+ * Returns: (transfer full) (element-type Gst.Plugin): a #GList of #GstPlugin.
+ *     Use gst_plugin_list_free() after usage.
  *
  * MT safe.
  */
@@ -610,21 +626,47 @@ GList *
 gst_registry_plugin_filter (GstRegistry * registry,
     GstPluginFilter filter, gboolean first, gpointer user_data)
 {
-  GList *list;
-  GList *g;
+  GList *list = NULL;
 
   g_return_val_if_fail (GST_IS_REGISTRY (registry), NULL);
 
   GST_OBJECT_LOCK (registry);
-  list = gst_filter_run (registry->plugins, (GstFilterFunc) filter, first,
-      user_data);
-  for (g = list; g; g = g->next) {
-    gst_object_ref (GST_PLUGIN_CAST (g->data));
+  {
+    const GList *walk;
+
+    for (walk = registry->plugins; walk != NULL; walk = walk->next) {
+      GstPlugin *plugin = walk->data;
+
+      if (filter == NULL || filter (plugin, user_data)) {
+        list = g_list_prepend (list, gst_object_ref (plugin));
+
+        if (first)
+          break;
+      }
+    }
   }
   GST_OBJECT_UNLOCK (registry);
 
   return list;
 }
+
+#ifdef GST_DISABLE_DEPRECATED
+typedef struct
+{
+  const gchar *name;
+  GType type;
+} GstTypeNameData;
+static gboolean
+gst_plugin_feature_type_name_filter (GstPluginFeature * feature,
+    GstTypeNameData * data)
+{
+  g_assert (GST_IS_PLUGIN_FEATURE (feature));
+
+  return ((data->type == 0 || data->type == G_OBJECT_TYPE (feature)) &&
+      (data->name == NULL
+          || !strcmp (data->name, GST_PLUGIN_FEATURE_NAME (feature))));
+}
+#endif
 
 /* returns TRUE if the list was changed
  *
@@ -638,16 +680,24 @@ gst_registry_get_feature_list_or_create (GstRegistry * registry,
 
   if (G_UNLIKELY (!*previous || priv->cookie != *cookie)) {
     GstTypeNameData data;
+    const GList *walk;
 
-    if (*previous)
+    if (*previous) {
       gst_plugin_feature_list_free (*previous);
+      *previous = NULL;
+    }
 
     data.type = type;
     data.name = NULL;
-    *previous =
-        gst_filter_run (registry->features,
-        (GstFilterFunc) gst_plugin_feature_type_name_filter, FALSE, &data);
-    g_list_foreach (*previous, (GFunc) gst_object_ref, NULL);
+
+    for (walk = registry->features; walk != NULL; walk = walk->next) {
+      GstPluginFeature *feature = walk->data;
+
+      if (gst_plugin_feature_type_name_filter (feature, &data)) {
+        *previous = g_list_prepend (*previous, gst_object_ref (feature));
+      }
+    }
+
     *cookie = priv->cookie;
     res = TRUE;
   }
@@ -711,17 +761,17 @@ gst_registry_get_typefind_factory_list (GstRegistry * registry)
 /**
  * gst_registry_feature_filter:
  * @registry: registry to query
- * @filter: the filter to use
+ * @filter: (scope call): the filter to use
  * @first: only return first match
- * @user_data: user data passed to the filter function
+ * @user_data: (closure): user data passed to the filter function
  *
  * Runs a filter against all features of the plugins in the registry
  * and returns a GList with the results.
  * If the first flag is set, only the first match is
  * returned (as a list with a single object).
  *
- * Returns: a #GList of #GstPluginFeature. Use gst_plugin_feature_list_free()
- * after usage.
+ * Returns: (transfer full) (element-type Gst.PluginFeature): a #GList of
+ *     #GstPluginFeature. Use gst_plugin_feature_list_free() after usage.
  *
  * MT safe.
  */
@@ -729,16 +779,24 @@ GList *
 gst_registry_feature_filter (GstRegistry * registry,
     GstPluginFeatureFilter filter, gboolean first, gpointer user_data)
 {
-  GList *list;
-  GList *g;
+  GList *list = NULL;
 
   g_return_val_if_fail (GST_IS_REGISTRY (registry), NULL);
 
   GST_OBJECT_LOCK (registry);
-  list = gst_filter_run (registry->features, (GstFilterFunc) filter, first,
-      user_data);
-  for (g = list; g; g = g->next) {
-    gst_object_ref (GST_PLUGIN_FEATURE_CAST (g->data));
+  {
+    const GList *walk;
+
+    for (walk = registry->features; walk != NULL; walk = walk->next) {
+      GstPluginFeature *feature = walk->data;
+
+      if (filter == NULL || filter (feature, user_data)) {
+        list = g_list_prepend (list, gst_object_ref (feature));
+
+        if (first)
+          break;
+      }
+    }
   }
   GST_OBJECT_UNLOCK (registry);
 
@@ -753,8 +811,8 @@ gst_registry_feature_filter (GstRegistry * registry,
  * Find the plugin with the given name in the registry.
  * The plugin will be reffed; caller is responsible for unreffing.
  *
- * Returns: The plugin with the given name or NULL if the plugin was not found.
- * gst_object_unref() after usage.
+ * Returns: (transfer full): the plugin with the given name or NULL if the
+ *     plugin was not found. gst_object_unref() after usage.
  *
  * MT safe.
  */
@@ -787,8 +845,8 @@ gst_registry_find_plugin (GstRegistry * registry, const gchar * name)
  *
  * Find the pluginfeature with the given name and type in the registry.
  *
- * Returns: The pluginfeature with the given name and type or NULL
- * if the plugin was not found. gst_object_unref() after usage.
+ * Returns: (transfer full): the pluginfeature with the given name and type
+ *     or NULL if the plugin was not found. gst_object_unref() after usage.
  *
  * MT safe.
  */
@@ -818,8 +876,8 @@ gst_registry_find_feature (GstRegistry * registry, const gchar * name,
  *
  * Retrieves a #GList of #GstPluginFeature of @type.
  *
- * Returns: a #GList of #GstPluginFeature of @type. Use
- * gst_plugin_feature_list_free() after usage.
+ * Returns: (transfer full) (element-type Gst.PluginFeature): a #GList of
+ *     #GstPluginFeature of @type. Use gst_plugin_feature_list_free() after use
  *
  * MT safe.
  */
@@ -852,7 +910,8 @@ gst_registry_get_feature_list (GstRegistry * registry, GType type)
  * Get a copy of all plugins registered in the given registry. The refcount
  * of each element in the list in incremented.
  *
- * Returns: a #GList of #GstPlugin. Use gst_plugin_list_free() after usage.
+ * Returns: (transfer full) (element-type Gst.Plugin): a #GList of #GstPlugin.
+ *     Use gst_plugin_list_free() after usage.
  *
  * MT safe.
  */
@@ -887,8 +946,8 @@ gst_registry_lookup_feature_locked (GstRegistry * registry, const char *name)
  *
  * Find a #GstPluginFeature with @name in @registry.
  *
- * Returns: a #GstPluginFeature with its refcount incremented, use
- * gst_object_unref() after usage.
+ * Returns: (transfer full): a #GstPluginFeature with its refcount incremented,
+ *     use gst_object_unref() after usage.
  *
  * MT safe.
  */
@@ -937,8 +996,8 @@ gst_registry_lookup_bn (GstRegistry * registry, const char *basename)
  * Look up a plugin in the given registry with the given filename.
  * If found, plugin is reffed.
  *
- * Returns: the #GstPlugin if found, or NULL if not. gst_object_unref()
- * after usage.
+ * Returns: (transfer full): the #GstPlugin if found, or NULL if not.
+ *     gst_object_unref() after usage.
  */
 GstPlugin *
 gst_registry_lookup (GstRegistry * registry, const char *filename)
@@ -1068,6 +1127,12 @@ gst_registry_scan_plugin_file (GstRegistryScanContext * context,
     gst_object_unref (newplugin);
     changed = TRUE;
   }
+#ifndef GST_DISABLE_REGISTRY
+  if (!__registry_reuse_plugin_scanner) {
+    clear_scan_context (context);
+    context->helper_state = REGISTRY_SCAN_HELPER_NOT_STARTED;
+  }
+#endif
 
   return changed;
 }
@@ -1106,7 +1171,7 @@ gst_registry_scan_path_level (GstRegistryScanContext * context,
     return FALSE;
 
   while ((dirent = g_dir_read_name (dir))) {
-    struct stat file_status;
+    GStatBuf file_status;
 
     filename = g_build_filename (path, dirent, NULL);
     if (g_stat (filename, &file_status) < 0) {
@@ -1118,7 +1183,7 @@ gst_registry_scan_path_level (GstRegistryScanContext * context,
 
     if (file_status.st_mode & S_IFDIR) {
       if (G_UNLIKELY (is_blacklisted_hidden_directory (dirent))) {
-        GST_LOG_OBJECT (context->registry, "ignoring %s directory", dirent);
+        GST_TRACE_OBJECT (context->registry, "ignoring %s directory", dirent);
         g_free (filename);
         continue;
       }
@@ -1137,7 +1202,7 @@ gst_registry_scan_path_level (GstRegistryScanContext * context,
       continue;
     }
     if (!(file_status.st_mode & S_IFREG)) {
-      GST_LOG_OBJECT (context->registry, "%s is not a regular file, ignoring",
+      GST_TRACE_OBJECT (context->registry, "%s is not a regular file, ignoring",
           filename);
       g_free (filename);
       continue;
@@ -1147,7 +1212,7 @@ gst_registry_scan_path_level (GstRegistryScanContext * context,
         && !g_str_has_suffix (dirent, GST_EXTRA_MODULE_SUFFIX)
 #endif
         ) {
-      GST_LOG_OBJECT (context->registry,
+      GST_TRACE_OBJECT (context->registry,
           "extension is not recognized as module file, ignoring file %s",
           filename);
       g_free (filename);
@@ -1156,6 +1221,17 @@ gst_registry_scan_path_level (GstRegistryScanContext * context,
 
     GST_LOG_OBJECT (context->registry, "file %s looks like a possible module",
         filename);
+
+    /* try to avoid unnecessary plugin-move pain */
+    if (g_str_has_prefix (dirent, "libgstvalve") ||
+        g_str_has_prefix (dirent, "libgstselector")) {
+      GST_WARNING_OBJECT (context->registry, "ignoring old plugin %s which "
+          "has been merged into the corelements plugin", filename);
+      /* Plugin will be removed from cache after the scan completes if it
+       * is still marked 'cached' */
+      g_free (filename);
+      continue;
+    }
 
     /* plug-ins are considered unique by basename; if the given name
      * was already seen by the registry, we ignore it */
@@ -1190,11 +1266,11 @@ gst_registry_scan_path_level (GstRegistryScanContext * context,
       } else {
         GST_INFO_OBJECT (context->registry, "cached info for %s is stale",
             filename);
-        GST_DEBUG_OBJECT (context->registry, "mtime %ld != %ld or size %"
-            G_GINT64_FORMAT " != %" G_GINT64_FORMAT " or external dependency "
-            "env_vars changed: %d or external dependencies changed: %d"
-            " or old path %s != new path %s",
-            plugin->file_mtime, file_status.st_mtime,
+        GST_DEBUG_OBJECT (context->registry, "mtime %" G_GINT64_FORMAT " != %"
+            G_GINT64_FORMAT " or size %" G_GINT64_FORMAT " != %"
+            G_GINT64_FORMAT " or external dependency env_vars changed: %d or"
+            " external dependencies changed: %d or old path %s != new path %s",
+            (gint64) plugin->file_mtime, (gint64) file_status.st_mtime,
             (gint64) plugin->file_size, (gint64) file_status.st_size,
             env_vars_changed, deps_changed, plugin->filename, filename);
         gst_registry_remove_plugin (context->registry, plugin);
@@ -1275,8 +1351,8 @@ _gst_plugin_feature_filter_plugin_name (GstPluginFeature * feature,
  *
  * Retrieves a #GList of features of the plugin with name @name.
  *
- * Returns: a #GList of #GstPluginFeature. Use gst_plugin_feature_list_free()
- * after usage.
+ * Returns: (transfer full) (element-type Gst.PluginFeature): a #GList of
+ *     #GstPluginFeature. Use gst_plugin_feature_list_free() after usage.
  */
 GList *
 gst_registry_get_feature_list_by_plugin (GstRegistry * registry,
@@ -1590,6 +1666,12 @@ ensure_current_registry (GError ** error)
   }
 
   if (do_update) {
+    const gchar *reuse_env;
+
+    if ((reuse_env = g_getenv ("GST_REGISTRY_REUSE_PLUGIN_SCANNER"))) {
+      /* do reuse for any value different from "no" */
+      __registry_reuse_plugin_scanner = (strcmp (reuse_env, "no") != 0);
+    }
     /* now check registry */
     GST_DEBUG ("Updating registry cache");
     scan_and_update_registry (default_registry, registry_file, TRUE, error);

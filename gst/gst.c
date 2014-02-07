@@ -217,7 +217,7 @@ parse_debug_category (gchar * str, const gchar ** category)
 }
 
 static gboolean
-parse_debug_level (gchar * str, gint * level)
+parse_debug_level (gchar * str, GstDebugLevel * level)
 {
   if (!str)
     return FALSE;
@@ -227,7 +227,7 @@ parse_debug_level (gchar * str, gint * level)
 
   if (str[0] != NUL && str[1] == NUL
       && str[0] >= '0' && str[0] < '0' + GST_LEVEL_COUNT) {
-    *level = str[0] - '0';
+    *level = (GstDebugLevel) (str[0] - '0');
     return TRUE;
   }
 
@@ -249,7 +249,7 @@ parse_debug_list (const gchar * list)
       gchar **values = g_strsplit (*walk, ":", 2);
 
       if (values[0] && values[1]) {
-        gint level;
+        GstDebugLevel level;
         const gchar *category;
 
         if (parse_debug_category (values[0], &category)
@@ -259,7 +259,7 @@ parse_debug_list (const gchar * list)
 
       g_strfreev (values);
     } else {
-      gint level;
+      GstDebugLevel level;
 
       if (parse_debug_level (*walk, &level))
         gst_debug_set_default_threshold (level);
@@ -297,7 +297,7 @@ DllMain (HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
  * threading system as one of the very first things in your program
  * (see the example at the beginning of this section).
  *
- * Returns: a pointer to GStreamer's option group.
+ * Returns: (transfer full): a pointer to GStreamer's option group.
  */
 
 GOptionGroup *
@@ -360,9 +360,12 @@ gst_init_get_option_group (void)
     {NULL}
   };
 
+/* Since GLib 2.31.0 threading is always enabled and g_thread_init()
+ * is not needed any longer and deprecated */
+#if !GLIB_CHECK_VERSION (2, 31, 0)
   /* Since GLib 2.23.2 calling g_thread_init() 'late' is allowed and is
    * automatically done as part of g_type_init() */
-  if (!glib_check_version (2, 23, 3)) {
+  if (glib_check_version (2, 23, 3)) {
     /* The GLib threading system must be initialised before calling any other
      * GLib function according to the documentation; if the application hasn't
      * called gst_init() yet or initialised the threading system otherwise, we
@@ -381,6 +384,7 @@ gst_init_get_option_group (void)
   } else {
     /* GLib >= 2.23.2 */
   }
+#endif
 
   group = g_option_group_new ("gst", _("GStreamer Options"),
       _("Show GStreamer Options"), NULL, NULL);
@@ -398,7 +402,7 @@ gst_init_get_option_group (void)
 
 /**
  * gst_init_check:
- * @argc: (inout): pointer to application's argc
+ * @argc: (inout) (allow-none): pointer to application's argc
  * @argv: (inout) (array length=argc) (allow-none): pointer to application's argv
  * @err: pointer to a #GError to which a message will be posted on error
  *
@@ -424,8 +428,10 @@ gst_init_check (int *argc, char **argv[], GError ** err)
 #endif
   gboolean res;
 
+#if !GLIB_CHECK_VERSION (2, 31, 0)
   if (!g_thread_get_initialized ())
     g_thread_init (NULL);
+#endif
 
   if (gst_initialized) {
     GST_DEBUG ("already initialized gst");
@@ -457,7 +463,7 @@ gst_init_check (int *argc, char **argv[], GError ** err)
 
 /**
  * gst_init:
- * @argc: (inout): pointer to application's argc
+ * @argc: (inout) (allow-none): pointer to application's argc
  * @argv: (inout) (array length=argc) (allow-none): pointer to application's argv
  *
  * Initializes the GStreamer library, setting up internal path lists,
@@ -498,6 +504,22 @@ gst_init (int *argc, char **argv[])
     }
     exit (1);
   }
+}
+
+/**
+ * gst_is_initialized:
+ *
+ * Use this function to check if GStreamer has been initialized with gst_init()
+ * or gst_init_check().
+ *
+ * Returns: TRUE if initialization has been done, FALSE otherwise.
+ *
+ * Since: 0.10.31
+ */
+gboolean
+gst_is_initialized (void)
+{
+  return gst_initialized;
 }
 
 #ifndef GST_DISABLE_REGISTRY
@@ -556,20 +578,12 @@ init_pre (GOptionContext * context, GOptionGroup * group, gpointer data,
     return TRUE;
   }
 
-  /* GStreamer was built against a GLib >= 2.8 and is therefore not doing
-   * the refcount hack. Check that it isn't being run against an older GLib */
-  if (glib_major_version < 2 ||
-      (glib_major_version == 2 && glib_minor_version < 8)) {
-    g_warning ("GStreamer was compiled against GLib %d.%d.%d but is running"
-        " against %d.%d.%d. This will cause reference counting issues",
-        GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION,
-        glib_major_version, glib_minor_version, glib_micro_version);
-  }
-
   g_type_init ();
 
+#if !GLIB_CHECK_VERSION (2, 31, 0)
   /* we need threading to be enabled right here */
   g_assert (g_thread_get_initialized ());
+#endif
 
   _gst_debug_init ();
 
@@ -699,6 +713,7 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   g_type_class_ref (gst_event_type_get_type ());
   g_type_class_ref (gst_seek_type_get_type ());
   g_type_class_ref (gst_seek_flags_get_type ());
+  g_type_class_ref (gst_qos_type_get_type ());
   g_type_class_ref (gst_format_get_type ());
   g_type_class_ref (gst_index_certainty_get_type ());
   g_type_class_ref (gst_index_entry_type_get_type ());
@@ -739,6 +754,8 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   g_type_class_ref (gst_parse_error_get_type ());
   g_type_class_ref (gst_parse_flags_get_type ());
   g_type_class_ref (gst_search_mode_get_type ());
+  g_type_class_ref (gst_progress_type_get_type ());
+  g_type_class_ref (gst_caps_intersect_mode_get_type ());
 
   gst_structure_get_type ();
   _gst_value_initialize ();
@@ -747,8 +764,10 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   _gst_event_initialize ();
   _gst_buffer_initialize ();
   _gst_buffer_list_initialize ();
+  gst_buffer_list_iterator_get_type ();
   _gst_message_initialize ();
   _gst_tag_initialize ();
+  gst_parse_context_get_type ();
 
   _gst_plugin_initialize ();
 
@@ -782,9 +801,9 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   }
 #endif /* GST_DISABLE_TRACE */
 
-  GST_INFO ("GLib runtime version: %d.%d.%d\n", glib_major_version,
+  GST_INFO ("GLib runtime version: %d.%d.%d", glib_major_version,
       glib_minor_version, glib_micro_version);
-  GST_INFO ("GLib headers version: %d.%d.%d\n", GLIB_MAJOR_VERSION,
+  GST_INFO ("GLib headers version: %d.%d.%d", GLIB_MAJOR_VERSION,
       GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
 
   return TRUE;
@@ -891,9 +910,9 @@ parse_one_option (gint opt, const gchar * arg, GError ** err)
     }
 #ifndef GST_DISABLE_GST_DEBUG
     case ARG_DEBUG_LEVEL:{
-      gint tmp = 0;
+      GstDebugLevel tmp = GST_LEVEL_NONE;
 
-      tmp = strtol (arg, NULL, 0);
+      tmp = (GstDebugLevel) strtol (arg, NULL, 0);
       if (tmp >= 0 && tmp < GST_LEVEL_COUNT) {
         gst_debug_set_default_threshold (tmp);
       }
@@ -1065,6 +1084,7 @@ gst_deinit (void)
   g_type_class_unref (g_type_class_peek (gst_event_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_seek_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_seek_flags_get_type ()));
+  g_type_class_unref (g_type_class_peek (gst_qos_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_format_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_index_certainty_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_index_entry_type_get_type ()));
@@ -1102,6 +1122,8 @@ gst_deinit (void)
   g_type_class_unref (g_type_class_peek (gst_uri_type_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_parse_error_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_param_spec_fraction_get_type ()));
+  g_type_class_unref (g_type_class_peek (gst_progress_type_get_type ()));
+  g_type_class_unref (g_type_class_peek (gst_caps_intersect_mode_get_type ()));
 
   gst_deinitialized = TRUE;
   GST_INFO ("deinitialized GStreamer");
@@ -1109,10 +1131,10 @@ gst_deinit (void)
 
 /**
  * gst_version:
- * @major: pointer to a guint to store the major version number
- * @minor: pointer to a guint to store the minor version number
- * @micro: pointer to a guint to store the micro version number
- * @nano:  pointer to a guint to store the nano version number
+ * @major: (out): pointer to a guint to store the major version number
+ * @minor: (out): pointer to a guint to store the minor version number
+ * @micro: (out): pointer to a guint to store the micro version number
+ * @nano:  (out): pointer to a guint to store the nano version number
  *
  * Gets the version number of the GStreamer library.
  */
@@ -1136,7 +1158,8 @@ gst_version (guint * major, guint * minor, guint * micro, guint * nano)
  * This function returns a string that is useful for describing this version
  * of GStreamer to the outside world: user agent strings, logging, ...
  *
- * Returns: a newly allocated string describing this version of GStreamer.
+ * Returns: (transfer full): a newly allocated string describing this version
+ *     of GStreamer.
  */
 
 gchar *

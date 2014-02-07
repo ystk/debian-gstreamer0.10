@@ -61,6 +61,7 @@ libgstreamer_@GST_MAJORMINOR@_la_SOURCES = \
 	gstcaps.c		\
 	gstchildproxy.c		\
 	gstclock.c		\
+	gstdatetime.c		\
 	gstdebugutils.c		\
 	gstelement.c		\
 	gstelementfactory.c	\
@@ -74,6 +75,7 @@ libgstreamer_@GST_MAJORMINOR@_la_SOURCES = \
 	gstinfo.c		\
 	gstinterface.c		\
 	gstiterator.c		\
+	gstatomicqueue.c	\
 	gstmessage.c		\
 	gstminiobject.c		\
 	gstpad.c		\
@@ -152,6 +154,7 @@ gst_headers =			\
 	gstchildproxy.h		\
 	gstclock.h		\
 	gstcompat.h		\
+	gstdatetime.h		\
 	gstdebugutils.h		\
 	gstelement.h		\
 	gstelementfactory.h	\
@@ -165,6 +168,7 @@ gst_headers =			\
 	gstinfo.h		\
 	gstinterface.h		\
 	gstiterator.h		\
+	gstatomicqueue.h	\
 	gstmacros.h		\
 	gstmessage.h		\
 	gstminiobject.h		\
@@ -194,7 +198,8 @@ gst_headers =			\
 	gstparse.h		\
 	gstxml.h
 
-libgstreamer_@GST_MAJORMINOR@include_HEADERS = $(gst_headers)
+libgstreamer_@GST_MAJORMINOR@include_HEADERS = $(gst_headers) math-compat.h
+
 nodist_libgstreamer_@GST_MAJORMINOR@include_HEADERS = \
 	$(built_header_configure) $(built_header_make)
 
@@ -243,6 +248,23 @@ gstenumtypes.c: $(gst_headers)
 
 gcov: $(libgstreamer_@GST_MAJORMINOR@_la_SOURCES:=.gcov)
 
+Android.mk: Makefile.am
+	androgenizer -:PROJECT gstreamer -:SHARED libgstreamer-@GST_MAJORMINOR@ \
+	 -:TAGS eng debug \
+         -:REL_TOP $(top_srcdir) -:ABS_TOP $(abs_top_srcdir) \
+	 -:SOURCES $(libgstreamer_@GST_MAJORMINOR@_la_SOURCES) \
+	           $(nodist_libgstreamer_@GST_MAJORMINOR@_la_SOURCES) \
+	 -:CFLAGS $(DEFS) $(libgstreamer_@GST_MAJORMINOR@_la_CFLAGS) \
+	 -:LDFLAGS $(libgstreamer_@GST_MAJORMINOR@_la_LDFLAGS) \
+	           $(libgstreamer_@GST_MAJORMINOR@_la_LIBADD) \
+	           -ldl \
+	 -:SUBDIR gst/parse \
+	 -:HEADER_TARGET gstreamer-@GST_MAJORMINOR@/gst \
+	 -:HEADERS $(libgstreamer_@GST_MAJORMINOR@include_HEADERS) \
+	 -:LIBFILTER_STATIC gstparse \
+	 -:PASSTHROUGH LOCAL_ARM_MODE:=arm \
+	> $@
+
 if HAVE_INTROSPECTION
 BUILT_GIRSOURCES = Gst-@GST_MAJORMINOR@.gir
 
@@ -250,7 +272,8 @@ gir_headers=$(patsubst %,$(srcdir)/%, $(libgstreamer_@GST_MAJORMINOR@include_HEA
 gir_sources=$(patsubst %,$(srcdir)/%, $(libgstreamer_@GST_MAJORMINOR@_la_SOURCES))
 
 Gst-@GST_MAJORMINOR@.gir: $(INTROSPECTION_SCANNER) libgstreamer-@GST_MAJORMINOR@.la
-	$(AM_V_GEN)$(INTROSPECTION_SCANNER) -v --namespace Gst \
+	$(AM_V_GEN)GST_PLUGIN_SYSTEM_PATH="" GST_PLUGIN_PATH="" GST_REGISTRY_UPDATE=no \
+		$(INTROSPECTION_SCANNER) -v --namespace Gst \
 		--nsversion=@GST_MAJORMINOR@ \
 		-I$(top_srcdir) \
 		-I$(top_builddir) \
@@ -267,6 +290,8 @@ Gst-@GST_MAJORMINOR@.gir: $(INTROSPECTION_SCANNER) libgstreamer-@GST_MAJORMINOR@
 		--pkg gmodule-no-export-2.0 \
 		--pkg gthread-2.0 \
 		--pkg libxml-2.0 \
+		--pkg-export gstreamer-0.10 \
+		--add-init-section="gst_init(NULL, NULL);" \
 		--output $@ \
 		$(gir_headers) \
 		$(gir_sources)

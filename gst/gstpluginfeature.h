@@ -26,6 +26,7 @@
 
 #include <glib-object.h>
 #include <gst/gstobject.h>
+#include <gst/gstplugin.h>
 
 G_BEGIN_DECLS
 
@@ -51,7 +52,7 @@ typedef struct _GstPluginFeatureClass GstPluginFeatureClass;
 /**
  * GstRank:
  * @GST_RANK_NONE: will be chosen last or not at all
- * @GST_RANK_MARGINAL: unlikly to be chosen
+ * @GST_RANK_MARGINAL: unlikely to be chosen
  * @GST_RANK_SECONDARY: likely to be chosen
  * @GST_RANK_PRIMARY: will be chosen first
  *
@@ -80,13 +81,14 @@ struct _GstPluginFeature {
 
   /*< private >*/
   gboolean       loaded;
-  gchar         *name;
+  gchar         *name; /* FIXME-0.11: remove variable, we use GstObject:name */
   guint          rank;
 
   const gchar   *plugin_name;
+  GstPlugin     *plugin;      /* weak ref */
 
   /*< private >*/
-  gpointer _gst_reserved[GST_PADDING];
+  gpointer _gst_reserved[GST_PADDING - 1];
 };
 
 struct _GstPluginFeatureClass {
@@ -103,10 +105,12 @@ struct _GstPluginFeatureClass {
  *
  * Structure used for filtering based on @name and @type.
  */
+#ifndef GST_DISABLE_DEPRECATED
 typedef struct {
   const gchar   *name;
   GType          type;
 } GstTypeNameData;
+#endif
 
 /**
  * GstPluginFeatureFilter:
@@ -128,21 +132,41 @@ GType           gst_plugin_feature_get_type             (void);
 GstPluginFeature *
                 gst_plugin_feature_load                 (GstPluginFeature *feature);
 
+#ifndef GST_DISABLE_DEPRECATED
 gboolean        gst_plugin_feature_type_name_filter     (GstPluginFeature *feature,
                                                          GstTypeNameData *data);
+#endif
 
 void            gst_plugin_feature_set_rank             (GstPluginFeature *feature, guint rank);
 void            gst_plugin_feature_set_name             (GstPluginFeature *feature, const gchar *name);
 guint           gst_plugin_feature_get_rank             (GstPluginFeature *feature);
-G_CONST_RETURN gchar *gst_plugin_feature_get_name       (GstPluginFeature *feature);
+const gchar    *gst_plugin_feature_get_name             (GstPluginFeature *feature);
 
 void            gst_plugin_feature_list_free            (GList *list);
-GList          *gst_plugin_feature_list_copy            (GList *list);
+GList          *gst_plugin_feature_list_copy            (GList *list) G_GNUC_MALLOC;
+void            gst_plugin_feature_list_debug           (GList *list);
+
+/**
+ * GST_PLUGIN_FEATURE_LIST_DEBUG:
+ * @list: (transfer none) (element-type Gst.PluginFeature): a #GList of
+ *     plugin features
+ *
+ * Debug the plugin feature names in @list.
+ *
+ * Since: 0.10.31
+ */
+#ifndef GST_DISABLE_GST_DEBUG
+#define GST_PLUGIN_FEATURE_LIST_DEBUG(list) gst_plugin_feature_list_debug(list)
+#else
+#define GST_PLUGIN_FEATURE_LIST_DEBUG(list)
+#endif
 
 gboolean        gst_plugin_feature_check_version        (GstPluginFeature *feature,
                                                          guint             min_major,
                                                          guint             min_minor,
                                                          guint             min_micro);
+gint            gst_plugin_feature_rank_compare_func    (gconstpointer p1,
+							 gconstpointer p2);
 
 G_END_DECLS
 

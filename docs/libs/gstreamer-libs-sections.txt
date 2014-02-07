@@ -205,6 +205,7 @@ gst_adapter_available
 gst_adapter_available_fast
 gst_adapter_take
 gst_adapter_take_buffer
+gst_adapter_take_list
 gst_adapter_prev_timestamp
 gst_adapter_masked_scan_uint32
 gst_adapter_masked_scan_uint32_peek
@@ -219,6 +220,53 @@ GST_IS_ADAPTER_CLASS
 GST_ADAPTER_GET_CLASS
 <SUBSECTION Private>
 gst_adapter_get_type
+</SECTION>
+
+<SECTION>
+<FILE>gstbaseparse</FILE>
+<TITLE>GstBaseParse</TITLE>
+<INCLUDE>gst/base/gstbaseparse.h</INCLUDE>
+GstBaseParse
+GstBaseParseClass
+
+gst_base_parse_set_duration
+gst_base_parse_set_average_bitrate
+gst_base_parse_set_min_frame_size
+gst_base_parse_set_passthrough
+gst_base_parse_set_syncable
+gst_base_parse_set_has_timing_info
+gst_base_parse_set_frame_rate
+gst_base_parse_convert_default
+gst_base_parse_add_index_entry
+
+GstBaseParseFrame
+GstBaseParseFrameFlags
+gst_base_parse_frame_new
+gst_base_parse_frame_init
+gst_base_parse_frame_free
+
+gst_base_parse_push_frame
+
+GST_BASE_PARSE_DRAINING
+GST_BASE_PARSE_FLAG_DRAINING
+GST_BASE_PARSE_FLAG_LOST_SYNC
+GST_BASE_PARSE_FLOW_DROPPED
+GST_BASE_PARSE_FLOW_QUEUED
+GST_BASE_PARSE_LOST_SYNC
+GST_BASE_PARSE_SINK_PAD
+GST_BASE_PARSE_SRC_PAD
+<SUBSECTION Standard>
+GstBaseParsePrivate
+GST_BASE_PARSE
+GST_BASE_PARSE_CAST
+GST_IS_BASE_PARSE
+GST_TYPE_BASE_PARSE
+GST_BASE_PARSE_CLASS
+GST_IS_BASE_PARSE_CLASS
+GST_BASE_PARSE_GET_CLASS
+<SUBSECTION Private>
+gst_base_parse_get_type
+gst_base_parse_frame_get_type
 </SECTION>
 
 <SECTION>
@@ -238,6 +286,7 @@ gst_base_src_get_blocksize
 gst_base_src_set_blocksize
 gst_base_src_get_do_timestamp
 gst_base_src_set_do_timestamp
+gst_base_src_set_dynamic_size
 gst_base_src_new_seamless_segment
 
 GST_BASE_SRC_PAD
@@ -284,6 +333,8 @@ gst_base_sink_is_last_buffer_enabled
 gst_base_sink_get_last_buffer
 gst_base_sink_set_blocksize
 gst_base_sink_get_blocksize
+gst_base_sink_get_throttle_time
+gst_base_sink_set_throttle_time
 
 GST_BASE_SINK_PAD
 
@@ -375,6 +426,19 @@ gst_bit_reader_peek_bits_uint16
 gst_bit_reader_peek_bits_uint32
 gst_bit_reader_peek_bits_uint64
 gst_bit_reader_peek_bits_uint8
+
+gst_bit_reader_skip_unchecked
+gst_bit_reader_skip_to_byte_unchecked
+
+gst_bit_reader_get_bits_uint16_unchecked
+gst_bit_reader_get_bits_uint32_unchecked
+gst_bit_reader_get_bits_uint64_unchecked
+gst_bit_reader_get_bits_uint8_unchecked
+
+gst_bit_reader_peek_bits_uint16_unchecked
+gst_bit_reader_peek_bits_uint32_unchecked
+gst_bit_reader_peek_bits_uint64_unchecked
+gst_bit_reader_peek_bits_uint8_unchecked
 
 <SUBSECTION Private>
 GST_BIT_READER
@@ -600,6 +664,33 @@ gst_byte_writer_put_string_utf8
 gst_byte_writer_put_data
 gst_byte_writer_fill
 
+gst_byte_writer_put_int8_unchecked
+gst_byte_writer_put_int16_be_unchecked
+gst_byte_writer_put_int16_le_unchecked
+gst_byte_writer_put_int24_be_unchecked
+gst_byte_writer_put_int24_le_unchecked
+gst_byte_writer_put_int32_be_unchecked
+gst_byte_writer_put_int32_le_unchecked
+gst_byte_writer_put_int64_be_unchecked
+gst_byte_writer_put_int64_le_unchecked
+
+gst_byte_writer_put_uint8_unchecked
+gst_byte_writer_put_uint16_be_unchecked
+gst_byte_writer_put_uint16_le_unchecked
+gst_byte_writer_put_uint24_be_unchecked
+gst_byte_writer_put_uint24_le_unchecked
+gst_byte_writer_put_uint32_be_unchecked
+gst_byte_writer_put_uint32_le_unchecked
+gst_byte_writer_put_uint64_be_unchecked
+gst_byte_writer_put_uint64_le_unchecked
+
+gst_byte_writer_put_float32_be_unchecked
+gst_byte_writer_put_float32_le_unchecked
+gst_byte_writer_put_float64_be_unchecked
+gst_byte_writer_put_float64_le_unchecked
+
+gst_byte_writer_put_data_unchecked
+gst_byte_writer_fill_unchecked
 <SUBSECTION Private>
 GST_BYTE_WRITER
 </SECTION>
@@ -652,6 +743,71 @@ GST_COLLECT_PADS_SIGNAL
 GST_COLLECT_PADS_WAIT
 </SECTION>
 
+<SECTION>
+<FILE>gstcollectpads2</FILE>
+<TITLE>GstCollectPads2</TITLE>
+<INCLUDE>gst/base/gstcollectpads2.h</INCLUDE>
+GstCollectPads2
+GstCollectData2
+
+GstCollectData2DestroyNotify
+GstCollectPads2BufferFunction
+GstCollectPads2CompareFunction
+GstCollectPads2EventFunction
+GstCollectPads2ClipFunction
+GstCollectPads2Function
+GstCollectPads2StateFlags
+
+GST_COLLECT_PADS2_STATE
+GST_COLLECT_PADS2_STATE_IS_SET
+GST_COLLECT_PADS2_STATE_SET
+GST_COLLECT_PADS2_STATE_UNSET
+
+GST_COLLECT_PADS2_GET_STREAM_LOCK
+GST_COLLECT_PADS2_STREAM_LOCK
+GST_COLLECT_PADS2_STREAM_UNLOCK
+
+gst_collect_pads2_new
+
+gst_collect_pads2_add_pad
+gst_collect_pads2_add_pad_full
+gst_collect_pads2_remove_pad
+
+gst_collect_pads2_start
+gst_collect_pads2_stop
+
+gst_collect_pads2_available
+gst_collect_pads2_is_active
+
+gst_collect_pads2_collect
+gst_collect_pads2_collect_range
+
+gst_collect_pads2_flush
+gst_collect_pads2_peek
+gst_collect_pads2_pop
+
+gst_collect_pads2_read
+gst_collect_pads2_read_buffer
+gst_collect_pads2_take_buffer
+
+gst_collect_pads2_set_buffer_function
+gst_collect_pads2_set_compare_function
+gst_collect_pads2_set_event_function
+gst_collect_pads2_set_clip_function
+gst_collect_pads2_set_flushing
+gst_collect_pads2_set_function
+gst_collect_pads2_set_waiting
+<SUBSECTION Standard>
+GstCollectPads2Class
+GST_COLLECT_PADS2
+GST_COLLECT_PADS2_CLASS
+GST_TYPE_COLLECT_PADS2
+GST_IS_COLLECT_PADS2
+GST_IS_COLLECT_PADS2_CLASS
+GST_COLLECT_PADS2_GET_CLASS
+gst_collect_pads2_get_type
+<SUBSECTION Private>
+</SECTION>
 
 <SECTION>
 <FILE>gstpushsrc</FILE>

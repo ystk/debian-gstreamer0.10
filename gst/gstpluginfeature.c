@@ -45,13 +45,10 @@ static void gst_plugin_feature_finalize (GObject * object);
 /* static guint gst_plugin_feature_signals[LAST_SIGNAL] = { 0 }; */
 
 G_DEFINE_ABSTRACT_TYPE (GstPluginFeature, gst_plugin_feature, GST_TYPE_OBJECT);
-static GstObjectClass *parent_class = NULL;
 
 static void
 gst_plugin_feature_class_init (GstPluginFeatureClass * klass)
 {
-  parent_class = g_type_class_peek_parent (klass);
-
   G_OBJECT_CLASS (klass)->finalize = gst_plugin_feature_finalize;
 }
 
@@ -68,14 +65,18 @@ gst_plugin_feature_finalize (GObject * object)
 
   GST_DEBUG ("finalizing feature %p: '%s'", feature,
       GST_PLUGIN_FEATURE_NAME (feature));
-  g_free (feature->name);
 
-  G_OBJECT_CLASS (parent_class)->finalize (object);
+  if (feature->plugin != NULL) {
+    g_object_remove_weak_pointer ((GObject *) feature->plugin,
+        (gpointer *) & feature->plugin);
+  }
+
+  G_OBJECT_CLASS (gst_plugin_feature_parent_class)->finalize (object);
 }
 
 /**
  * gst_plugin_feature_load:
- * @feature: the plugin feature to check
+ * @feature: (transfer none): the plugin feature to check
  *
  * Loads the plugin containing @feature if it's not already loaded. @feature is
  * unaffected; use the return value instead.
@@ -83,14 +84,14 @@ gst_plugin_feature_finalize (GObject * object)
  * Normally this function is used like this:
  * |[
  * GstPluginFeature *loaded_feature;
- * 
+ *
  * loaded_feature = gst_plugin_feature_load (feature);
  * // presumably, we're no longer interested in the potentially-unloaded feature
  * gst_object_unref (feature);
  * feature = loaded_feature;
  * ]|
  *
- * Returns: A reference to the loaded feature, or NULL on error.
+ * Returns: (transfer full): a reference to the loaded feature, or NULL on error
  */
 GstPluginFeature *
 gst_plugin_feature_load (GstPluginFeature * feature)
@@ -149,12 +150,22 @@ not_found:
 /**
  * gst_plugin_feature_type_name_filter:
  * @feature: the #GstPluginFeature
- * @data: the type and name to check against
+ * @data: (in): the type and name to check against
  *
  * Compares type and name of plugin feature. Can be used with gst_filter_run().
  *
  * Returns: TRUE if equal.
  */
+#ifndef GST_REMOVE_DEPRECATED
+#ifdef GST_DISABLE_DEPRECATED
+typedef struct
+{
+  const gchar *name;
+  GType type;
+} GstTypeNameData;
+gboolean gst_plugin_feature_type_name_filter (GstPluginFeature * feature,
+    GstTypeNameData * data);
+#endif
 gboolean
 gst_plugin_feature_type_name_filter (GstPluginFeature * feature,
     GstTypeNameData * data)
@@ -165,6 +176,7 @@ gst_plugin_feature_type_name_filter (GstPluginFeature * feature,
       (data->name == NULL
           || !strcmp (data->name, GST_PLUGIN_FEATURE_NAME (feature))));
 }
+#endif /* GST_REMOVE_DEPRECATED */
 
 /**
  * gst_plugin_feature_set_name:
@@ -182,12 +194,12 @@ gst_plugin_feature_set_name (GstPluginFeature * feature, const gchar * name)
   g_return_if_fail (GST_IS_PLUGIN_FEATURE (feature));
   g_return_if_fail (name != NULL);
 
-  if (feature->name) {
+  if (G_UNLIKELY (feature->name)) {
     g_return_if_fail (strcmp (feature->name, name) == 0);
   } else {
-    feature->name = g_strdup (name);
+    gst_object_set_name (GST_OBJECT (feature), name);
+    feature->name = GST_OBJECT_NAME (GST_OBJECT (feature));
   }
-  gst_object_set_name (GST_OBJECT_CAST (feature), feature->name);
 }
 
 /**
@@ -198,7 +210,7 @@ gst_plugin_feature_set_name (GstPluginFeature * feature, const gchar * name)
  *
  * Returns: the name
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_feature_get_name (GstPluginFeature * feature)
 {
   g_return_val_if_fail (GST_IS_PLUGIN_FEATURE (feature), NULL);
@@ -241,7 +253,8 @@ gst_plugin_feature_get_rank (GstPluginFeature * feature)
 
 /**
  * gst_plugin_feature_list_free:
- * @list: list of #GstPluginFeature
+ * @list: (transfer full) (element-type Gst.PluginFeature): list
+ *     of #GstPluginFeature
  *
  * Unrefs each member of @list, then frees the list.
  */
@@ -260,12 +273,14 @@ gst_plugin_feature_list_free (GList * list)
 
 /**
  * gst_plugin_feature_list_copy:
- * @list: list of #GstPluginFeature
+ * @list: (transfer none) (element-type Gst.PluginFeature): list
+ *     of #GstPluginFeature
  *
  * Copies the list of features. Caller should call @gst_plugin_feature_list_free
  * when done with the list.
  *
- * Returns: a copy of @list, with each feature's reference count incremented.
+ * Returns: (transfer full) (element-type Gst.PluginFeature): a copy of @list,
+ *     with each feature's reference count incremented.
  *
  * Since: 0.10.26
  */
@@ -293,6 +308,27 @@ gst_plugin_feature_list_copy (GList * list)
   }
 
   return new_list;
+}
+
+/**
+ * gst_plugin_feature_list_debug:
+ * @list: (transfer none) (element-type Gst.PluginFeature): a #GList of
+ *     plugin features
+ *
+ * Debug the plugin feature names in @list.
+ *
+ * Since: 0.10.31
+ */
+void
+gst_plugin_feature_list_debug (GList * list)
+{
+#ifndef GST_DISABLE_GST_DEBUG
+  while (list) {
+    GST_DEBUG ("%s",
+        gst_plugin_feature_get_name ((GstPluginFeature *) list->data));
+    list = list->next;
+  }
+#endif
 }
 
 /**
@@ -347,7 +383,7 @@ gst_plugin_feature_check_version (GstPluginFeature * feature,
         ret = FALSE;
       else if (micro > min_micro)
         ret = TRUE;
-      /* micro is 1 smaller but we have a nano version, this is the upcomming
+      /* micro is 1 smaller but we have a nano version, this is the upcoming
        * release of the requested version and we're ok then */
       else if (nscan == 4 && nano > 0 && (micro + 1 == min_micro))
         ret = TRUE;
@@ -367,4 +403,37 @@ gst_plugin_feature_check_version (GstPluginFeature * feature,
   }
 
   return ret;
+}
+
+/**
+ * gst_plugin_feature_rank_compare_func:
+ * @p1: a #GstPluginFeature
+ * @p2: a #GstPluginFeature
+ *
+ * Compares the two given #GstPluginFeature instances. This function can be
+ * used as a #GCompareFunc when sorting by rank and then by name.
+ *
+ * Returns: negative value if the rank of p1 > the rank of p2 or the ranks are
+ * equal but the name of p1 comes before the name of p2; zero if the rank
+ * and names are equal; positive value if the rank of p1 < the rank of p2 or the
+ * ranks are equal but the name of p2 comes after the name of p1
+ *
+ * Since: 0.10.31
+ */
+gint
+gst_plugin_feature_rank_compare_func (gconstpointer p1, gconstpointer p2)
+{
+  GstPluginFeature *f1, *f2;
+  gint diff;
+
+  f1 = (GstPluginFeature *) p1;
+  f2 = (GstPluginFeature *) p2;
+
+  diff = f2->rank - f1->rank;
+  if (diff != 0)
+    return diff;
+
+  diff = strcmp (f2->name, f1->name);
+
+  return diff;
 }

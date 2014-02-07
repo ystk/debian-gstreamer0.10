@@ -42,9 +42,9 @@
 /**
  * gst_filter_run:
  * @list: a linked list
- * @func: the function to execute for each item
+ * @func: (scope call): the function to execute for each item
  * @first: flag to stop execution after a successful item
- * @user_data: user data
+ * @user_data: (closure): user data
  *
  * Iterates over the elements in @list, calling @func with the
  * list item data for each item.  If @func returns TRUE, @data is
@@ -56,10 +56,16 @@
  * @data wil be made in any other way when prepending @data to the list of
  * results.
  *
- * Returns: the list of results. Free with g_list_free() when no longer needed
- * (the data contained in the list is a flat copy and does need to be
- * unreferenced or freed).
+ * Returns: (transfer container): the list of results. Free with g_list_free()
+ *     when no longer needed (the data contained in the list is a flat copy
+ *     and does need to be unreferenced or freed).
  */
+#ifndef GST_REMOVE_DEPRECATED
+#ifdef GST_DISABLE_DEPRECATED
+typedef gboolean (*GstFilterFunc) (gpointer obj, gpointer user_data);
+GList *gst_filter_run (const GList * list, GstFilterFunc func, gboolean first,
+    gpointer user_data);
+#endif
 GList *
 gst_filter_run (const GList * list, GstFilterFunc func, gboolean first,
     gpointer user_data)
@@ -86,3 +92,4 @@ gst_filter_run (const GList * list, GstFilterFunc func, gboolean first,
 
   return result;
 }
+#endif /* GST_REMOVE_DEPRECATED */

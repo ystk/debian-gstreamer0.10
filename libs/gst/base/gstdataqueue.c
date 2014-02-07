@@ -26,10 +26,14 @@
  * #GstDataQueue is an object that handles threadsafe queueing of objects. It
  * also provides size-related functionality. This object should be used for
  * any #GstElement that wishes to provide some sort of queueing functionality.
+ *
+ * Since: 0.10.11
  */
 
 #include <gst/gst.h>
+#include "string.h"
 #include "gstdataqueue.h"
+#include "gst/glib-compat-private.h"
 
 GST_DEBUG_CATEGORY_STATIC (data_queue_debug);
 #define GST_CAT_DEFAULT (data_queue_debug)
@@ -267,23 +271,24 @@ gst_data_queue_finalize (GObject * object)
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 
-static void
+static inline void
 gst_data_queue_locked_flush (GstDataQueue * queue)
 {
   STATUS (queue, "before flushing");
   gst_data_queue_cleanup (queue);
   STATUS (queue, "after flushing");
   /* we deleted something... */
-  g_cond_signal (queue->item_del);
+  if (queue->abidata.ABI.waiting_del)
+    g_cond_signal (queue->item_del);
 }
 
-static gboolean
+static inline gboolean
 gst_data_queue_locked_is_empty (GstDataQueue * queue)
 {
   return (queue->queue->length == 0);
 }
 
-static gboolean
+static inline gboolean
 gst_data_queue_locked_is_full (GstDataQueue * queue)
 {
   return queue->checkfull (queue, queue->cur_level.visible,
@@ -297,6 +302,8 @@ gst_data_queue_locked_is_full (GstDataQueue * queue)
  * Flushes all the contents of the @queue. Any call to #gst_data_queue_push and
  * #gst_data_queue_pop will be released.
  * MT safe.
+ *
+ * Since: 0.10.11
  */
 void
 gst_data_queue_flush (GstDataQueue * queue)
@@ -315,6 +322,8 @@ gst_data_queue_flush (GstDataQueue * queue)
  * MT safe.
  *
  * Returns: #TRUE if @queue is empty.
+ *
+ * Since: 0.10.11
  */
 gboolean
 gst_data_queue_is_empty (GstDataQueue * queue)
@@ -337,6 +346,8 @@ gst_data_queue_is_empty (GstDataQueue * queue)
  * MT safe.
  *
  * Returns: #TRUE if @queue is full.
+ *
+ * Since: 0.10.11
  */
 gboolean
 gst_data_queue_is_full (GstDataQueue * queue)
@@ -362,6 +373,8 @@ gst_data_queue_is_full (GstDataQueue * queue)
  * all calls to those two functions will return #FALSE.
  *
  * MT Safe.
+ *
+ * Since: 0.10.11
  */
 void
 gst_data_queue_set_flushing (GstDataQueue * queue, gboolean flushing)
@@ -372,8 +385,10 @@ gst_data_queue_set_flushing (GstDataQueue * queue, gboolean flushing)
   queue->flushing = flushing;
   if (flushing) {
     /* release push/pop functions */
-    g_cond_signal (queue->item_add);
-    g_cond_signal (queue->item_del);
+    if (queue->abidata.ABI.waiting_add)
+      g_cond_signal (queue->item_add);
+    if (queue->abidata.ABI.waiting_del)
+      g_cond_signal (queue->item_del);
   }
   GST_DATA_QUEUE_MUTEX_UNLOCK (queue);
 }
@@ -394,6 +409,8 @@ gst_data_queue_set_flushing (GstDataQueue * queue, gboolean flushing)
  * is returned, the caller is responsible for freeing @item and its contents.
  *
  * Returns: #TRUE if the @item was successfully pushed on the @queue.
+ *
+ * Since: 0.10.11
  */
 gboolean
 gst_data_queue_push (GstDataQueue * queue, GstDataQueueItem * item)
@@ -416,7 +433,9 @@ gst_data_queue_push (GstDataQueue * queue, GstDataQueueItem * item)
 
     /* signal might have removed some items */
     while (gst_data_queue_locked_is_full (queue)) {
+      queue->abidata.ABI.waiting_del = TRUE;
       g_cond_wait (queue->item_del, queue->qlock);
+      queue->abidata.ABI.waiting_del = FALSE;
       if (queue->flushing)
         goto flushing;
     }
@@ -430,7 +449,8 @@ gst_data_queue_push (GstDataQueue * queue, GstDataQueueItem * item)
   queue->cur_level.time += item->duration;
 
   STATUS (queue, "after pushing");
-  g_cond_signal (queue->item_add);
+  if (queue->abidata.ABI.waiting_add)
+    g_cond_signal (queue->item_add);
 
   GST_DATA_QUEUE_MUTEX_UNLOCK (queue);
 
@@ -456,6 +476,8 @@ flushing:
  * MT safe.
  *
  * Returns: #TRUE if an @item was successfully retrieved from the @queue.
+ *
+ * Since: 0.10.11
  */
 gboolean
 gst_data_queue_pop (GstDataQueue * queue, GstDataQueueItem ** item)
@@ -476,7 +498,9 @@ gst_data_queue_pop (GstDataQueue * queue, GstDataQueueItem ** item)
     GST_DATA_QUEUE_MUTEX_LOCK_CHECK (queue, flushing);
 
     while (gst_data_queue_locked_is_empty (queue)) {
+      queue->abidata.ABI.waiting_add = TRUE;
       g_cond_wait (queue->item_add, queue->qlock);
+      queue->abidata.ABI.waiting_add = FALSE;
       if (queue->flushing)
         goto flushing;
     }
@@ -492,7 +516,8 @@ gst_data_queue_pop (GstDataQueue * queue, GstDataQueueItem ** item)
   queue->cur_level.time -= (*item)->duration;
 
   STATUS (queue, "after popping");
-  g_cond_signal (queue->item_del);
+  if (queue->abidata.ABI.waiting_del)
+    g_cond_signal (queue->item_del);
 
   GST_DATA_QUEUE_MUTEX_UNLOCK (queue);
 
@@ -515,6 +540,8 @@ flushing:
  * Pop and unref the head-most #GstMiniObject with the given #GType.
  *
  * Returns: TRUE if an element was removed.
+ *
+ * Since: 0.10.11
  */
 gboolean
 gst_data_queue_drop_head (GstDataQueue * queue, GType type)
@@ -565,6 +592,8 @@ done:
  *
  * Inform the queue that the limits for the fullness check have changed and that
  * any blocking gst_data_queue_push() should be unblocked to recheck the limts.
+ *
+ * Since: 0.10.11
  */
 void
 gst_data_queue_limits_changed (GstDataQueue * queue)
@@ -572,8 +601,10 @@ gst_data_queue_limits_changed (GstDataQueue * queue)
   g_return_if_fail (GST_IS_DATA_QUEUE (queue));
 
   GST_DATA_QUEUE_MUTEX_LOCK (queue);
-  GST_DEBUG ("signal del");
-  g_cond_signal (queue->item_del);
+  if (queue->abidata.ABI.waiting_del) {
+    GST_DEBUG ("signal del");
+    g_cond_signal (queue->item_del);
+  }
   GST_DATA_QUEUE_MUTEX_UNLOCK (queue);
 }
 
@@ -583,13 +614,13 @@ gst_data_queue_limits_changed (GstDataQueue * queue)
  * @level: the location to store the result
  *
  * Get the current level of the queue.
+ *
+ * Since: 0.10.11
  */
 void
 gst_data_queue_get_level (GstDataQueue * queue, GstDataQueueSize * level)
 {
-  level->visible = queue->cur_level.visible;
-  level->bytes = queue->cur_level.bytes;
-  level->time = queue->cur_level.time;
+  memcpy (level, (&queue->cur_level), sizeof (GstDataQueueSize));
 }
 
 static void

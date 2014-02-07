@@ -1,5 +1,5 @@
 
-/* Generated data (by glib-mkenums) */
+
 
 #include "gst_private.h"
 #include <gst/gst.h>
@@ -53,6 +53,7 @@ gst_buffer_flag_get_type (void)
   static const GFlagsValue values[] = {
     {C_FLAGS (GST_BUFFER_FLAG_READONLY), "GST_BUFFER_FLAG_READONLY",
         "readonly"},
+    {C_FLAGS (GST_BUFFER_FLAG_MEDIA4), "GST_BUFFER_FLAG_MEDIA4", "media4"},
     {C_FLAGS (GST_BUFFER_FLAG_PREROLL), "GST_BUFFER_FLAG_PREROLL", "preroll"},
     {C_FLAGS (GST_BUFFER_FLAG_DISCONT), "GST_BUFFER_FLAG_DISCONT", "discont"},
     {C_FLAGS (GST_BUFFER_FLAG_IN_CAPS), "GST_BUFFER_FLAG_IN_CAPS", "in-caps"},
@@ -83,6 +84,7 @@ gst_buffer_copy_flags_get_type (void)
     {C_FLAGS (GST_BUFFER_COPY_TIMESTAMPS), "GST_BUFFER_COPY_TIMESTAMPS",
         "timestamps"},
     {C_FLAGS (GST_BUFFER_COPY_CAPS), "GST_BUFFER_COPY_CAPS", "caps"},
+    {C_FLAGS (GST_BUFFER_COPY_QDATA), "GST_BUFFER_COPY_QDATA", "qdata"},
     {0, NULL, NULL}
   };
 
@@ -159,12 +161,32 @@ gst_caps_flags_get_type (void)
 {
   static gsize id = 0;
   static const GFlagsValue values[] = {
+    {C_FLAGS (GST_CAPS_FLAGS_NONE), "GST_CAPS_FLAGS_NONE", "none"},
     {C_FLAGS (GST_CAPS_FLAGS_ANY), "GST_CAPS_FLAGS_ANY", "any"},
     {0, NULL, NULL}
   };
 
   if (g_once_init_enter (&id)) {
     GType tmp = g_flags_register_static ("GstCapsFlags", values);
+    g_once_init_leave (&id, tmp);
+  }
+
+  return (GType) id;
+}
+
+GType
+gst_caps_intersect_mode_get_type (void)
+{
+  static gsize id = 0;
+  static const GEnumValue values[] = {
+    {C_ENUM (GST_CAPS_INTERSECT_ZIG_ZAG), "GST_CAPS_INTERSECT_ZIG_ZAG",
+        "zig-zag"},
+    {C_ENUM (GST_CAPS_INTERSECT_FIRST), "GST_CAPS_INTERSECT_FIRST", "first"},
+    {0, NULL, NULL}
+  };
+
+  if (g_once_init_enter (&id)) {
+    GType tmp = g_enum_register_static ("GstCapsIntersectMode", values);
     g_once_init_leave (&id, tmp);
   }
 
@@ -184,6 +206,7 @@ gst_clock_return_get_type (void)
     {C_ENUM (GST_CLOCK_BADTIME), "GST_CLOCK_BADTIME", "badtime"},
     {C_ENUM (GST_CLOCK_ERROR), "GST_CLOCK_ERROR", "error"},
     {C_ENUM (GST_CLOCK_UNSUPPORTED), "GST_CLOCK_UNSUPPORTED", "unsupported"},
+    {C_ENUM (GST_CLOCK_DONE), "GST_CLOCK_DONE", "done"},
     {0, NULL, NULL}
   };
 
@@ -349,6 +372,7 @@ gst_element_flags_get_type (void)
     {C_FLAGS (GST_ELEMENT_IS_SINK), "GST_ELEMENT_IS_SINK", "is-sink"},
     {C_FLAGS (GST_ELEMENT_UNPARENTING), "GST_ELEMENT_UNPARENTING",
         "unparenting"},
+    {C_FLAGS (GST_ELEMENT_IS_SOURCE), "GST_ELEMENT_IS_SOURCE", "is-source"},
     {C_FLAGS (GST_ELEMENT_FLAG_LAST), "GST_ELEMENT_FLAG_LAST", "flag-last"},
     {0, NULL, NULL}
   };
@@ -597,6 +621,25 @@ gst_seek_flags_get_type (void)
 
   if (g_once_init_enter (&id)) {
     GType tmp = g_flags_register_static ("GstSeekFlags", values);
+    g_once_init_leave (&id, tmp);
+  }
+
+  return (GType) id;
+}
+
+GType
+gst_qos_type_get_type (void)
+{
+  static gsize id = 0;
+  static const GEnumValue values[] = {
+    {C_ENUM (GST_QOS_TYPE_OVERFLOW), "GST_QOS_TYPE_OVERFLOW", "overflow"},
+    {C_ENUM (GST_QOS_TYPE_UNDERFLOW), "GST_QOS_TYPE_UNDERFLOW", "underflow"},
+    {C_ENUM (GST_QOS_TYPE_THROTTLE), "GST_QOS_TYPE_THROTTLE", "throttle"},
+    {0, NULL, NULL}
+  };
+
+  if (g_once_init_enter (&id)) {
+    GType tmp = g_enum_register_static ("GstQOSType", values);
     g_once_init_leave (&id, tmp);
   }
 
@@ -889,6 +932,7 @@ gst_message_type_get_type (void)
         "request-state"},
     {C_FLAGS (GST_MESSAGE_STEP_START), "GST_MESSAGE_STEP_START", "step-start"},
     {C_FLAGS (GST_MESSAGE_QOS), "GST_MESSAGE_QOS", "qos"},
+    {C_FLAGS (GST_MESSAGE_PROGRESS), "GST_MESSAGE_PROGRESS", "progress"},
     {C_FLAGS (GST_MESSAGE_ANY), "GST_MESSAGE_ANY", "any"},
     {0, NULL, NULL}
   };
@@ -951,6 +995,30 @@ gst_stream_status_type_get_type (void)
   return (GType) id;
 }
 
+GType
+gst_progress_type_get_type (void)
+{
+  static gsize id = 0;
+  static const GEnumValue values[] = {
+    {C_ENUM (GST_PROGRESS_TYPE_START), "GST_PROGRESS_TYPE_START", "start"},
+    {C_ENUM (GST_PROGRESS_TYPE_CONTINUE), "GST_PROGRESS_TYPE_CONTINUE",
+        "continue"},
+    {C_ENUM (GST_PROGRESS_TYPE_COMPLETE), "GST_PROGRESS_TYPE_COMPLETE",
+        "complete"},
+    {C_ENUM (GST_PROGRESS_TYPE_CANCELED), "GST_PROGRESS_TYPE_CANCELED",
+        "canceled"},
+    {C_ENUM (GST_PROGRESS_TYPE_ERROR), "GST_PROGRESS_TYPE_ERROR", "error"},
+    {0, NULL, NULL}
+  };
+
+  if (g_once_init_enter (&id)) {
+    GType tmp = g_enum_register_static ("GstProgressType", values);
+    g_once_init_leave (&id, tmp);
+  }
+
+  return (GType) id;
+}
+
 /* enumerations from "gstminiobject.h" */
 GType
 gst_mini_object_flags_get_type (void)
@@ -959,6 +1027,8 @@ gst_mini_object_flags_get_type (void)
   static const GFlagsValue values[] = {
     {C_FLAGS (GST_MINI_OBJECT_FLAG_READONLY), "GST_MINI_OBJECT_FLAG_READONLY",
         "readonly"},
+    {C_FLAGS (GST_MINI_OBJECT_FLAG_RESERVED1), "GST_MINI_OBJECT_FLAG_RESERVED1",
+        "reserved1"},
     {C_FLAGS (GST_MINI_OBJECT_FLAG_LAST), "GST_MINI_OBJECT_FLAG_LAST", "last"},
     {0, NULL, NULL}
   };
@@ -1407,6 +1477,7 @@ gst_alloc_trace_flags_get_type (void)
 {
   static gsize id = 0;
   static const GFlagsValue values[] = {
+    {C_FLAGS (GST_ALLOC_TRACE_NONE), "GST_ALLOC_TRACE_NONE", "none"},
     {C_FLAGS (GST_ALLOC_TRACE_LIVE), "GST_ALLOC_TRACE_LIVE", "live"},
     {C_FLAGS (GST_ALLOC_TRACE_MEM_LIVE), "GST_ALLOC_TRACE_MEM_LIVE",
         "mem-live"},
@@ -1427,6 +1498,7 @@ gst_type_find_probability_get_type (void)
 {
   static gsize id = 0;
   static const GEnumValue values[] = {
+    {C_ENUM (GST_TYPE_FIND_NONE), "GST_TYPE_FIND_NONE", "none"},
     {C_ENUM (GST_TYPE_FIND_MINIMUM), "GST_TYPE_FIND_MINIMUM", "minimum"},
     {C_ENUM (GST_TYPE_FIND_POSSIBLE), "GST_TYPE_FIND_POSSIBLE", "possible"},
     {C_ENUM (GST_TYPE_FIND_LIKELY), "GST_TYPE_FIND_LIKELY", "likely"},
@@ -1530,5 +1602,3 @@ gst_parse_flags_get_type (void)
 
   return (GType) id;
 }
-
-/* Generated data ends here */

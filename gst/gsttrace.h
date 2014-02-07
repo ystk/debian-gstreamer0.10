@@ -30,13 +30,15 @@ G_BEGIN_DECLS
 
 /**
  * GstAllocTraceFlags:
- * @GST_ALLOC_TRACE_LIVE: Trace number of non-freed memory
- * @GST_ALLOC_TRACE_MEM_LIVE: trace pointers of unfreed memory
+ * @GST_ALLOC_TRACE_NONE: No tracing specified or desired. Since 0.10.36.
+ * @GST_ALLOC_TRACE_LIVE: Trace number of non-freed memory.
+ * @GST_ALLOC_TRACE_MEM_LIVE: Trace pointers of unfreed memory.
  *
  * Flags indicating which tracing feature to enable.
  */
 typedef enum {
-  GST_ALLOC_TRACE_LIVE		= (1 << 0),
+  GST_ALLOC_TRACE_NONE      = 0,
+  GST_ALLOC_TRACE_LIVE      = (1 << 0),
   GST_ALLOC_TRACE_MEM_LIVE	= (1 << 1)
 } GstAllocTraceFlags;
 
@@ -125,7 +127,7 @@ void 		gst_trace_read_tsc		(gint64 *dst);
 extern GStaticMutex     _gst_trace_mutex;
 
 gboolean		gst_alloc_trace_available	(void);
-G_CONST_RETURN GList*	gst_alloc_trace_list		(void);
+const GList*		gst_alloc_trace_list		(void);
 GstAllocTrace*		_gst_alloc_trace_register	(const gchar *name);
 
 int			gst_alloc_trace_live_all	(void);

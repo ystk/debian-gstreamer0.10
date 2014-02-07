@@ -14,6 +14,23 @@ libgstbase-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_adapter_push@Base 0.10.0
  gst_adapter_take@Base 0.10.0
  gst_adapter_take_buffer@Base 0.10.6
+ gst_adapter_take_list@Base 0.10.31
+ gst_base_parse_add_index_entry@Base 0.10.33
+ gst_base_parse_convert_default@Base 0.10.33
+ gst_base_parse_frame_free@Base 0.10.33
+ gst_base_parse_frame_get_type@Base 0.10.33
+ gst_base_parse_frame_init@Base 0.10.33
+ gst_base_parse_frame_new@Base 0.10.33
+ gst_base_parse_get_type@Base 0.10.33
+ gst_base_parse_push_frame@Base 0.10.33
+ gst_base_parse_set_average_bitrate@Base 0.10.33
+ gst_base_parse_set_duration@Base 0.10.33
+ gst_base_parse_set_frame_rate@Base 0.10.33
+ gst_base_parse_set_has_timing_info@Base 0.10.33
+ gst_base_parse_set_latency@Base 0.10.36
+ gst_base_parse_set_min_frame_size@Base 0.10.33
+ gst_base_parse_set_passthrough@Base 0.10.33
+ gst_base_parse_set_syncable@Base 0.10.33
  gst_base_sink_do_preroll@Base 0.10.22
  gst_base_sink_get_blocksize@Base 0.10.22
  gst_base_sink_get_last_buffer@Base 0.10.15
@@ -21,6 +38,7 @@ libgstbase-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_base_sink_get_max_lateness@Base 0.10.4
  gst_base_sink_get_render_delay@Base 0.10.21
  gst_base_sink_get_sync@Base 0.10.4
+ gst_base_sink_get_throttle_time@Base 0.10.33
  gst_base_sink_get_ts_offset@Base 0.10.15
  gst_base_sink_get_type@Base 0.10.0
  gst_base_sink_is_async_enabled@Base 0.10.15
@@ -34,6 +52,7 @@ libgstbase-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_base_sink_set_qos_enabled@Base 0.10.5
  gst_base_sink_set_render_delay@Base 0.10.21
  gst_base_sink_set_sync@Base 0.10.4
+ gst_base_sink_set_throttle_time@Base 0.10.33
  gst_base_sink_set_ts_offset@Base 0.10.15
  gst_base_sink_wait_clock@Base 0.10.20
  gst_base_sink_wait_eos@Base 0.10.15
@@ -46,6 +65,7 @@ libgstbase-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_base_src_query_latency@Base 0.10.13
  gst_base_src_set_blocksize@Base 0.10.22
  gst_base_src_set_do_timestamp@Base 0.10.15
+ gst_base_src_set_dynamic_size@Base 0.10.36
  gst_base_src_set_format@Base 0.10.1
  gst_base_src_set_live@Base 0.10.0
  gst_base_src_wait_playing@Base 0.10.11
@@ -188,6 +208,30 @@ libgstbase-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_byte_writer_reset@Base 0.10.26
  gst_byte_writer_reset_and_get_buffer@Base 0.10.26
  gst_byte_writer_reset_and_get_data@Base 0.10.26
+ gst_collect_pads2_add_pad@Base 0.10.36-1.1
+ gst_collect_pads2_add_pad_full@Base 0.10.36-1.1
+ gst_collect_pads2_available@Base 0.10.36-1.1
+ gst_collect_pads2_collect@Base 0.10.36-1.1
+ gst_collect_pads2_collect_range@Base 0.10.36-1.1
+ gst_collect_pads2_flush@Base 0.10.36-1.1
+ gst_collect_pads2_get_type@Base 0.10.36-1.1
+ gst_collect_pads2_is_active@Base 0.10.36-1.1
+ gst_collect_pads2_new@Base 0.10.36-1.1
+ gst_collect_pads2_peek@Base 0.10.36-1.1
+ gst_collect_pads2_pop@Base 0.10.36-1.1
+ gst_collect_pads2_read@Base 0.10.36-1.1
+ gst_collect_pads2_read_buffer@Base 0.10.36-1.1
+ gst_collect_pads2_remove_pad@Base 0.10.36-1.1
+ gst_collect_pads2_set_buffer_function@Base 0.10.36-1.1
+ gst_collect_pads2_set_clip_function@Base 0.10.36-1.1
+ gst_collect_pads2_set_compare_function@Base 0.10.36-1.1
+ gst_collect_pads2_set_event_function@Base 0.10.36-1.1
+ gst_collect_pads2_set_flushing@Base 0.10.36-1.1
+ gst_collect_pads2_set_function@Base 0.10.36-1.1
+ gst_collect_pads2_set_waiting@Base 0.10.36-1.1
+ gst_collect_pads2_start@Base 0.10.36-1.1
+ gst_collect_pads2_stop@Base 0.10.36-1.1
+ gst_collect_pads2_take_buffer@Base 0.10.36-1.1
  gst_collect_pads_add_pad@Base 0.10.0
  gst_collect_pads_add_pad_full@Base 0.10.12
  gst_collect_pads_available@Base 0.10.0
@@ -440,42 +484,6 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  _gst_event_initialize@Base 0.10.0
  _gst_format_initialize@Base 0.10.0
  _gst_message_initialize@Base 0.10.0
- _gst_parse_launch@Base 0.10.0
- _gst_parse_yy_create_buffer@Base 0.10.0
- _gst_parse_yy_delete_buffer@Base 0.10.0
- _gst_parse_yy_flush_buffer@Base 0.10.0
- _gst_parse_yy_scan_buffer@Base 0.10.0
- _gst_parse_yy_scan_bytes@Base 0.10.0
- _gst_parse_yy_scan_string@Base 0.10.0
- _gst_parse_yy_switch_to_buffer@Base 0.10.0
- _gst_parse_yyalloc@Base 0.10.0
- _gst_parse_yydebug@Base 0.10.13
- _gst_parse_yyfree@Base 0.10.0
- _gst_parse_yyget_column@Base 0.10.13
- _gst_parse_yyget_debug@Base 0.10.0
- _gst_parse_yyget_extra@Base 0.10.13
- _gst_parse_yyget_in@Base 0.10.0
- _gst_parse_yyget_leng@Base 0.10.0
- _gst_parse_yyget_lineno@Base 0.10.0
- _gst_parse_yyget_lval@Base 0.10.13
- _gst_parse_yyget_out@Base 0.10.0
- _gst_parse_yyget_text@Base 0.10.0
- _gst_parse_yylex@Base 0.10.0
- _gst_parse_yylex_destroy@Base 0.10.0
- _gst_parse_yylex_init@Base 0.10.13
- _gst_parse_yylex_init_extra@Base 0.10.18
- _gst_parse_yyparse@Base 0.10.13
- _gst_parse_yypop_buffer_state@Base 0.10.0
- _gst_parse_yypush_buffer_state@Base 0.10.0
- _gst_parse_yyrealloc@Base 0.10.0
- _gst_parse_yyrestart@Base 0.10.0
- _gst_parse_yyset_column@Base 0.10.13
- _gst_parse_yyset_debug@Base 0.10.0
- _gst_parse_yyset_extra@Base 0.10.13
- _gst_parse_yyset_in@Base 0.10.0
- _gst_parse_yyset_lineno@Base 0.10.0
- _gst_parse_yyset_lval@Base 0.10.13
- _gst_parse_yyset_out@Base 0.10.0
  _gst_plugin_initialize@Base 0.10.0
  _gst_plugin_loader_client_run@Base 0.10.26
  _gst_plugin_register_static@Base 0.10.0
@@ -498,6 +506,13 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_alloc_trace_set_flags_all@Base 0.10.0
  gst_assoc_flags_get_type@Base 0.10.0
  gst_atomic_int_set@Base 0.10.0
+ gst_atomic_queue_length@Base 0.10.33
+ gst_atomic_queue_new@Base 0.10.33
+ gst_atomic_queue_peek@Base 0.10.33
+ gst_atomic_queue_pop@Base 0.10.33
+ gst_atomic_queue_push@Base 0.10.33
+ gst_atomic_queue_ref@Base 0.10.33
+ gst_atomic_queue_unref@Base 0.10.33
  gst_bin_add@Base 0.10.0
  gst_bin_add_many@Base 0.10.0
  gst_bin_find_unconnected_pad@Base 0.10.3
@@ -522,6 +537,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_buffer_create_sub@Base 0.10.0
  gst_buffer_flag_get_type@Base 0.10.0
  gst_buffer_get_caps@Base 0.10.0
+ gst_buffer_get_qdata@Base 0.10.36
  gst_buffer_get_type@Base 0.10.0
  gst_buffer_is_metadata_writable@Base 0.10.3
  gst_buffer_is_span_fast@Base 0.10.0
@@ -533,8 +549,10 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_buffer_list_iterate@Base 0.10.24
  gst_buffer_list_iterator_add@Base 0.10.24
  gst_buffer_list_iterator_add_group@Base 0.10.24
+ gst_buffer_list_iterator_add_list@Base 0.10.31
  gst_buffer_list_iterator_do@Base 0.10.24
  gst_buffer_list_iterator_free@Base 0.10.24
+ gst_buffer_list_iterator_get_type@Base 0.10.33
  gst_buffer_list_iterator_merge_group@Base 0.10.24
  gst_buffer_list_iterator_n_buffers@Base 0.10.24
  gst_buffer_list_iterator_next@Base 0.10.24
@@ -549,6 +567,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_buffer_new@Base 0.10.0
  gst_buffer_new_and_alloc@Base 0.10.0
  gst_buffer_set_caps@Base 0.10.0
+ gst_buffer_set_qdata@Base 0.10.36
  gst_buffer_span@Base 0.10.0
  gst_buffer_stamp@Base 0.10.0
  gst_buffer_try_new_and_alloc@Base 0.10.13
@@ -589,13 +608,17 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_caps_get_structure@Base 0.10.0
  gst_caps_get_type@Base 0.10.0
  gst_caps_intersect@Base 0.10.0
+ gst_caps_intersect_full@Base 0.10.33
+ gst_caps_intersect_mode_get_type@Base 0.10.33
  gst_caps_is_always_compatible@Base 0.10.0
  gst_caps_is_any@Base 0.10.0
  gst_caps_is_empty@Base 0.10.0
  gst_caps_is_equal@Base 0.10.0
  gst_caps_is_equal_fixed@Base 0.10.0
  gst_caps_is_fixed@Base 0.10.0
+ gst_caps_is_strictly_equal@Base 0.10.36
  gst_caps_is_subset@Base 0.10.0
+ gst_caps_is_subset_structure@Base 0.10.36
  gst_caps_load_thyself@Base 0.10.0
  gst_caps_make_writable@Base 0.10.0
  gst_caps_merge@Base 0.10.10
@@ -654,15 +677,34 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_clock_id_wait_async_full@Base 0.10.30
  gst_clock_new_periodic_id@Base 0.10.0
  gst_clock_new_single_shot_id@Base 0.10.0
+ gst_clock_periodic_id_reinit@Base 0.10.33
  gst_clock_return_get_type@Base 0.10.0
  gst_clock_set_calibration@Base 0.10.0
  gst_clock_set_master@Base 0.10.0
  gst_clock_set_resolution@Base 0.10.0
+ gst_clock_single_shot_id_reinit@Base 0.10.32
  gst_clock_type_get_type@Base 0.10.23
  gst_clock_unadjust_unlocked@Base 0.10.13
  gst_core_error_get_type@Base 0.10.0
  gst_core_error_quark@Base 0.10.0
  gst_date_get_type@Base 0.10.0
+ gst_date_time_get_day@Base 0.10.31
+ gst_date_time_get_hour@Base 0.10.31
+ gst_date_time_get_microsecond@Base 0.10.31
+ gst_date_time_get_minute@Base 0.10.31
+ gst_date_time_get_month@Base 0.10.31
+ gst_date_time_get_second@Base 0.10.31
+ gst_date_time_get_time_zone_offset@Base 0.10.31
+ gst_date_time_get_type@Base 0.10.31
+ gst_date_time_get_year@Base 0.10.31
+ gst_date_time_new@Base 0.10.31
+ gst_date_time_new_from_unix_epoch_local_time@Base 0.10.31
+ gst_date_time_new_from_unix_epoch_utc@Base 0.10.31
+ gst_date_time_new_local_time@Base 0.10.31
+ gst_date_time_new_now_local_time@Base 0.10.31
+ gst_date_time_new_now_utc@Base 0.10.31
+ gst_date_time_ref@Base 0.10.31
+ gst_date_time_unref@Base 0.10.31
  gst_debug_add_log_function@Base 0.10.0
  gst_debug_category_free@Base 0.10.0
  gst_debug_category_get_color@Base 0.10.0
@@ -700,20 +742,29 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_element_add_pad@Base 0.10.0
  gst_element_change_state@Base 0.10.13
  gst_element_class_add_pad_template@Base 0.10.0
+ gst_element_class_add_static_pad_template@Base 0.10.36
  gst_element_class_get_pad_template@Base 0.10.0
  gst_element_class_get_pad_template_list@Base 0.10.0
  gst_element_class_install_std_props@Base 0.10.0
  gst_element_class_set_details@Base 0.10.0
  gst_element_class_set_details_simple@Base 0.10.14
+ gst_element_class_set_documentation_uri@Base 0.10.31
+ gst_element_class_set_icon_name@Base 0.10.31
  gst_element_continue_state@Base 0.10.0
  gst_element_create_all_pads@Base 0.10.0
+ gst_element_factory_can_sink_all_caps@Base 0.10.33
+ gst_element_factory_can_sink_any_caps@Base 0.10.33
  gst_element_factory_can_sink_caps@Base 0.10.0
+ gst_element_factory_can_src_all_caps@Base 0.10.33
+ gst_element_factory_can_src_any_caps@Base 0.10.33
  gst_element_factory_can_src_caps@Base 0.10.0
  gst_element_factory_create@Base 0.10.0
  gst_element_factory_find@Base 0.10.0
  gst_element_factory_get_author@Base 0.10.0
  gst_element_factory_get_description@Base 0.10.0
+ gst_element_factory_get_documentation_uri@Base 0.10.31
  gst_element_factory_get_element_type@Base 0.10.0
+ gst_element_factory_get_icon_name@Base 0.10.31
  gst_element_factory_get_klass@Base 0.10.0
  gst_element_factory_get_longname@Base 0.10.0
  gst_element_factory_get_num_pad_templates@Base 0.10.0
@@ -722,6 +773,9 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_element_factory_get_uri_protocols@Base 0.10.0
  gst_element_factory_get_uri_type@Base 0.10.0
  gst_element_factory_has_interface@Base 0.10.14
+ gst_element_factory_list_filter@Base 0.10.31
+ gst_element_factory_list_get_elements@Base 0.10.31
+ gst_element_factory_list_is_type@Base 0.10.31
  gst_element_factory_make@Base 0.10.0
  gst_element_flags_get_type@Base 0.10.0
  gst_element_found_tags@Base 0.10.0
@@ -767,6 +821,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_element_register@Base 0.10.0
  gst_element_release_request_pad@Base 0.10.0
  gst_element_remove_pad@Base 0.10.0
+ gst_element_request_pad@Base 0.10.32
  gst_element_requires_clock@Base 0.10.0
  gst_element_seek@Base 0.10.0
  gst_element_seek_simple@Base 0.10.7
@@ -799,6 +854,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_event_new_new_segment@Base 0.10.0
  gst_event_new_new_segment_full@Base 0.10.6
  gst_event_new_qos@Base 0.10.0
+ gst_event_new_qos_full@Base 0.10.33
  gst_event_new_seek@Base 0.10.0
  gst_event_new_sink_message@Base 0.10.26
  gst_event_new_step@Base 0.10.24
@@ -808,6 +864,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_event_parse_new_segment@Base 0.10.0
  gst_event_parse_new_segment_full@Base 0.10.6
  gst_event_parse_qos@Base 0.10.0
+ gst_event_parse_qos_full@Base 0.10.33
  gst_event_parse_seek@Base 0.10.0
  gst_event_parse_sink_message@Base 0.10.26
  gst_event_parse_step@Base 0.10.24
@@ -818,6 +875,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_event_type_get_name@Base 0.10.0
  gst_event_type_get_type@Base 0.10.0
  gst_event_type_to_quark@Base 0.10.0
+ gst_filename_to_uri@Base 0.10.33
  gst_filter_run@Base 0.10.0
  gst_flow_get_name@Base 0.10.0
  gst_flow_return_get_type@Base 0.10.0
@@ -834,14 +892,21 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_fraction_get_type@Base 0.10.0
  gst_fraction_range_get_type@Base 0.10.0
  gst_g_error_get_type@Base 0.10.0
+ gst_ghost_pad_activate_pull_default@Base 0.10.36
+ gst_ghost_pad_activate_push_default@Base 0.10.36
  gst_ghost_pad_construct@Base 0.10.22
  gst_ghost_pad_get_target@Base 0.10.0
  gst_ghost_pad_get_type@Base 0.10.0
+ gst_ghost_pad_internal_activate_pull_default@Base 0.10.36
+ gst_ghost_pad_internal_activate_push_default@Base 0.10.36
+ gst_ghost_pad_link_default@Base 0.10.36
  gst_ghost_pad_new@Base 0.10.0
  gst_ghost_pad_new_from_template@Base 0.10.10
  gst_ghost_pad_new_no_target@Base 0.10.0
  gst_ghost_pad_new_no_target_from_template@Base 0.10.10
  gst_ghost_pad_set_target@Base 0.10.0
+ gst_ghost_pad_setcaps_default@Base 0.10.36
+ gst_ghost_pad_unlink_default@Base 0.10.36
  gst_implements_interface_cast@Base 0.10.0
  gst_implements_interface_check@Base 0.10.0
  gst_implements_interface_get_type@Base 0.10.0
@@ -883,7 +948,9 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_init@Base 0.10.0
  gst_init_check@Base 0.10.0
  gst_init_get_option_group@Base 0.10.0
+ gst_int64_range_get_type@Base 0.10.31
  gst_int_range_get_type@Base 0.10.0
+ gst_is_initialized@Base 0.10.31
  gst_is_tag_list@Base 0.10.0
  gst_iterator_filter@Base 0.10.0
  gst_iterator_find_custom@Base 0.10.0
@@ -934,6 +1001,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_message_new_info@Base 0.10.12
  gst_message_new_latency@Base 0.10.12
  gst_message_new_new_clock@Base 0.10.0
+ gst_message_new_progress@Base 0.10.33
  gst_message_new_qos@Base 0.10.29
  gst_message_new_request_state@Base 0.10.23
  gst_message_new_segment_done@Base 0.10.0
@@ -956,6 +1024,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_message_parse_error@Base 0.10.0
  gst_message_parse_info@Base 0.10.12
  gst_message_parse_new_clock@Base 0.10.0
+ gst_message_parse_progress@Base 0.10.33
  gst_message_parse_qos@Base 0.10.29
  gst_message_parse_qos_stats@Base 0.10.29
  gst_message_parse_qos_values@Base 0.10.29
@@ -987,6 +1056,8 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_mini_object_ref@Base 0.10.0
  gst_mini_object_replace@Base 0.10.0
  gst_mini_object_unref@Base 0.10.0
+ gst_mini_object_weak_ref@Base 0.10.36
+ gst_mini_object_weak_unref@Base 0.10.36
  gst_object_check_uniqueness@Base 0.10.0
  gst_object_default_deep_notify@Base 0.10.0
  gst_object_default_error@Base 0.10.0
@@ -1124,6 +1195,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_parse_bin_from_description@Base 0.10.3
  gst_parse_bin_from_description_full@Base 0.10.20
  gst_parse_context_free@Base 0.10.20
+ gst_parse_context_get_type@Base 0.10.33
  gst_parse_context_get_missing_elements@Base 0.10.20
  gst_parse_context_new@Base 0.10.20
  gst_parse_error_get_type@Base 0.10.0
@@ -1157,8 +1229,10 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_plugin_feature_get_rank@Base 0.10.0
  gst_plugin_feature_get_type@Base 0.10.0
  gst_plugin_feature_list_copy@Base 0.10.26
+ gst_plugin_feature_list_debug@Base 0.10.31
  gst_plugin_feature_list_free@Base 0.10.0
  gst_plugin_feature_load@Base 0.10.0
+ gst_plugin_feature_rank_compare_func@Base 0.10.31
  gst_plugin_feature_set_name@Base 0.10.0
  gst_plugin_feature_set_rank@Base 0.10.0
  gst_plugin_feature_type_name_filter@Base 0.10.0
@@ -1193,6 +1267,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_poll_fd_ignored@Base 0.10.18
  gst_poll_fd_init@Base 0.10.18
  gst_poll_free@Base 0.10.18
+ gst_poll_get_read_gpollfd@Base 0.10.32
  gst_poll_new@Base 0.10.18
  gst_poll_new_timer@Base 0.10.23
  gst_poll_read_control@Base 0.10.23
@@ -1203,6 +1278,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_poll_wait@Base 0.10.18
  gst_poll_write_control@Base 0.10.23
  gst_preset_delete_preset@Base 0.10.20
+ gst_preset_get_app_dir@Base 0.10.36
  gst_preset_get_meta@Base 0.10.20
  gst_preset_get_preset_names@Base 0.10.20
  gst_preset_get_property_names@Base 0.10.20
@@ -1210,10 +1286,30 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_preset_load_preset@Base 0.10.20
  gst_preset_rename_preset@Base 0.10.20
  gst_preset_save_preset@Base 0.10.20
+ gst_preset_set_app_dir@Base 0.10.36
  gst_preset_set_meta@Base 0.10.20
  gst_print_element_args@Base 0.10.0
  gst_print_pad_caps@Base 0.10.0
+ gst_progress_type_get_type@Base 0.10.33
+ gst_proxy_pad_acceptcaps_default@Base 0.10.36
+ gst_proxy_pad_bufferalloc_default@Base 0.10.36
+ gst_proxy_pad_chain_default@Base 0.10.36
+ gst_proxy_pad_chain_list_default@Base 0.10.36
+ gst_proxy_pad_checkgetrange_default@Base 0.10.36
+ gst_proxy_pad_event_default@Base 0.10.36
+ gst_proxy_pad_fixatecaps_default@Base 0.10.36
+ gst_proxy_pad_get_internal@Base 0.10.36
  gst_proxy_pad_get_type@Base 0.10.22
+ gst_proxy_pad_getcaps_default@Base 0.10.36
+ gst_proxy_pad_getrange_default@Base 0.10.36
+ gst_proxy_pad_iterate_internal_links_default@Base 0.10.36
+ gst_proxy_pad_query_default@Base 0.10.36
+ gst_proxy_pad_query_type_default@Base 0.10.36
+ gst_proxy_pad_setcaps_default@Base 0.10.36
+ gst_proxy_pad_unlink_default@Base 0.10.36
+ gst_qos_type_get_type@Base 0.10.33
+ gst_query_add_buffering_range@Base 0.10.31
+ gst_query_get_n_buffering_ranges@Base 0.10.31
  gst_query_get_structure@Base 0.10.0
  gst_query_get_type@Base 0.10.0
  gst_query_new_application@Base 0.10.0
@@ -1234,6 +1330,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_query_parse_formats_length@Base 0.10.4
  gst_query_parse_formats_nth@Base 0.10.4
  gst_query_parse_latency@Base 0.10.12
+ gst_query_parse_nth_buffering_range@Base 0.10.31
  gst_query_parse_position@Base 0.10.0
  gst_query_parse_seeking@Base 0.10.0
  gst_query_parse_segment@Base 0.10.0
@@ -1317,6 +1414,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_stream_error_get_type@Base 0.10.0
  gst_stream_error_quark@Base 0.10.0
  gst_stream_status_type_get_type@Base 0.10.24
+ gst_structure_can_intersect@Base 0.10.36
  gst_structure_change_type_get_type@Base 0.10.22
  gst_structure_copy@Base 0.10.0
  gst_structure_empty_new@Base 0.10.0
@@ -1332,6 +1430,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_structure_get_boolean@Base 0.10.0
  gst_structure_get_clock_time@Base 0.10.0
  gst_structure_get_date@Base 0.10.0
+ gst_structure_get_date_time@Base 0.10.31
  gst_structure_get_double@Base 0.10.0
  gst_structure_get_enum@Base 0.10.0
  gst_structure_get_field_type@Base 0.10.0
@@ -1358,6 +1457,10 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_structure_id_set@Base 0.10.10
  gst_structure_id_set_valist@Base 0.10.10
  gst_structure_id_set_value@Base 0.10.0
+ gst_structure_id_take_value@Base 0.10.31
+ gst_structure_intersect@Base 0.10.36
+ gst_structure_is_equal@Base 0.10.36
+ gst_structure_is_subset@Base 0.10.36
  gst_structure_map_in_place@Base 0.10.0
  gst_structure_n_fields@Base 0.10.0
  gst_structure_new@Base 0.10.0
@@ -1372,6 +1475,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_structure_set_parent_refcount@Base 0.10.0
  gst_structure_set_valist@Base 0.10.0
  gst_structure_set_value@Base 0.10.0
+ gst_structure_take_value@Base 0.10.31
  gst_structure_to_string@Base 0.10.0
  gst_system_clock_get_type@Base 0.10.0
  gst_system_clock_obtain@Base 0.10.0
@@ -1399,6 +1503,8 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_tag_list_get_char_index@Base 0.10.0
  gst_tag_list_get_date@Base 0.10.0
  gst_tag_list_get_date_index@Base 0.10.0
+ gst_tag_list_get_date_time@Base 0.10.31
+ gst_tag_list_get_date_time_index@Base 0.10.31
  gst_tag_list_get_double@Base 0.10.0
  gst_tag_list_get_double_index@Base 0.10.0
  gst_tag_list_get_float@Base 0.10.0
@@ -1426,12 +1532,15 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_tag_list_get_value_index@Base 0.10.0
  gst_tag_list_insert@Base 0.10.0
  gst_tag_list_is_empty@Base 0.10.11
+ gst_tag_list_is_equal@Base 0.10.36
  gst_tag_list_merge@Base 0.10.0
  gst_tag_list_new@Base 0.10.0
+ gst_tag_list_new_from_string@Base 0.10.36
  gst_tag_list_new_full@Base 0.10.24
  gst_tag_list_new_full_valist@Base 0.10.24
  gst_tag_list_peek_string_index@Base 0.10.30
  gst_tag_list_remove_tag@Base 0.10.0
+ gst_tag_list_to_string@Base 0.10.36
  gst_tag_merge_mode_get_type@Base 0.10.0
  gst_tag_merge_strings_with_comma@Base 0.10.0
  gst_tag_merge_use_first@Base 0.10.0
@@ -1506,6 +1615,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_util_double_to_fraction@Base 0.10.26
  gst_util_dump_mem@Base 0.10.0
  gst_util_fraction_add@Base 0.10.26
+ gst_util_fraction_compare@Base 0.10.31
  gst_util_fraction_multiply@Base 0.10.26
  gst_util_fraction_to_double@Base 0.10.26
  gst_util_gdouble_to_guint64@Base 0.10.0
@@ -1545,6 +1655,8 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_value_get_fraction_numerator@Base 0.10.0
  gst_value_get_fraction_range_max@Base 0.10.0
  gst_value_get_fraction_range_min@Base 0.10.0
+ gst_value_get_int64_range_max@Base 0.10.31
+ gst_value_get_int64_range_min@Base 0.10.31
  gst_value_get_int_range_max@Base 0.10.0
  gst_value_get_int_range_min@Base 0.10.0
  gst_value_get_mini_object@Base 0.10.0
@@ -1557,6 +1669,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_value_list_get_size@Base 0.10.0
  gst_value_list_get_type@Base 0.10.0
  gst_value_list_get_value@Base 0.10.0
+ gst_value_list_merge@Base 0.10.32
  gst_value_list_prepend_value@Base 0.10.0
  gst_value_register@Base 0.10.0
  gst_value_register_intersect_func@Base 0.10.0
@@ -1570,6 +1683,7 @@ libgstreamer-0.10.so.0 libgstreamer0.10-0 #MINVER#
  gst_value_set_fraction@Base 0.10.0
  gst_value_set_fraction_range@Base 0.10.0
  gst_value_set_fraction_range_full@Base 0.10.0
+ gst_value_set_int64_range@Base 0.10.31
  gst_value_set_int_range@Base 0.10.0
  gst_value_set_mini_object@Base 0.10.0
  gst_value_set_structure@Base 0.10.15

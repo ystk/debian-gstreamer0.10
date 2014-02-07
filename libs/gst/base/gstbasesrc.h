@@ -64,7 +64,6 @@ typedef struct _GstBaseSrcPrivate GstBaseSrcPrivate;
 
 /**
  * GstBaseSrc:
- * @element: the parent element.
  *
  * The opaque #GstBaseSrc data structure.
  */
@@ -134,8 +133,8 @@ struct _GstBaseSrc {
  * @unlock: Unlock any pending access to the resource. Subclasses should
  *    unblock any blocked function ASAP. In particular, any create() function in
  *    progress should be unblocked and should return GST_FLOW_WRONG_STATE. Any
- *    future create() function call should also return GST_FLOW_WRONG_STATE
- *    until the unlock_stop() function has been called.
+ *    future @create<!-- -->() function call should also return GST_FLOW_WRONG_STATE
+ *    until the @unlock_stop<!-- -->() function has been called.
  * @unlock_stop: Clear the previous unlock request. Subclasses should clear
  *    any state they set during unlock(), such as clearing command queues.
  * @event: Override this to implement custom event handling.
@@ -245,6 +244,8 @@ void            gst_base_src_set_live         (GstBaseSrc *src, gboolean live);
 gboolean        gst_base_src_is_live          (GstBaseSrc *src);
 
 void            gst_base_src_set_format       (GstBaseSrc *src, GstFormat format);
+
+void            gst_base_src_set_dynamic_size (GstBaseSrc * src, gboolean dynamic);
 
 gboolean        gst_base_src_query_latency    (GstBaseSrc *src, gboolean * live,
                                                GstClockTime * min_latency,

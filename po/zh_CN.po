@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gstreamer 0.10.25.2\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
 "PO-Revision-Date: 2010-02-02 18:58+0800\n"
 "Last-Translator: Ji ZhengYu <zhengyuji@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -144,6 +144,9 @@ msgstr "无法关闭支持库。"
 
 msgid "Could not configure supporting library."
 msgstr "无法配置支持库。"
+
+msgid "Encoding error."
+msgstr ""
 
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer 遇到了常规资源错误。"
@@ -287,6 +290,14 @@ msgstr "日期"
 msgid "date the data was created (as a GDate structure)"
 msgstr "创建数据的日期(为 GDate 结构)"
 
+#, fuzzy
+msgid "datetime"
+msgstr "日期"
+
+#, fuzzy
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr "创建数据的日期(为 GDate 结构)"
+
 msgid "genre"
 msgstr "流派"
 
@@ -375,6 +386,13 @@ msgstr "版权 uri"
 
 msgid "URI to the copyright notice of the data"
 msgstr "数据的版权警告 URI"
+
+#, fuzzy
+msgid "encoded by"
+msgstr "编码器"
+
+msgid "name of the encoding person or organization"
+msgstr ""
 
 msgid "contact"
 msgstr "联系人"
@@ -617,6 +635,13 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "geo location horizontal error"
+msgstr "地理位置名称"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr ""
+
+#, fuzzy
 msgid "geo location movement speed"
 msgstr "地理经度"
 
@@ -715,6 +740,19 @@ msgstr ""
 #, fuzzy
 msgid "Model of the device used to create this media"
 msgstr "用于编码此流的编码器版本"
+
+#, fuzzy
+msgid "application name"
+msgstr "地理位置名称"
+
+msgid "Application used to create the media"
+msgstr ""
+
+msgid "application data"
+msgstr ""
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr ""
 
 msgid "image orientation"
 msgstr ""
@@ -856,16 +894,16 @@ msgstr "文件“%s”是套接字。"
 msgid "Failed after iterations as requested."
 msgstr "在完成所要求的迭代操作后出错。"
 
-#, fuzzy
-msgid "Error while writing to download file."
-msgstr "写入文件“%s”时出错。"
-
 msgid "No Temp directory specified."
 msgstr "未指定临时目录。"
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "无法创建临时文件“%s”。"
+
+#, fuzzy
+msgid "Error while writing to download file."
+msgstr "写入文件“%s”时出错。"
 
 msgid "caps"
 msgstr "分析器"
@@ -899,6 +937,15 @@ msgstr "可写"
 
 msgid "controllable"
 msgstr "可控制"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr ""
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr ""
+
+msgid "changeable only in NULL or READY state"
+msgstr ""
 
 msgid "Blacklisted files:"
 msgstr "文件黑名单:"
@@ -977,6 +1024,9 @@ msgstr "错误: 无法解析命令行参数 %d: %s。\n"
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "警告: 组件名‘%s’未找到。\n"
 
+msgid "Index statistics"
+msgstr ""
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "从组件\"%2$s\"(%3$s)中获取信息 #%1$u:"
@@ -1046,6 +1096,10 @@ msgstr "%2$s 发起请求时状态设置为 %1$s...\n"
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "中断: 中止管道 ...\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "无组件“%s”"
+
 msgid "Output tags (also known as metadata)"
 msgstr "输出标识(也可认为是元数据)"
 
@@ -1082,6 +1136,9 @@ msgstr "打印分配记录(如果在编译时开启的话)"
 #, fuzzy
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "关闭管道前强制对源发出 EOS 信号"
+
+msgid "Gather and print index statistics"
+msgstr ""
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

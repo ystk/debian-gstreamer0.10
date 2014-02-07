@@ -21,7 +21,8 @@ codecs, demultiplexers and other media-handling components for
 gstreamer-based applications.
 
 dh_gstscancodecs generates substitution variable for debian/control,
-by scanning libraries /usr/lib/gstreamer-0.10/*.so.
+by scanning libraries /usr/lib/gstreamer-0.10/*.so and
+/usr/lib/$DEB_HOST_MULTIARCH/gstreamer-0.10/*.so.
 
 The generated substitution variables are
 
@@ -68,7 +69,10 @@ The standard debhelper options are supported.
 
 init();
 
-$::pluginlibdirprefix = '/usr/lib/gstreamer-';
+my $deb_host_multiarch = `dpkg-architecture -qDEB_HOST_MULTIARCH`;
+chop $deb_host_multiarch;
+$::pluginlibdirprefix = '/usr/lib/'.$deb_host_multiarch.'/gstreamer-';
+$::pluginlibdirlegacy = '/usr/lib/gstreamer-';
 
 foreach my $package (@{$dh{DOPACKAGES}}) {
   my $tmp = tmpdir($package);
@@ -79,8 +83,10 @@ foreach my $package (@{$dh{DOPACKAGES}}) {
   delsubstvar($package, "gstreamer:Encoders");
   delsubstvar($package, "gstreamer:Decoders");
 
-  foreach my $sodir (glob "$tmp$::pluginlibdirprefix*") {
-    my $gstversion= substr($sodir, length("$tmp$::pluginlibdirprefix"));
+  foreach my $sodir (glob "$tmp$::pluginlibdirprefix* $tmp$::pluginlibdirlegacy*") {
+    my $gstversion = $sodir;
+    $gstversion =~ s/^$tmp$::pluginlibdirprefix//;
+    $gstversion =~ s/^$tmp$::pluginlibdirlegacy//;
     verbose_print("# gstreamer version $gstversion");
 
     my (undef, $tmpfile) = File::Temp::tempfile("/tmp/".basename($0).".XXXX", UNLINK => 1);

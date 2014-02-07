@@ -181,9 +181,9 @@ gboolean        gst_query_types_contains       (const GstQueryType *types,
 
 /* query for query details */
 
-G_CONST_RETURN GstQueryTypeDefinition*
+const GstQueryTypeDefinition*
                 gst_query_type_get_details         (GstQueryType type);
-GstIterator*    gst_query_type_iterate_definitions (void);
+GstIterator*    gst_query_type_iterate_definitions (void) G_GNUC_MALLOC;
 
 /* refcounting */
 /**
@@ -228,7 +228,9 @@ gst_query_unref (GstQuery * q)
  *
  * Copies the given query using the copy function of the parent #GstStructure.
  *
- * Returns: a new copy of @q.
+ * Free-function: gst_query_unref
+ *
+ * Returns: (transfer full): a new copy of @q.
  */
 #ifdef _FOOL_GTK_DOC_
 G_INLINE_FUNC GstQuery * gst_query_copy (const GstQuery * q);
@@ -237,42 +239,44 @@ G_INLINE_FUNC GstQuery * gst_query_copy (const GstQuery * q);
 static inline GstQuery *
 gst_query_copy (const GstQuery * q)
 {
-  return GST_QUERY_CAST (gst_mini_object_copy (GST_MINI_OBJECT_CAST (q)));
+  return GST_QUERY_CAST (gst_mini_object_copy (GST_MINI_OBJECT_CONST_CAST (q)));
 }
 
 /**
  * gst_query_make_writable:
- * @q: a #GstQuery to make writable
+ * @q: (transfer full): a #GstQuery to make writable
  *
  * Makes a writable query from the given query.
+ *
+ * Returns: (transfer full): a new writable query (possibly same as @q)
  */
 #define         gst_query_make_writable(q)      GST_QUERY_CAST (gst_mini_object_make_writable (GST_MINI_OBJECT_CAST (q)))
 
 /* position query */
-GstQuery*       gst_query_new_position          (GstFormat format);
+GstQuery*       gst_query_new_position          (GstFormat format) G_GNUC_MALLOC;
 void            gst_query_set_position          (GstQuery *query, GstFormat format, gint64 cur);
 void            gst_query_parse_position        (GstQuery *query, GstFormat *format, gint64 *cur);
 
 /* duration query */
-GstQuery*       gst_query_new_duration          (GstFormat format);
+GstQuery*       gst_query_new_duration          (GstFormat format) G_GNUC_MALLOC;
 void            gst_query_set_duration          (GstQuery *query, GstFormat format, gint64 duration);
 void            gst_query_parse_duration        (GstQuery *query, GstFormat *format, gint64 *duration);
 
 /* latency query */
-GstQuery*       gst_query_new_latency           (void);
+GstQuery*       gst_query_new_latency           (void) G_GNUC_MALLOC;
 void            gst_query_set_latency           (GstQuery *query, gboolean live, GstClockTime min_latency,
                                                  GstClockTime max_latency);
 void            gst_query_parse_latency         (GstQuery *query, gboolean *live, GstClockTime *min_latency,
                                                  GstClockTime *max_latency);
 
 /* convert query */
-GstQuery*       gst_query_new_convert           (GstFormat src_format, gint64 value, GstFormat dest_format);
+GstQuery*       gst_query_new_convert           (GstFormat src_format, gint64 value, GstFormat dest_format) G_GNUC_MALLOC;
 void            gst_query_set_convert           (GstQuery *query, GstFormat src_format, gint64 src_value,
                                                  GstFormat dest_format, gint64 dest_value);
 void            gst_query_parse_convert         (GstQuery *query, GstFormat *src_format, gint64 *src_value,
                                                  GstFormat *dest_format, gint64 *dest_value);
 /* segment query */
-GstQuery*       gst_query_new_segment           (GstFormat format);
+GstQuery*       gst_query_new_segment           (GstFormat format) G_GNUC_MALLOC;
 void            gst_query_set_segment           (GstQuery *query, gdouble rate, GstFormat format,
                                                  gint64 start_value, gint64 stop_value);
 void            gst_query_parse_segment         (GstQuery *query, gdouble *rate, GstFormat *format,
@@ -280,11 +284,11 @@ void            gst_query_parse_segment         (GstQuery *query, gdouble *rate,
 
 /* application specific query */
 GstQuery *      gst_query_new_application       (GstQueryType type,
-                                                 GstStructure *structure);
+                                                 GstStructure *structure) G_GNUC_MALLOC;
 GstStructure *  gst_query_get_structure         (GstQuery *query);
 
 /* seeking query */
-GstQuery*       gst_query_new_seeking           (GstFormat format);
+GstQuery*       gst_query_new_seeking           (GstFormat format) G_GNUC_MALLOC;
 void            gst_query_set_seeking           (GstQuery *query, GstFormat format,
                                                  gboolean seekable,
                                                  gint64 segment_start,
@@ -294,14 +298,14 @@ void            gst_query_parse_seeking         (GstQuery *query, GstFormat *for
                                                  gint64 *segment_start,
                                                  gint64 *segment_end);
 /* formats query */
-GstQuery*       gst_query_new_formats           (void);
+GstQuery*       gst_query_new_formats           (void) G_GNUC_MALLOC;
 void            gst_query_set_formats           (GstQuery *query, gint n_formats, ...);
-void            gst_query_set_formatsv          (GstQuery *query, gint n_formats, GstFormat *formats);
+void            gst_query_set_formatsv          (GstQuery *query, gint n_formats, const GstFormat *formats);
 void            gst_query_parse_formats_length  (GstQuery *query, guint *n_formats);
 void            gst_query_parse_formats_nth     (GstQuery *query, guint nth, GstFormat *format);
 
 /* buffering query */
-GstQuery*       gst_query_new_buffering           (GstFormat format);
+GstQuery*       gst_query_new_buffering           (GstFormat format) G_GNUC_MALLOC;
 void            gst_query_set_buffering_percent   (GstQuery *query, gboolean busy, gint percent);
 void            gst_query_parse_buffering_percent (GstQuery *query, gboolean *busy, gint *percent);
 
@@ -318,8 +322,17 @@ void            gst_query_set_buffering_range     (GstQuery *query, GstFormat fo
 void            gst_query_parse_buffering_range   (GstQuery *query, GstFormat *format,
                                                    gint64 *start, gint64 *stop,
                                                    gint64 *estimated_total);
+gboolean        gst_query_add_buffering_range     (GstQuery *query,
+                                                   gint64 start, gint64 stop);
+
+guint           gst_query_get_n_buffering_ranges  (GstQuery *query);
+
+gboolean        gst_query_parse_nth_buffering_range (GstQuery *query,
+                                                     guint index, gint64 *start,
+                                                     gint64 *stop);
+
 /* URI query */
-GstQuery *      gst_query_new_uri                 (void);
+GstQuery *      gst_query_new_uri                 (void) G_GNUC_MALLOC;
 void            gst_query_parse_uri               (GstQuery *query, gchar **uri);
 void            gst_query_set_uri                 (GstQuery *query, const gchar *uri);
 
