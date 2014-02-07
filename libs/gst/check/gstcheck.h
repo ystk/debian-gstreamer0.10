@@ -72,11 +72,11 @@ void gst_check_message_error (GstMessage * message, GstMessageType type,
 GstElement *gst_check_setup_element (const gchar * factory);
 void gst_check_teardown_element (GstElement * element);
 GstPad *gst_check_setup_src_pad (GstElement * element,
-    GstStaticPadTemplate * template, GstCaps * caps);
+    GstStaticPadTemplate * tmpl, GstCaps * caps);
 GstPad * gst_check_setup_src_pad_by_name (GstElement * element,
-          GstStaticPadTemplate * template, const gchar *name);
+          GstStaticPadTemplate * tmpl, const gchar *name);
 GstPad * gst_check_setup_sink_pad_by_name (GstElement * element, 
-          GstStaticPadTemplate * template, const gchar *name);
+          GstStaticPadTemplate * tmpl, const gchar *name);
 void gst_check_teardown_pad_by_name (GstElement * element, const gchar *name);
 void gst_check_teardown_src_pad (GstElement * element);
 void gst_check_drop_buffers (void);
@@ -86,7 +86,7 @@ void gst_check_element_push_buffer_list (const gchar * element_name,
 void gst_check_element_push_buffer (const gchar * element_name,
     GstBuffer * buffer_in, GstBuffer * buffer_out);
 GstPad *gst_check_setup_sink_pad (GstElement * element,
-    GstStaticPadTemplate * template, GstCaps * caps);
+    GstStaticPadTemplate * tmpl, GstCaps * caps);
 void gst_check_teardown_sink_pad (GstElement * element);
 void gst_check_abi_list (GstCheckABIStruct list[], gboolean have_abi_sizes);
 gint gst_check_run_suite (Suite * suite, const gchar * name,
@@ -147,6 +147,34 @@ G_STMT_START {								\
 #define assert_equals_int(a, b) fail_unless_equals_int(a, b)
 
 /**
+ * fail_unless_equals_int64:
+ * @a: a #gint64 value or expression
+ * @b: a #gint64 value or expression
+ *
+ * This macro checks that @a and @b are equal and aborts if this is not the
+ * case, printing both expressions and the values they evaluated to. This
+ * macro is for use in unit tests.
+ */
+#define fail_unless_equals_int64(a, b)					\
+G_STMT_START {								\
+  gint64 first = a;							\
+  gint64 second = b;							\
+  fail_unless(first == second,						\
+    "'" #a "' (%" G_GINT64_FORMAT") is not equal to '" #b"' (%"		\
+    G_GINT64_FORMAT")", first, second);					\
+} G_STMT_END;
+/**
+ * assert_equals_int64:
+ * @a: a #gint64 value or expression
+ * @b: a #gint64 value or expression
+ *
+ * This macro checks that @a and @b are equal and aborts if this is not the
+ * case, printing both expressions and the values they evaluated to. This
+ * macro is for use in unit tests.
+ */
+#define assert_equals_int64(a, b) fail_unless_equals_int64(a, b)
+
+/**
  * fail_unless_equals_uint64:
  * @a: a #guint64 value or expression
  * @b: a #guint64 value or expression
@@ -187,7 +215,7 @@ G_STMT_START {								\
 G_STMT_START {                                                      \
   const gchar * first = a;                                          \
   const gchar * second = b;                                         \
-  fail_unless(strcmp (first, second) == 0,                          \
+  fail_unless(g_strcmp0 (first, second) == 0,                          \
     "'" #a "' (%s) is not equal to '" #b"' (%s)", first, second);   \
 } G_STMT_END;
 /**
@@ -248,6 +276,81 @@ extern GCond *sync_cond;	/* used to synchronize all threads and main thread */
 MAIN_INIT();							\
 MAIN_START_THREAD_FUNCTIONS(count, function, data);		\
 MAIN_SYNCHRONIZE();
+
+#if GLIB_CHECK_VERSION (2, 31, 0)
+#define g_thread_create gst_g_thread_create
+static inline GThread *
+gst_g_thread_create (GThreadFunc func, gpointer data, gboolean joinable,
+    GError **error)
+{
+  GThread *thread = g_thread_try_new ("gst-check", func, data, error);
+  if (!joinable)
+    g_thread_unref (thread);
+  return thread;
+}
+#define g_mutex_new gst_g_mutex_new
+static inline GMutex *
+gst_g_mutex_new (void)
+{
+  GMutex *mutex = g_slice_new (GMutex);
+  g_mutex_init (mutex);
+  return mutex;
+}
+#define g_mutex_free gst_g_mutex_free
+static inline void
+gst_g_mutex_free (GMutex *mutex)
+{
+  g_mutex_clear (mutex);
+  g_slice_free (GMutex, mutex);
+}
+#define g_static_rec_mutex_init gst_g_static_rec_mutex_init
+static inline void
+gst_g_static_rec_mutex_init (GStaticRecMutex *mutex)
+{
+  static const GStaticRecMutex init_mutex = G_STATIC_REC_MUTEX_INIT;
+
+  *mutex = init_mutex;
+}
+#define g_cond_new gst_g_cond_new
+static inline GCond *
+gst_g_cond_new (void)
+{
+  GCond *cond = g_slice_new (GCond);
+  g_cond_init (cond);
+  return cond;
+}
+#define g_cond_free gst_g_cond_free
+static inline void
+gst_g_cond_free (GCond *cond)
+{
+  g_cond_clear (cond);
+  g_slice_free (GCond, cond);
+}
+#define g_cond_timed_wait gst_g_cond_timed_wait
+static inline gboolean
+gst_g_cond_timed_wait (GCond *cond, GMutex *mutex, GTimeVal *abs_time)
+{
+  gint64 end_time;
+
+  if (abs_time == NULL) {
+    g_cond_wait (cond, mutex);
+    return TRUE;
+  }
+
+  end_time = abs_time->tv_sec;
+  end_time *= 1000000;
+  end_time += abs_time->tv_usec;
+
+  /* would be nice if we had clock_rtoffset, but that didn't seem to
+   * make it into the kernel yet...
+   */
+  /* if CLOCK_MONOTONIC is not defined then g_get_montonic_time() and
+   * g_get_real_time() are returning the same clock and we'd add ~0
+   */
+  end_time += g_get_monotonic_time () - g_get_real_time ();
+  return g_cond_wait_until (cond, mutex, end_time);
+}
+#endif
 
 #define MAIN_INIT()			\
 G_STMT_START {				\

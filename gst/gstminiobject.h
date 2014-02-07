@@ -36,6 +36,7 @@ G_BEGIN_DECLS
 #define GST_MINI_OBJECT(obj)          (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_TYPE_MINI_OBJECT, GstMiniObject))
 #define GST_MINI_OBJECT_CLASS(klass)  (G_TYPE_CHECK_CLASS_CAST ((klass), GST_TYPE_MINI_OBJECT, GstMiniObjectClass))
 #define GST_MINI_OBJECT_CAST(obj)     ((GstMiniObject*)(obj))
+#define GST_MINI_OBJECT_CONST_CAST(obj) ((const GstMiniObject*)(obj))
 
 typedef struct _GstMiniObject GstMiniObject;
 typedef struct _GstMiniObjectClass GstMiniObjectClass;
@@ -104,14 +105,17 @@ typedef void (*GstMiniObjectFinalizeFunction) (GstMiniObject *obj);
 /**
  * GstMiniObjectFlags:
  * @GST_MINI_OBJECT_FLAG_READONLY: is the miniobject readonly or writable
+ * @GST_MINI_OBJECT_FLAG_RESERVED1: a flag reserved for internal use e.g. as
+ *     GST_BUFFER_FLAG_MEDIA4. Since: 0.10.33.
  * @GST_MINI_OBJECT_FLAG_LAST: first flag that can be used by subclasses.
  *
- * Flags for the padtemplate
+ * Flags for the mini object
  */
 
 typedef enum
 {
   GST_MINI_OBJECT_FLAG_READONLY = (1<<0),
+  GST_MINI_OBJECT_FLAG_RESERVED1 = (1<<1),
   /* padding */
   GST_MINI_OBJECT_FLAG_LAST = (1<<4)
 } GstMiniObjectFlags;
@@ -132,6 +136,25 @@ typedef enum
 #define GST_MINI_OBJECT_REFCOUNT_VALUE(obj)     (g_atomic_int_get (&(GST_MINI_OBJECT_CAST(obj))->refcount))
 
 /**
+ * GstMiniObjectWeakNotify:
+ * @data: data that was provided when the weak reference was established
+ * @where_the_mini_object_was: the mini object being finalized
+ * 
+ * A #GstMiniObjectWeakNotify function can be added to a mini object as a
+ * callback that gets triggered when the mini object is finalized. Since the
+ * mini object is already being finalized when the #GstMiniObjectWeakNotify is
+ * called, there's not much you could do with the object, apart from e.g. using
+ * its adress as hash-index or the like. 
+ *
+ * Since: 0.10.35
+ *
+ */
+typedef void (*GstMiniObjectWeakNotify) (gpointer data,
+    GstMiniObject * where_the_mini_object_was);
+
+typedef struct _GstMiniObjectPrivate GstMiniObjectPrivate;
+
+/**
  * GstMiniObject:
  * @instance: type instance
  * @refcount: atomic refcount
@@ -150,7 +173,7 @@ struct _GstMiniObject {
   guint flags;
 
   /*< private >*/
-  gpointer _gst_reserved;
+  GstMiniObjectPrivate *priv;
 };
 
 struct _GstMiniObjectClass {
@@ -165,14 +188,20 @@ struct _GstMiniObjectClass {
 
 GType 		gst_mini_object_get_type 	(void);
 
-GstMiniObject* 	gst_mini_object_new 		(GType type);
-GstMiniObject* 	gst_mini_object_copy 		(const GstMiniObject *mini_object);
+GstMiniObject* 	gst_mini_object_new 		(GType type) G_GNUC_MALLOC;
+GstMiniObject* 	gst_mini_object_copy 		(const GstMiniObject *mini_object) G_GNUC_MALLOC;
 gboolean 	gst_mini_object_is_writable 	(const GstMiniObject *mini_object);
 GstMiniObject*  gst_mini_object_make_writable 	(GstMiniObject *mini_object);
 
 /* refcounting */
 GstMiniObject* 	gst_mini_object_ref 		(GstMiniObject *mini_object);
 void 		gst_mini_object_unref 		(GstMiniObject *mini_object);
+void	        gst_mini_object_weak_ref        (GstMiniObject *object,
+					         GstMiniObjectWeakNotify notify,
+					         gpointer data);
+void	        gst_mini_object_weak_unref	(GstMiniObject *object,
+					         GstMiniObjectWeakNotify notify,
+					         gpointer data);
 void 		gst_mini_object_replace 	(GstMiniObject **olddata, GstMiniObject *newdata);
 
 /* GParamSpec */
@@ -203,7 +232,7 @@ GType gst_param_spec_mini_object_get_type (void);
 
 GParamSpec* 	gst_param_spec_mini_object 	(const char *name, const char *nick,
     						 const char *blurb, GType object_type, 
-						 GParamFlags flags);
+						 GParamFlags flags) G_GNUC_MALLOC;
 
 /* GValue stuff */
 

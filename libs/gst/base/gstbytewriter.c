@@ -22,8 +22,8 @@
 #include "config.h"
 #endif
 
+#define GST_BYTE_WRITER_DISABLE_INLINES
 #include "gstbytewriter.h"
-#include <string.h>
 
 /**
  * SECTION:gstbytewriter
@@ -43,7 +43,9 @@
  *
  * Creates a new, empty #GstByteWriter instance
  *
- * Returns: a new, empty #GstByteWriter instance
+ * Free-function: gst_byte_writer_free
+ *
+ * Returns: (transfer full): a new, empty #GstByteWriter instance
  *
  * Since: 0.10.26
  */
@@ -64,7 +66,9 @@ gst_byte_writer_new (void)
  * Creates a new #GstByteWriter instance with the given
  * initial data size.
  *
- * Returns: a new #GstByteWriter instance
+ * Free-function: gst_byte_writer_free
+ *
+ * Returns: (transfer full): a new #GstByteWriter instance
  *
  * Since: 0.10.26
  */
@@ -91,7 +95,9 @@ gst_byte_writer_new_with_size (guint size, gboolean fixed)
  * memory area. If @initialized is %TRUE it is possible to
  * read @size bytes from the #GstByteWriter from the beginning.
  *
- * Returns: a new #GstByteWriter instance
+ * Free-function: gst_byte_writer_free
+ *
+ * Returns: (transfer full): a new #GstByteWriter instance
  *
  * Since: 0.10.26
  */
@@ -120,7 +126,9 @@ gst_byte_writer_new_with_data (guint8 * data, guint size, gboolean initialized)
  *
  * <note>@buffer must be writable</note>
  *
- * Returns: a new #GstByteWriter instance
+ * Free-function: gst_byte_writer_free
+ *
+ * Returns: (transfer full): a new #GstByteWriter instance
  *
  * Since: 0.10.26
  */
@@ -179,7 +187,8 @@ gst_byte_writer_init_with_size (GstByteWriter * writer, guint size,
 /**
  * gst_byte_writer_init_with_data:
  * @writer: #GstByteWriter instance
- * @data: Memory area for writing
+ * @data: (in callee-allocated) (array length=size) (transfer none): Memory
+ *     area for writing
  * @size: Size of @data in bytes
  * @initialized: If %TRUE the complete data can be read from the beginning
  *
@@ -207,7 +216,7 @@ gst_byte_writer_init_with_data (GstByteWriter * writer, guint8 * data,
 /**
  * gst_byte_writer_init_with_buffer:
  * @writer: #GstByteWriter instance
- * @buffer: Buffer used for writing
+ * @buffer: (transfer none): Buffer used for writing
  * @initialized: If %TRUE the complete data can be read from the beginning
  *
  * Initializes @writer with the given
@@ -253,7 +262,9 @@ gst_byte_writer_reset (GstByteWriter * writer)
  *
  * Resets @writer and returns the current data.
  *
- * Returns: the current data. g_free() after usage.
+ * Free-function: g_free
+ *
+ * Returns: (transfer full): the current data. g_free() after usage.
  *
  * Since: 0.10.26
  */
@@ -279,7 +290,10 @@ gst_byte_writer_reset_and_get_data (GstByteWriter * writer)
  *
  * Resets @writer and returns the current data as buffer.
  *
- * Returns: the current data as buffer. gst_buffer_unref() after usage.
+ * Free-function: gst_buffer_unref
+ *
+ * Returns: (transfer full): the current data as buffer. gst_buffer_unref()
+ *     after usage.
  *
  * Since: 0.10.26
  */
@@ -300,7 +314,7 @@ gst_byte_writer_reset_and_get_buffer (GstByteWriter * writer)
 
 /**
  * gst_byte_writer_free:
- * @writer: #GstByteWriter instance
+ * @writer: (in) (transfer full): #GstByteWriter instance
  *
  * Frees @writer and all memory allocated by it.
  *
@@ -317,12 +331,14 @@ gst_byte_writer_free (GstByteWriter * writer)
 
 /**
  * gst_byte_writer_free_and_get_data:
- * @writer: #GstByteWriter instance
+ * @writer: (in) (transfer full): #GstByteWriter instance
  *
  * Frees @writer and all memory allocated by it except
  * the current data, which is returned.
  *
- * Returns: the current data. g_free() after usage.
+ * Free-function: g_free
+ *
+ * Returns: (transfer full): the current data. g_free() after usage.
  *
  * Since: 0.10.26
  */
@@ -341,12 +357,15 @@ gst_byte_writer_free_and_get_data (GstByteWriter * writer)
 
 /**
  * gst_byte_writer_free_and_get_buffer:
- * @writer: #GstByteWriter instance
+ * @writer: (in) (transfer full): #GstByteWriter instance
  *
  * Frees @writer and all memory allocated by it except
  * the current data, which is returned as #GstBuffer.
  *
- * Returns: the current data as buffer. gst_buffer_unref() after usage.
+ * Free-function: gst_buffer_unref
+ *
+ * Returns: (transfer full): the current data as buffer. gst_buffer_unref()
+ *     after usage.
  *
  * Since: 0.10.26
  */
@@ -385,19 +404,6 @@ gst_byte_writer_get_remaining (const GstByteWriter * writer)
     return writer->alloc_size - writer->parent.byte;
 }
 
-static guint
-_next_pow2 (guint n)
-{
-  guint ret = 16;
-
-  /* We start with 16, smaller allocations make no sense */
-
-  while (ret < n)
-    ret <<= 1;
-
-  return ret;
-}
-
 /**
  * gst_byte_writer_ensure_free_space:
  * @writer: #GstByteWriter instance
@@ -413,23 +419,7 @@ _next_pow2 (guint n)
 gboolean
 gst_byte_writer_ensure_free_space (GstByteWriter * writer, guint size)
 {
-  guint8 *data;
-
-  if (G_UNLIKELY (size <= writer->alloc_size - writer->parent.byte))
-    return TRUE;
-  if (G_UNLIKELY (writer->fixed || !writer->owned))
-    return FALSE;
-  if (G_UNLIKELY (writer->parent.byte > G_MAXUINT - size))
-    return FALSE;
-
-  writer->alloc_size = _next_pow2 (writer->parent.byte + size);
-  data = g_try_realloc ((guint8 *) writer->parent.data, writer->alloc_size);
-  if (G_UNLIKELY (data == NULL))
-    return FALSE;
-
-  writer->parent.data = data;
-
-  return TRUE;
+  return _gst_byte_writer_ensure_free_space_inline (writer, size);
 }
 
 
@@ -437,19 +427,7 @@ gst_byte_writer_ensure_free_space (GstByteWriter * writer, guint size)
 gboolean \
 gst_byte_writer_put_##name (GstByteWriter *writer, type val) \
 { \
-  guint8 *write_data; \
-  \
-  g_return_val_if_fail (writer != NULL, FALSE); \
-  \
-  if (G_UNLIKELY (!gst_byte_writer_ensure_free_space(writer, bits/8))) \
-    return FALSE; \
-  \
-  write_data = (guint8 *) writer->parent.data + writer->parent.byte; \
-  write_func (write_data, val); \
-  writer->parent.byte += bits/8; \
-  writer->parent.size = MAX (writer->parent.size, writer->parent.byte); \
-  \
-  return TRUE; \
+  return _gst_byte_writer_put_##name##_inline (writer, val); \
 }
 
 CREATE_WRITE_FUNC (8, guint8, uint8, GST_WRITE_UINT8);
@@ -480,31 +458,13 @@ gboolean
 gst_byte_writer_put_data (GstByteWriter * writer, const guint8 * data,
     guint size)
 {
-  g_return_val_if_fail (writer != NULL, FALSE);
-
-  if (G_UNLIKELY (!gst_byte_writer_ensure_free_space (writer, size)))
-    return FALSE;
-
-  memcpy ((guint8 *) & writer->parent.data[writer->parent.byte], data, size);
-  writer->parent.byte += size;
-  writer->parent.size = MAX (writer->parent.size, writer->parent.byte);
-
-  return TRUE;
+  return _gst_byte_writer_put_data_inline (writer, data, size);
 }
 
 gboolean
-gst_byte_writer_fill (GstByteWriter * writer, const guint8 value, guint size)
+gst_byte_writer_fill (GstByteWriter * writer, guint8 value, guint size)
 {
-  g_return_val_if_fail (writer != NULL, FALSE);
-
-  if (G_UNLIKELY (!gst_byte_writer_ensure_free_space (writer, size)))
-    return FALSE;
-
-  memset ((guint8 *) & writer->parent.data[writer->parent.byte], value, size);
-  writer->parent.byte += size;
-  writer->parent.size = MAX (writer->parent.size, writer->parent.byte);
-
-  return TRUE;
+  return _gst_byte_writer_fill_inline (writer, value, size);
 }
 
 #define CREATE_WRITE_STRING_FUNC(bits,type) \
@@ -512,6 +472,7 @@ gboolean \
 gst_byte_writer_put_string_utf##bits (GstByteWriter *writer, const type * data) \
 { \
   guint size = 0; \
+  \
   g_return_val_if_fail (writer != NULL, FALSE); \
   \
   /* endianness does not matter if we are looking for a NUL terminator */ \
@@ -523,10 +484,10 @@ gst_byte_writer_put_string_utf##bits (GstByteWriter *writer, const type * data) 
   } \
   ++size; \
   \
-  if (G_UNLIKELY (!gst_byte_writer_ensure_free_space(writer, size * (bits / 8)))) \
+  if (G_UNLIKELY (!_gst_byte_writer_ensure_free_space_inline(writer, size * (bits / 8)))) \
     return FALSE; \
   \
-  gst_byte_writer_put_data (writer, (const guint8 *) data, size * (bits / 8)); \
+  _gst_byte_writer_put_data_inline (writer, (const guint8 *) data, size * (bits / 8)); \
   \
   return TRUE; \
 }
@@ -779,7 +740,8 @@ CREATE_WRITE_STRING_FUNC (32, guint32);
 /**
  * gst_byte_writer_put_string_utf8:
  * @writer: #GstByteWriter instance
- * @data: UTF8 string to write
+ * @data: (transfer none) (array zero-terminated=1) (type utf8): UTF8 string to
+ *     write
  *
  * Writes a NUL-terminated UTF8 string to @writer (including the terminator).
  *
@@ -790,7 +752,7 @@ CREATE_WRITE_STRING_FUNC (32, guint32);
 /**
  * gst_byte_writer_put_string_utf16:
  * @writer: #GstByteWriter instance
- * @data: UTF16 string to write
+ * @data: (transfer none) (array zero-terminated=1): UTF16 string to write
  *
  * Writes a NUL-terminated UTF16 string to @writer (including the terminator).
  *
@@ -801,7 +763,7 @@ CREATE_WRITE_STRING_FUNC (32, guint32);
 /**
  * gst_byte_writer_put_string_utf32:
  * @writer: #GstByteWriter instance
- * @data: UTF32 string to write
+ * @data: (transfer none) (array zero-terminated=1): UTF32 string to write
  *
  * Writes a NUL-terminated UTF32 string to @writer (including the terminator).
  *
@@ -812,7 +774,7 @@ CREATE_WRITE_STRING_FUNC (32, guint32);
 /**
  * gst_byte_writer_put_data:
  * @writer: #GstByteWriter instance
- * @data: Data to write
+ * @data: (transfer none) (array length=size): Data to write
  * @size: Size of @data in bytes
  *
  * Writes @size bytes of @data to @writer.

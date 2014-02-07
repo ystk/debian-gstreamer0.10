@@ -28,6 +28,9 @@
  * When defining own plugins, use the GST_BOILERPLATE ease gobject creation.
  */
 
+/* FIXME 0.11: suppress warnings for deprecated API such as GStaticRecMutex
+ * with newer GLib versions (>= 2.31.0) */
+#define GLIB_DISABLE_DEPRECATION_WARNINGS
 #include "gst_private.h"
 #include <stdio.h>
 #include <string.h>
@@ -39,6 +42,7 @@
 #include "gstparse.h"
 #include "gstvalue.h"
 #include "gst-i18n-lib.h"
+#include "glib-compat-private.h"
 #include <math.h>
 
 /**
@@ -82,7 +86,7 @@ gst_util_dump_mem (const guchar * mem, guint size)
 
 /**
  * gst_util_set_value_from_string:
- * @value: the value to set
+ * @value: (out caller-allocates): the value to set
  * @value_str: the string to get the value from
  *
  * Converts the string to the type of the value and
@@ -484,7 +488,7 @@ _gst_util_uint64_scale (guint64 val, guint64 num, guint64 denom,
   if (G_UNLIKELY (num == denom))
     return val;
 
-  /* on 64bits we always use a full 128bits multipy/division */
+  /* on 64bits we always use a full 128bits multiply/division */
 #if !defined (__x86_64__) && !defined (HAVE_UINT128_T)
   /* denom is low --> try to use 96 bit muldiv */
   if (G_LIKELY (denom <= G_MAXUINT32)) {
@@ -704,7 +708,7 @@ guint32
 gst_util_seqnum_next (void)
 {
   static gint counter = 0;
-  return g_atomic_int_exchange_and_add (&counter, 1);
+  return G_ATOMIC_INT_ADD (&counter, 1);
 }
 
 /**
@@ -748,7 +752,7 @@ string_append_indent (GString * str, gint count)
  * gst_print_pad_caps:
  * @buf: the buffer to print the caps in
  * @indent: initial indentation
- * @pad: the pad to print the caps from
+ * @pad: (transfer none): the pad to print the caps from
  *
  * Write the pad capabilities in a human readable format into
  * the given GString.
@@ -777,7 +781,7 @@ gst_print_pad_caps (GString * buf, gint indent, GstPad * pad)
  * gst_print_element_args:
  * @buf: the buffer to print the args in
  * @indent: initial indentation
- * @element: the element to print the args of
+ * @element: (transfer none): the element to print the args of
  *
  * Print the element argument in a human readable format in the given
  * GString.
@@ -825,10 +829,10 @@ gst_print_element_args (GString * buf, gint indent, GstElement * element)
 
 /**
  * gst_element_create_all_pads:
- * @element: a #GstElement to create pads for
+ * @element: (transfer none): a #GstElement to create pads for
  *
  * Creates a pad for each pad template that is always available.
- * This function is only useful during object intialization of
+ * This function is only useful during object initialization of
  * subclasses of #GstElement.
  */
 void
@@ -858,14 +862,15 @@ gst_element_create_all_pads (GstElement * element)
 
 /**
  * gst_element_get_compatible_pad_template:
- * @element: a #GstElement to get a compatible pad template for.
- * @compattempl: the #GstPadTemplate to find a compatible template for.
+ * @element: (transfer none): a #GstElement to get a compatible pad template for
+ * @compattempl: (transfer none): the #GstPadTemplate to find a compatible
+ *     template for
  *
  * Retrieves a pad template from @element that is compatible with @compattempl.
  * Pads from compatible templates can be linked together.
  *
- * Returns: a compatible #GstPadTemplate, or NULL if none was found. No
- * unreferencing is necessary.
+ * Returns: (transfer none): a compatible #GstPadTemplate, or NULL if none
+ *     was found. No unreferencing is necessary.
  */
 GstPadTemplate *
 gst_element_get_compatible_pad_template (GstElement * element,
@@ -932,36 +937,17 @@ gst_element_get_compatible_pad_template (GstElement * element,
   return newtempl;
 }
 
-static GstPad *
-gst_element_request_pad (GstElement * element, GstPadTemplate * templ,
-    const gchar * name)
-{
-  GstPad *newpad = NULL;
-  GstElementClass *oclass;
-
-  oclass = GST_ELEMENT_GET_CLASS (element);
-
-  if (oclass->request_new_pad)
-    newpad = (oclass->request_new_pad) (element, templ, name);
-
-  if (newpad)
-    gst_object_ref (newpad);
-
-  return newpad;
-}
-
-
-
 /**
  * gst_element_get_pad_from_template:
- * @element: a #GstElement.
- * @templ: a #GstPadTemplate belonging to @element.
+ * @element: (transfer none): a #GstElement.
+ * @templ: (transfer none): a #GstPadTemplate belonging to @element.
  *
  * Gets a pad from @element described by @templ. If the presence of @templ is
  * #GST_PAD_REQUEST, requests a new pad. Can return %NULL for #GST_PAD_SOMETIMES
  * templates.
  *
- * Returns: the #GstPad, or NULL if one could not be found or created.
+ * Returns: (transfer full): the #GstPad, or NULL if one could not be found
+ *     or created.
  */
 static GstPad *
 gst_element_get_pad_from_template (GstElement * element, GstPadTemplate * templ)
@@ -986,7 +972,7 @@ gst_element_get_pad_from_template (GstElement * element, GstPadTemplate * templ)
       break;
 
     case GST_PAD_REQUEST:
-      ret = gst_element_request_pad (element, templ, NULL);
+      ret = gst_element_request_pad (element, templ, NULL, NULL);
       break;
   }
 
@@ -1082,16 +1068,20 @@ gst_pad_check_link (GstPad * srcpad, GstPad * sinkpad)
 
 /**
  * gst_element_get_compatible_pad:
- * @element: a #GstElement in which the pad should be found.
- * @pad: the #GstPad to find a compatible one for.
+ * @element: (transfer none): a #GstElement in which the pad should be found.
+ * @pad: (transfer none): the #GstPad to find a compatible one for.
  * @caps: the #GstCaps to use as a filter.
  *
  * Looks for an unlinked pad to which the given pad can link. It is not
  * guaranteed that linking the pads will work, though it should work in most
  * cases.
  *
- * Returns: the #GstPad to which a link can be made, or %NULL if one cannot be
- * found. gst_object_unref() after usage.
+ * This function will first attempt to find a compatible unlinked ALWAYS pad,
+ * and if none can be found, it will request a compatible REQUEST pad by looking
+ * at the templates of @element.
+ *
+ * Returns: (transfer full): the #GstPad to which a link can be made, or %NULL
+ *     if one cannot be found. gst_object_unref() after usage.
  */
 GstPad *
 gst_element_get_compatible_pad (GstElement * element, GstPad * pad,
@@ -1113,8 +1103,16 @@ gst_element_get_compatible_pad (GstElement * element, GstPad * pad,
   g_return_val_if_fail (GST_PAD_PEER (pad) == NULL, NULL);
 
   done = FALSE;
+
   /* try to get an existing unlinked pad */
-  pads = gst_element_iterate_pads (element);
+  if (GST_PAD_IS_SRC (pad)) {
+    pads = gst_element_iterate_sink_pads (element);
+  } else if (GST_PAD_IS_SINK (pad)) {
+    pads = gst_element_iterate_src_pads (element);
+  } else {
+    pads = gst_element_iterate_pads (element);
+  }
+
   while (!done) {
     gpointer padptr;
 
@@ -1123,15 +1121,24 @@ gst_element_get_compatible_pad (GstElement * element, GstPad * pad,
       {
         GstPad *peer;
         GstPad *current;
+        GstPad *srcpad;
+        GstPad *sinkpad;
 
         current = GST_PAD (padptr);
 
         GST_CAT_LOG (GST_CAT_ELEMENT_PADS, "examining pad %s:%s",
             GST_DEBUG_PAD_NAME (current));
 
+        if (GST_PAD_IS_SRC (current)) {
+          srcpad = current;
+          sinkpad = pad;
+        } else {
+          srcpad = pad;
+          sinkpad = current;
+        }
         peer = gst_pad_get_peer (current);
 
-        if (peer == NULL && gst_pad_check_link (pad, current)) {
+        if (peer == NULL && gst_pad_check_link (srcpad, sinkpad)) {
           GstCaps *temp, *intersection;
           gboolean compatible;
 
@@ -1216,27 +1223,12 @@ gst_element_get_compatible_pad (GstElement * element, GstPad * pad,
  *
  * Gets a string representing the given state.
  *
- * Returns: a string with the name of the state.
+ * Returns: (transfer none): a string with the name of the state.
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_element_state_get_name (GstState state)
 {
   switch (state) {
-#ifdef GST_DEBUG_COLOR
-    case GST_STATE_VOID_PENDING:
-      return "VOID_PENDING";
-    case GST_STATE_NULL:
-      return "\033[01;34mNULL\033[00m";
-    case GST_STATE_READY:
-      return "\033[01;31mREADY\033[00m";
-    case GST_STATE_PLAYING:
-      return "\033[01;32mPLAYING\033[00m";
-    case GST_STATE_PAUSED:
-      return "\033[01;33mPAUSED\033[00m";
-    default:
-      /* This is a memory leak */
-      return g_strdup_printf ("\033[01;35;41mUNKNOWN!\033[00m(%d)", state);
-#else
     case GST_STATE_VOID_PENDING:
       return "VOID_PENDING";
     case GST_STATE_NULL:
@@ -1250,7 +1242,6 @@ gst_element_state_get_name (GstState state)
     default:
       /* This is a memory leak */
       return g_strdup_printf ("UNKNOWN!(%d)", state);
-#endif
   }
 }
 
@@ -1260,27 +1251,15 @@ gst_element_state_get_name (GstState state)
  *
  * Gets a string representing the given state change result.
  *
- * Returns: a string with the name of the state change result.
+ * Returns: (transfer none): a string with the name of the state
+ *    result.
  *
  * Since: 0.10.11
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_element_state_change_return_get_name (GstStateChangeReturn state_ret)
 {
   switch (state_ret) {
-#ifdef GST_DEBUG_COLOR
-    case GST_STATE_CHANGE_FAILURE:
-      return "\033[01;31mFAILURE\033[00m";
-    case GST_STATE_CHANGE_SUCCESS:
-      return "\033[01;32mSUCCESS\033[00m";
-    case GST_STATE_CHANGE_ASYNC:
-      return "\033[01;33mASYNC\033[00m";
-    case GST_STATE_CHANGE_NO_PREROLL:
-      return "\033[01;34mNO_PREROLL\033[00m";
-    default:
-      /* This is a memory leak */
-      return g_strdup_printf ("\033[01;35;41mUNKNOWN!\033[00m(%d)", state_ret);
-#else
     case GST_STATE_CHANGE_FAILURE:
       return "FAILURE";
     case GST_STATE_CHANGE_SUCCESS:
@@ -1292,10 +1271,67 @@ gst_element_state_change_return_get_name (GstStateChangeReturn state_ret)
     default:
       /* This is a memory leak */
       return g_strdup_printf ("UNKNOWN!(%d)", state_ret);
-#endif
   }
 }
 
+
+static gboolean
+gst_element_factory_can_accept_all_caps_in_direction (GstElementFactory *
+    factory, const GstCaps * caps, GstPadDirection direction)
+{
+  GList *templates;
+
+  g_return_val_if_fail (factory != NULL, FALSE);
+  g_return_val_if_fail (caps != NULL, FALSE);
+
+  templates = factory->staticpadtemplates;
+
+  while (templates) {
+    GstStaticPadTemplate *template = (GstStaticPadTemplate *) templates->data;
+
+    if (template->direction == direction) {
+      GstCaps *templcaps = gst_static_caps_get (&template->static_caps);
+
+      if (gst_caps_is_always_compatible (caps, templcaps)) {
+        gst_caps_unref (templcaps);
+        return TRUE;
+      }
+      gst_caps_unref (templcaps);
+    }
+    templates = g_list_next (templates);
+  }
+
+  return FALSE;
+}
+
+static gboolean
+gst_element_factory_can_accept_any_caps_in_direction (GstElementFactory *
+    factory, const GstCaps * caps, GstPadDirection direction)
+{
+  GList *templates;
+
+  g_return_val_if_fail (factory != NULL, FALSE);
+  g_return_val_if_fail (caps != NULL, FALSE);
+
+  templates = factory->staticpadtemplates;
+
+  while (templates) {
+    GstStaticPadTemplate *template = (GstStaticPadTemplate *) templates->data;
+
+    if (template->direction == direction) {
+      GstCaps *templcaps = gst_static_caps_get (&template->static_caps);
+
+      if (gst_caps_can_intersect (caps, templcaps)) {
+        gst_caps_unref (templcaps);
+        return TRUE;
+      }
+      gst_caps_unref (templcaps);
+    }
+    templates = g_list_next (templates);
+  }
+
+  return FALSE;
+}
 
 /**
  * gst_element_factory_can_src_caps:
@@ -1304,32 +1340,23 @@ gst_element_state_change_return_get_name (GstStateChangeReturn state_ret)
  *
  * Checks if the factory can source the given capability.
  *
- * Returns: true if it can src the capabilities
+ * Returns: %TRUE if it can src the capabilities
+ *
+ * Deprecated: use gst_element_factory_can_src_all_caps() instead.
  */
+#ifndef GST_REMOVE_DEPRECATED
+#ifdef GST_DISABLE_DEPRECATED
+gboolean gst_element_factory_can_src_caps (GstElementFactory * factory,
+    const GstCaps * caps);
+#endif
 gboolean
 gst_element_factory_can_src_caps (GstElementFactory * factory,
     const GstCaps * caps)
 {
-  GList *templates;
-
-  g_return_val_if_fail (factory != NULL, FALSE);
-  g_return_val_if_fail (caps != NULL, FALSE);
-
-  templates = factory->staticpadtemplates;
-
-  while (templates) {
-    GstStaticPadTemplate *template = (GstStaticPadTemplate *) templates->data;
-
-    if (template->direction == GST_PAD_SRC) {
-      if (gst_caps_is_always_compatible (gst_static_caps_get
-              (&template->static_caps), caps))
-        return TRUE;
-    }
-    templates = g_list_next (templates);
-  }
-
-  return FALSE;
+  return gst_element_factory_can_accept_all_caps_in_direction (factory, caps,
+      GST_PAD_SRC);
 }
+#endif /* GST_REMOVE_DEPRECATED */
 
 /**
  * gst_element_factory_can_sink_caps:
@@ -1338,33 +1365,99 @@ gst_element_factory_can_src_caps (GstElementFactory * factory,
  *
  * Checks if the factory can sink the given capability.
  *
- * Returns: true if it can sink the capabilities
+ * Returns: %TRUE if it can sink the capabilities
+ *
+ * Deprecated: use gst_element_factory_can_sink_all_caps() instead.
  */
+#ifndef GST_REMOVE_DEPRECATED
+#ifdef GST_DISABLE_DEPRECATED
+gboolean gst_element_factory_can_sink_caps (GstElementFactory * factory,
+    const GstCaps * caps);
+#endif
 gboolean
 gst_element_factory_can_sink_caps (GstElementFactory * factory,
     const GstCaps * caps)
 {
-  GList *templates;
+  return gst_element_factory_can_accept_all_caps_in_direction (factory, caps,
+      GST_PAD_SINK);
+}
+#endif /* GST_REMOVE_DEPRECATED */
 
-  g_return_val_if_fail (factory != NULL, FALSE);
-  g_return_val_if_fail (caps != NULL, FALSE);
-
-  templates = factory->staticpadtemplates;
-
-  while (templates) {
-    GstStaticPadTemplate *template = (GstStaticPadTemplate *) templates->data;
-
-    if (template->direction == GST_PAD_SINK) {
-      if (gst_caps_is_always_compatible (caps,
-              gst_static_caps_get (&template->static_caps)))
-        return TRUE;
-    }
-    templates = g_list_next (templates);
-  }
-
-  return FALSE;
+/**
+ * gst_element_factory_can_sink_all_caps:
+ * @factory: factory to query
+ * @caps: the caps to check
+ *
+ * Checks if the factory can sink all possible capabilities.
+ *
+ * Returns: %TRUE if the caps are fully compatible.
+ *
+ * Since: 0.10.33
+ */
+gboolean
+gst_element_factory_can_sink_all_caps (GstElementFactory * factory,
+    const GstCaps * caps)
+{
+  return gst_element_factory_can_accept_all_caps_in_direction (factory, caps,
+      GST_PAD_SINK);
 }
 
+/**
+ * gst_element_factory_can_src_all_caps:
+ * @factory: factory to query
+ * @caps: the caps to check
+ *
+ * Checks if the factory can src all possible capabilities.
+ *
+ * Returns: %TRUE if the caps are fully compatible.
+ *
+ * Since: 0.10.33
+ */
+gboolean
+gst_element_factory_can_src_all_caps (GstElementFactory * factory,
+    const GstCaps * caps)
+{
+  return gst_element_factory_can_accept_all_caps_in_direction (factory, caps,
+      GST_PAD_SRC);
+}
+
+/**
+ * gst_element_factory_can_sink_any_caps:
+ * @factory: factory to query
+ * @caps: the caps to check
+ *
+ * Checks if the factory can sink any possible capability.
+ *
+ * Returns: %TRUE if the caps have a common subset.
+ *
+ * Since: 0.10.33
+ */
+gboolean
+gst_element_factory_can_sink_any_caps (GstElementFactory * factory,
+    const GstCaps * caps)
+{
+  return gst_element_factory_can_accept_any_caps_in_direction (factory, caps,
+      GST_PAD_SINK);
+}
+
+/**
+ * gst_element_factory_can_src_any_caps:
+ * @factory: factory to query
+ * @caps: the caps to check
+ *
+ * Checks if the factory can src any possible capability.
+ *
+ * Returns: %TRUE if the caps have a common subset.
+ *
+ * Since: 0.10.33
+ */
+gboolean
+gst_element_factory_can_src_any_caps (GstElementFactory * factory,
+    const GstCaps * caps)
+{
+  return gst_element_factory_can_accept_any_caps_in_direction (factory, caps,
+      GST_PAD_SRC);
+}
 
 /* if return val is true, *direct_child is a caller-owned ref on the direct
  * child of ancestor that is part of object's ancestry */
@@ -1438,18 +1531,28 @@ ghost_up (GstElement * e, GstPad * pad)
   static gint ghost_pad_index = 0;
   GstPad *gpad;
   gchar *name;
+  GstState current;
+  GstState next;
   GstObject *parent = GST_OBJECT_PARENT (e);
 
   name = g_strdup_printf ("ghost%d", ghost_pad_index++);
   gpad = gst_ghost_pad_new (name, pad);
   g_free (name);
 
+  GST_STATE_LOCK (e);
+  gst_element_get_state (e, &current, &next, 0);
+
+  if (current > GST_STATE_READY || next == GST_STATE_PAUSED)
+    gst_pad_set_active (gpad, TRUE);
+
   if (!gst_element_add_pad ((GstElement *) parent, gpad)) {
     g_warning ("Pad named %s already exists in element %s\n",
         GST_OBJECT_NAME (gpad), GST_OBJECT_NAME (parent));
     gst_object_unref ((GstObject *) gpad);
+    GST_STATE_UNLOCK (e);
     return NULL;
   }
+  GST_STATE_UNLOCK (e);
 
   return gpad;
 }
@@ -1554,9 +1657,10 @@ pad_link_maybe_ghosting (GstPad * src, GstPad * sink, GstPadLinkCheck flags)
 /**
  * gst_element_link_pads_full:
  * @src: a #GstElement containing the source pad.
- * @srcpadname: the name of the #GstPad in source element or NULL for any pad.
- * @dest: the #GstElement containing the destination pad.
- * @destpadname: the name of the #GstPad in destination element,
+ * @srcpadname: (allow-none): the name of the #GstPad in source element
+ *     or NULL for any pad.
+ * @dest: (transfer none): the #GstElement containing the destination pad.
+ * @destpadname: (allow-none): the name of the #GstPad in destination element,
  * or NULL for any pad.
  * @flags: the #GstPadLinkCheck to be performed when linking pads.
  *
@@ -1568,6 +1672,8 @@ pad_link_maybe_ghosting (GstPad * src, GstPad * sink, GstPadLinkCheck flags)
  * Calling gst_element_link_pads_full() with @flags == %GST_PAD_LINK_CHECK_DEFAULT
  * is the same as calling gst_element_link_pads() and the recommended way of
  * linking pads with safety checks applied.
+ *
+ * This is a convenience function for gst_pad_link_full().
  *
  * Returns: TRUE if the pads could be linked, FALSE otherwise.
  *
@@ -1608,8 +1714,9 @@ gst_element_link_pads_full (GstElement * src, const gchar * srcpadname,
         return FALSE;
       }
       if (GST_PAD_PEER (srcpad) != NULL) {
-        GST_CAT_DEBUG (GST_CAT_ELEMENT_PADS, "pad %s:%s is already linked",
-            GST_DEBUG_PAD_NAME (srcpad));
+        GST_CAT_DEBUG (GST_CAT_ELEMENT_PADS,
+            "pad %s:%s is already linked to %s:%s", GST_DEBUG_PAD_NAME (srcpad),
+            GST_DEBUG_PAD_NAME (GST_PAD_PEER (srcpad)));
         gst_object_unref (srcpad);
         return FALSE;
       }
@@ -1642,8 +1749,10 @@ gst_element_link_pads_full (GstElement * src, const gchar * srcpadname,
         return FALSE;
       }
       if (GST_PAD_PEER (destpad) != NULL) {
-        GST_CAT_DEBUG (GST_CAT_ELEMENT_PADS, "pad %s:%s is already linked",
-            GST_DEBUG_PAD_NAME (destpad));
+        GST_CAT_DEBUG (GST_CAT_ELEMENT_PADS,
+            "pad %s:%s is already linked to %s:%s",
+            GST_DEBUG_PAD_NAME (destpad),
+            GST_DEBUG_PAD_NAME (GST_PAD_PEER (destpad)));
         gst_object_unref (destpad);
         return FALSE;
       }
@@ -1787,9 +1896,11 @@ gst_element_link_pads_full (GstElement * src, const gchar * srcpadname,
             if (gst_caps_is_always_compatible (gst_pad_template_get_caps
                     (srctempl), gst_pad_template_get_caps (desttempl))) {
               srcpad =
-                  gst_element_get_request_pad (src, srctempl->name_template);
+                  gst_element_request_pad (src, srctempl,
+                  srctempl->name_template, NULL);
               destpad =
-                  gst_element_get_request_pad (dest, desttempl->name_template);
+                  gst_element_request_pad (dest, desttempl,
+                  desttempl->name_template, NULL);
               if (srcpad && destpad
                   && pad_link_maybe_ghosting (srcpad, destpad, flags)) {
                 GST_CAT_DEBUG (GST_CAT_ELEMENT_PADS,
@@ -1820,9 +1931,10 @@ gst_element_link_pads_full (GstElement * src, const gchar * srcpadname,
 /**
  * gst_element_link_pads:
  * @src: a #GstElement containing the source pad.
- * @srcpadname: the name of the #GstPad in source element or NULL for any pad.
- * @dest: the #GstElement containing the destination pad.
- * @destpadname: the name of the #GstPad in destination element,
+ * @srcpadname: (allow-none): the name of the #GstPad in source element
+ *     or NULL for any pad.
+ * @dest: (transfer none): the #GstElement containing the destination pad.
+ * @destpadname: (allow-none): the name of the #GstPad in destination element,
  * or NULL for any pad.
  *
  * Links the two named pads of the source and destination elements.
@@ -1843,10 +1955,13 @@ gst_element_link_pads (GstElement * src, const gchar * srcpadname,
 /**
  * gst_element_link_pads_filtered:
  * @src: a #GstElement containing the source pad.
- * @srcpadname: the name of the #GstPad in source element or NULL for any pad.
- * @dest: the #GstElement containing the destination pad.
- * @destpadname: the name of the #GstPad in destination element or NULL for any pad.
- * @filter: the #GstCaps to filter the link, or #NULL for no filter.
+ * @srcpadname: (allow-none): the name of the #GstPad in source element
+ *     or NULL for any pad.
+ * @dest: (transfer none): the #GstElement containing the destination pad.
+ * @destpadname: (allow-none): the name of the #GstPad in destination element
+ *     or NULL for any pad.
+ * @filter: (transfer none) (allow-none): the #GstCaps to filter the link,
+ *     or #NULL for no filter.
  *
  * Links the two named pads of the source and destination elements. Side effect
  * is that if one of the pads has no parent, it becomes a child of the parent of
@@ -1868,6 +1983,7 @@ gst_element_link_pads_filtered (GstElement * src, const gchar * srcpadname,
     GstElement *capsfilter;
     GstObject *parent;
     GstState state, pending;
+    gboolean lr1, lr2;
 
     capsfilter = gst_element_factory_make ("capsfilter", NULL);
     if (!capsfilter) {
@@ -1896,30 +2012,43 @@ gst_element_link_pads_filtered (GstElement * src, const gchar * srcpadname,
 
     g_object_set (capsfilter, "caps", filter, NULL);
 
-    if (gst_element_link_pads (src, srcpadname, capsfilter, "sink")
-        && gst_element_link_pads (capsfilter, "src", dest, destpadname)) {
+    lr1 = gst_element_link_pads (src, srcpadname, capsfilter, "sink");
+    lr2 = gst_element_link_pads (capsfilter, "src", dest, destpadname);
+    if (lr1 && lr2) {
       return TRUE;
     } else {
-      GST_INFO ("Could not link elements");
+      if (!lr1) {
+        GST_INFO ("Could not link pads: %s:%s - capsfilter:sink",
+            GST_ELEMENT_NAME (src), srcpadname);
+      } else {
+        GST_INFO ("Could not link pads: capsfilter:src - %s:%s",
+            GST_ELEMENT_NAME (dest), destpadname);
+      }
       gst_element_set_state (capsfilter, GST_STATE_NULL);
       /* this will unlink and unref as appropriate */
       gst_bin_remove (GST_BIN (GST_OBJECT_PARENT (capsfilter)), capsfilter);
       return FALSE;
     }
   } else {
-    return gst_element_link_pads (src, srcpadname, dest, destpadname);
+    if (gst_element_link_pads (src, srcpadname, dest, destpadname)) {
+      return TRUE;
+    } else {
+      GST_INFO ("Could not link pads: %s:%s - %s:%s", GST_ELEMENT_NAME (src),
+          srcpadname, GST_ELEMENT_NAME (dest), destpadname);
+      return FALSE;
+    }
   }
 }
 
 /**
  * gst_element_link:
- * @src: a #GstElement containing the source pad.
- * @dest: the #GstElement containing the destination pad.
+ * @src: (transfer none): a #GstElement containing the source pad.
+ * @dest: (transfer none): the #GstElement containing the destination pad.
  *
  * Links @src to @dest. The link must be from source to
  * destination; the other direction will not be tried. The function looks for
  * existing pads that aren't linked yet. It will request new pads if necessary.
- * Such pads need to be released manualy when unlinking.
+ * Such pads need to be released manually when unlinking.
  * If multiple links are possible, only one is established.
  *
  * Make sure you have added your elements to a bin or pipeline with
@@ -1935,8 +2064,8 @@ gst_element_link (GstElement * src, GstElement * dest)
 
 /**
  * gst_element_link_many:
- * @element_1: the first #GstElement in the link chain.
- * @element_2: the second #GstElement in the link chain.
+ * @element_1: (transfer none): the first #GstElement in the link chain.
+ * @element_2: (transfer none): the second #GstElement in the link chain.
  * @...: the NULL-terminated list of elements to link in order.
  *
  * Chain together a series of elements. Uses gst_element_link().
@@ -1974,8 +2103,9 @@ gst_element_link_many (GstElement * element_1, GstElement * element_2, ...)
 /**
  * gst_element_link_filtered:
  * @src: a #GstElement containing the source pad.
- * @dest: the #GstElement containing the destination pad.
- * @filter: the #GstCaps to filter the link, or #NULL for no filter.
+ * @dest: (transfer none): the #GstElement containing the destination pad.
+ * @filter: (transfer none) (allow-none): the #GstCaps to filter the link,
+ *     or #NULL for no filter.
  *
  * Links @src to @dest using the given caps as filtercaps.
  * The link must be from source to
@@ -1997,12 +2127,14 @@ gst_element_link_filtered (GstElement * src, GstElement * dest,
 
 /**
  * gst_element_unlink_pads:
- * @src: a #GstElement containing the source pad.
+ * @src: a (transfer none): #GstElement containing the source pad.
  * @srcpadname: the name of the #GstPad in source element.
- * @dest: a #GstElement containing the destination pad.
+ * @dest: (transfer none): a #GstElement containing the destination pad.
  * @destpadname: the name of the #GstPad in destination element.
  *
  * Unlinks the two named pads of the source and destination elements.
+ *
+ * This is a convenience function for gst_pad_unlink().
  */
 void
 gst_element_unlink_pads (GstElement * src, const gchar * srcpadname,
@@ -2037,7 +2169,7 @@ gst_element_unlink_pads (GstElement * src, const gchar * srcpadname,
     goto free_src;
   }
 
-  /* we're satisified they can be unlinked, let's do it */
+  /* we're satisfied they can be unlinked, let's do it */
   gst_pad_unlink (srcpad, destpad);
 
   if (destrequest)
@@ -2052,8 +2184,8 @@ free_src:
 
 /**
  * gst_element_unlink_many:
- * @element_1: the first #GstElement in the link chain.
- * @element_2: the second #GstElement in the link chain.
+ * @element_1: (transfer none): the first #GstElement in the link chain.
+ * @element_2: (transfer none): the second #GstElement in the link chain.
  * @...: the NULL-terminated list of elements to unlink in order.
  *
  * Unlinks a series of elements. Uses gst_element_unlink().
@@ -2080,8 +2212,8 @@ gst_element_unlink_many (GstElement * element_1, GstElement * element_2, ...)
 
 /**
  * gst_element_unlink:
- * @src: the source #GstElement to unlink.
- * @dest: the sink #GstElement to unlink.
+ * @src: (transfer none): the source #GstElement to unlink.
+ * @dest: (transfer none): the sink #GstElement to unlink.
  *
  * Unlinks all source pads of the source element with all sink pads
  * of the sink element to which they are linked.
@@ -2148,11 +2280,13 @@ gst_element_unlink (GstElement * src, GstElement * dest)
 /**
  * gst_element_query_position:
  * @element: a #GstElement to invoke the position query on.
- * @format: a pointer to the #GstFormat asked for.
+ * @format: (inout): a pointer to the #GstFormat asked for.
  *          On return contains the #GstFormat used.
- * @cur: A location in which to store the current position, or NULL.
+ * @cur: (out) (allow-none): a location in which to store the current
+ *     position, or NULL.
  *
- * Queries an element for the stream position.
+ * Queries an element for the stream position. If one repeatedly calls this
+ * function one can also create and reuse it in gst_element_query().
  *
  * Returns: TRUE if the query could be performed.
  */
@@ -2212,10 +2346,10 @@ gst_element_query_duration (GstElement * element, GstFormat * format,
 /**
  * gst_element_query_convert:
  * @element: a #GstElement to invoke the convert query on.
- * @src_format: a #GstFormat to convert from.
+ * @src_format: (inout): a #GstFormat to convert from.
  * @src_val: a value to convert.
- * @dest_format: a pointer to the #GstFormat to convert to.
- * @dest_val: a pointer to the result.
+ * @dest_format: (inout): a pointer to the #GstFormat to convert to.
+ * @dest_val: (out): a pointer to the result.
  *
  * Queries an element to convert @src_val in @src_format to @dest_format.
  *
@@ -2232,7 +2366,7 @@ gst_element_query_convert (GstElement * element, GstFormat src_format,
   g_return_val_if_fail (dest_format != NULL, FALSE);
   g_return_val_if_fail (dest_val != NULL, FALSE);
 
-  if (*dest_format == src_format) {
+  if (*dest_format == src_format || src_val == -1) {
     *dest_val = src_val;
     return TRUE;
   }
@@ -2316,7 +2450,9 @@ gst_pad_use_fixed_caps (GstPad * pad)
  * will return the currently negotiated caps or the padtemplate
  * when NULL.
  *
- * Returns: The currently negotiated caps or the padtemplate.
+ * Free-function: gst_caps_unref
+ *
+ * Returns: (transfer full): the currently negotiated caps or the padtemplate.
  */
 GstCaps *
 gst_pad_get_fixed_caps_func (GstPad * pad)
@@ -2358,8 +2494,8 @@ gst_pad_get_fixed_caps_func (GstPad * pad)
  * Gets the parent of @pad, cast to a #GstElement. If a @pad has no parent or
  * its parent is not an element, return NULL.
  *
- * Returns: The parent of the pad. The caller has a reference on the parent, so
- * unref when you're finished with it.
+ * Returns: (transfer full): the parent of the pad. The caller has a
+ * reference on the parent, so unref when you're finished with it.
  *
  * MT safe.
  */
@@ -2382,18 +2518,20 @@ gst_pad_get_parent_element (GstPad * pad)
 /**
  * gst_object_default_error:
  * @source: the #GstObject that initiated the error.
- * @error: the GError.
- * @debug: an additional debug information string, or NULL.
+ * @error: (in): the GError.
+ * @debug: (in) (allow-none): an additional debug information string, or NULL
  *
  * A default error function.
  *
  * The default handler will simply print the error string using g_print.
  */
 void
-gst_object_default_error (GstObject * source, GError * error, gchar * debug)
+gst_object_default_error (GstObject * source, const GError * error,
+    const gchar * debug)
 {
   gchar *name = gst_object_get_path_string (source);
 
+  /* FIXME 0.11: should change this to g_printerr() */
   g_print (_("ERROR: from element %s: %s\n"), name, error->message);
   if (debug)
     g_print (_("Additional debug info:\n%s\n"), debug);
@@ -2404,8 +2542,8 @@ gst_object_default_error (GstObject * source, GError * error, gchar * debug)
 /**
  * gst_bin_add_many:
  * @bin: a #GstBin
- * @element_1: the #GstElement element to add to the bin
- * @...: additional elements to add to the bin
+ * @element_1: (transfer full): the #GstElement element to add to the bin
+ * @...: (transfer full): additional elements to add to the bin
  *
  * Adds a NULL-terminated list of elements to a bin.  This function is
  * equivalent to calling gst_bin_add() for each member of the list. The return
@@ -2433,8 +2571,8 @@ gst_bin_add_many (GstBin * bin, GstElement * element_1, ...)
 /**
  * gst_bin_remove_many:
  * @bin: a #GstBin
- * @element_1: the first #GstElement to remove from the bin
- * @...: NULL-terminated list of elements to remove from the bin
+ * @element_1: (transfer none): the first #GstElement to remove from the bin
+ * @...: (transfer none): NULL-terminated list of elements to remove from the bin
  *
  * Remove a list of elements from a bin. This function is equivalent
  * to calling gst_bin_remove() with each member of the list.
@@ -2568,7 +2706,7 @@ gst_element_class_install_std_props (GstElementClass * klass,
 
   while (name) {
     int arg_id = va_arg (args, int);
-    int flags = va_arg (args, int);
+    GParamFlags flags = (GParamFlags) va_arg (args, int);
 
     gst_element_populate_std_props ((GObjectClass *) klass, name, arg_id,
         flags);
@@ -2582,8 +2720,8 @@ gst_element_class_install_std_props (GstElementClass * klass,
 
 /**
  * gst_buffer_merge:
- * @buf1: the first source #GstBuffer to merge.
- * @buf2: the second source #GstBuffer to merge.
+ * @buf1: (transfer none): the first source #GstBuffer to merge.
+ * @buf2: (transfer none): the second source #GstBuffer to merge.
  *
  * Create a new buffer that is the concatenation of the two source
  * buffers.  The original source buffers will not be modified or
@@ -2593,7 +2731,10 @@ gst_element_class_install_std_props (GstElementClass * klass,
  * If the buffers point to contiguous areas of memory, the buffer
  * is created without copying the data.
  *
- * Returns: the new #GstBuffer which is the concatenation of the source buffers.
+ * Free-function: gst_buffer_unref
+ *
+ * Returns: (transfer full): the new #GstBuffer which is the concatenation
+ *     of the source buffers.
  */
 GstBuffer *
 gst_buffer_merge (GstBuffer * buf1, GstBuffer * buf2)
@@ -2608,8 +2749,8 @@ gst_buffer_merge (GstBuffer * buf1, GstBuffer * buf2)
 
 /**
  * gst_buffer_join:
- * @buf1: the first source #GstBuffer.
- * @buf2: the second source #GstBuffer.
+ * @buf1: (transfer full): the first source #GstBuffer.
+ * @buf2: (transfer full): the second source #GstBuffer.
  *
  * Create a new buffer that is the concatenation of the two source
  * buffers, and unrefs the original source buffers.
@@ -2622,7 +2763,8 @@ gst_buffer_merge (GstBuffer * buf1, GstBuffer * buf2)
  * unreffing the input parameters. Language bindings without
  * explicit reference counting should not wrap this function.
  *
- * Returns: the new #GstBuffer which is the concatenation of the source buffers.
+ * Returns: (transfer full): the new #GstBuffer which is the concatenation of
+ * the source buffers.
  */
 GstBuffer *
 gst_buffer_join (GstBuffer * buf1, GstBuffer * buf2)
@@ -2639,7 +2781,7 @@ gst_buffer_join (GstBuffer * buf1, GstBuffer * buf2)
 
 /**
  * gst_buffer_stamp:
- * @dest: buffer to stamp
+ * @dest: (transfer none): buffer to stamp
  * @src: buffer to stamp from
  *
  * Copies additional information (the timestamp, duration, and offset start
@@ -2694,7 +2836,9 @@ getcaps_fold_func (GstPad * pad, GValue * ret, GstPad * orig)
  * that can handle any stream format, but requires all its pads to have
  * the same caps.  Two such elements are tee and adder.
  *
- * Returns: the intersection of the other pads' allowed caps.
+ * Free-function: gst_caps_unref
+ *
+ * Returns: (transfer full): the intersection of the other pads' allowed caps.
  */
 GstCaps *
 gst_pad_proxy_getcaps (GstPad * pad)
@@ -2741,9 +2885,11 @@ gst_pad_proxy_getcaps (GstPad * pad)
       case GST_ITERATOR_DONE:
         /* all pads iterated, return collected value */
         goto done;
+      case GST_ITERATOR_OK:
+        /* premature exit (happens if caps intersection is empty) */
+        goto done;
       default:
-        /* iterator returned _ERROR or premature end with _OK,
-         * mark an error and exit */
+        /* iterator returned _ERROR, mark an error and exit */
         if ((caps = g_value_get_pointer (&ret)))
           gst_caps_unref (caps);
         g_value_set_pointer (&ret, NULL);
@@ -2807,13 +2953,13 @@ setcaps_fold_func (GstPad * pad, GValue * ret, SetCapsFoldData * data)
 /**
  * gst_pad_proxy_setcaps
  * @pad: a #GstPad to proxy from
- * @caps: the #GstCaps to link with
+ * @caps: (transfer none): the #GstCaps to link with
  *
  * Calls gst_pad_set_caps() for every other pad belonging to the
  * same element as @pad.  If gst_pad_set_caps() fails on any pad,
  * the proxy setcaps fails. May be used only during negotiation.
  *
- * Returns: TRUE if sucessful
+ * Returns: TRUE if successful
  */
 gboolean
 gst_pad_proxy_setcaps (GstPad * pad, GstCaps * caps)
@@ -2918,9 +3064,10 @@ gst_pad_query_position (GstPad * pad, GstFormat * format, gint64 * cur)
  * gst_pad_query_peer_position:
  * @pad: a #GstPad on whose peer to invoke the position query on.
  *       Must be a sink pad.
- * @format: a pointer to the #GstFormat asked for.
+ * @format: (inout): a pointer to the #GstFormat asked for.
  *          On return contains the #GstFormat used.
- * @cur: A location in which to store the current position, or NULL.
+ * @cur: (out) (allow-none): a location in which to store the current
+ *     position, or NULL.
  *
  * Queries the peer of a given sink pad for the stream position.
  *
@@ -2948,9 +3095,10 @@ gst_pad_query_peer_position (GstPad * pad, GstFormat * format, gint64 * cur)
 /**
  * gst_pad_query_duration:
  * @pad: a #GstPad to invoke the duration query on.
- * @format: a pointer to the #GstFormat asked for.
+ * @format: (inout): a pointer to the #GstFormat asked for.
  *          On return contains the #GstFormat used.
- * @duration: A location in which to store the total duration, or NULL.
+ * @duration: (out) (allow-none): a location in which to store the total
+ *     duration, or NULL.
  *
  * Queries a pad for the total stream duration.
  *
@@ -2980,9 +3128,10 @@ gst_pad_query_duration (GstPad * pad, GstFormat * format, gint64 * duration)
  * gst_pad_query_peer_duration:
  * @pad: a #GstPad on whose peer pad to invoke the duration query on.
  *       Must be a sink pad.
- * @format: a pointer to the #GstFormat asked for.
+ * @format: (inout) :a pointer to the #GstFormat asked for.
  *          On return contains the #GstFormat used.
- * @duration: A location in which to store the total duration, or NULL.
+ * @duration: (out) (allow-none): a location in which to store the total
+ *     duration, or NULL.
  *
  * Queries the peer pad of a given sink pad for the total stream duration.
  *
@@ -3013,8 +3162,8 @@ gst_pad_query_peer_duration (GstPad * pad, GstFormat * format,
  * @pad: a #GstPad to invoke the convert query on.
  * @src_format: a #GstFormat to convert from.
  * @src_val: a value to convert.
- * @dest_format: a pointer to the #GstFormat to convert to.
- * @dest_val: a pointer to the result.
+ * @dest_format: (inout): a pointer to the #GstFormat to convert to.
+ * @dest_val: (out): a pointer to the result.
  *
  * Queries a pad to convert @src_val in @src_format to @dest_format.
  *
@@ -3031,7 +3180,7 @@ gst_pad_query_convert (GstPad * pad, GstFormat src_format, gint64 src_val,
   g_return_val_if_fail (dest_format != NULL, FALSE);
   g_return_val_if_fail (dest_val != NULL, FALSE);
 
-  if (*dest_format == src_format) {
+  if (*dest_format == src_format || src_val == -1) {
     *dest_val = src_val;
     return TRUE;
   }
@@ -3053,8 +3202,8 @@ gst_pad_query_convert (GstPad * pad, GstFormat src_format, gint64 src_val,
  *       Must be a sink pad.
  * @src_format: a #GstFormat to convert from.
  * @src_val: a value to convert.
- * @dest_format: a pointer to the #GstFormat to convert to.
- * @dest_val: a pointer to the result.
+ * @dest_format: (inout): a pointer to the #GstFormat to convert to.
+ * @dest_val: (out): a pointer to the result.
  *
  * Queries the peer pad of a given sink pad to convert @src_val in @src_format
  * to @dest_format.
@@ -3070,7 +3219,6 @@ gst_pad_query_peer_convert (GstPad * pad, GstFormat src_format, gint64 src_val,
 
   g_return_val_if_fail (GST_IS_PAD (pad), FALSE);
   g_return_val_if_fail (GST_PAD_IS_SINK (pad), FALSE);
-  g_return_val_if_fail (src_val >= 0, FALSE);
   g_return_val_if_fail (dest_format != NULL, FALSE);
   g_return_val_if_fail (dest_val != NULL, FALSE);
 
@@ -3086,7 +3234,7 @@ gst_pad_query_peer_convert (GstPad * pad, GstFormat src_format, gint64 src_val,
 
 /**
  * gst_atomic_int_set:
- * @atomic_int: pointer to an atomic integer
+ * @atomic_int: (inout): pointer to an atomic integer
  * @value: value to set
  *
  * Unconditionally sets the atomic integer to @value.
@@ -3109,7 +3257,7 @@ gst_atomic_int_set (gint * atomic_int, gint value)
  * gst_pad_add_data_probe:
  * @pad: pad to add the data probe handler to
  * @handler: function to call when data is passed over pad
- * @data: data to pass along with the handler
+ * @data: (closure): data to pass along with the handler
  *
  * Adds a "data probe" to a pad. This function will be called whenever data
  * passes through a pad. In this case data means both events and buffers. The
@@ -3145,8 +3293,9 @@ gst_pad_add_data_probe (GstPad * pad, GCallback handler, gpointer data)
  * gst_pad_add_data_probe_full:
  * @pad: pad to add the data probe handler to
  * @handler: function to call when data is passed over pad
- * @data: data to pass along with the handler
- * @notify: function to call when the probe is disconnected, or NULL
+ * @data: (closure): data to pass along with the handler
+ * @notify: (allow-none): function to call when the probe is disconnected,
+ *     or NULL
  *
  * Adds a "data probe" to a pad. This function will be called whenever data
  * passes through a pad. In this case data means both events and buffers. The
@@ -3197,6 +3346,7 @@ gst_pad_add_data_probe_full (GstPad * pad, GCallback handler,
   GST_CAT_DEBUG_OBJECT (GST_CAT_PADS, pad,
       "adding data probe, now %d data, %d event probes",
       GST_PAD_DO_BUFFER_SIGNALS (pad), GST_PAD_DO_EVENT_SIGNALS (pad));
+  _priv_gst_pad_invalidate_cache (pad);
   GST_OBJECT_UNLOCK (pad);
 
   return sigid;
@@ -3206,7 +3356,7 @@ gst_pad_add_data_probe_full (GstPad * pad, GCallback handler,
  * gst_pad_add_event_probe:
  * @pad: pad to add the event probe handler to
  * @handler: function to call when events are passed over pad
- * @data: data to pass along with the handler
+ * @data: (closure): data to pass along with the handler
  *
  * Adds a probe that will be called for all events passing through a pad. See
  * gst_pad_add_data_probe() for more information.
@@ -3223,8 +3373,8 @@ gst_pad_add_event_probe (GstPad * pad, GCallback handler, gpointer data)
  * gst_pad_add_event_probe_full:
  * @pad: pad to add the event probe handler to
  * @handler: function to call when events are passed over pad
- * @data: data to pass along with the handler, or NULL
- * @notify: function to call when probe is disconnected, or NULL
+ * @data: (closure): data to pass along with the handler, or NULL
+ * @notify: (allow-none): function to call when probe is disconnected, or NULL
  *
  * Adds a probe that will be called for all events passing through a pad. See
  * gst_pad_add_data_probe() for more information.
@@ -3254,6 +3404,7 @@ gst_pad_add_event_probe_full (GstPad * pad, GCallback handler,
   GST_PAD_DO_EVENT_SIGNALS (pad)++;
   GST_CAT_DEBUG_OBJECT (GST_CAT_PADS, pad, "adding event probe, now %d probes",
       GST_PAD_DO_EVENT_SIGNALS (pad));
+  _priv_gst_pad_invalidate_cache (pad);
   GST_OBJECT_UNLOCK (pad);
 
   return sigid;
@@ -3263,7 +3414,7 @@ gst_pad_add_event_probe_full (GstPad * pad, GCallback handler,
  * gst_pad_add_buffer_probe:
  * @pad: pad to add the buffer probe handler to
  * @handler: function to call when buffers are passed over pad
- * @data: data to pass along with the handler
+ * @data: (closure): data to pass along with the handler
  *
  * Adds a probe that will be called for all buffers passing through a pad. See
  * gst_pad_add_data_probe() for more information.
@@ -3280,8 +3431,9 @@ gst_pad_add_buffer_probe (GstPad * pad, GCallback handler, gpointer data)
  * gst_pad_add_buffer_probe_full:
  * @pad: pad to add the buffer probe handler to
  * @handler: function to call when buffer are passed over pad
- * @data: data to pass along with the handler
- * @notify: function to call when the probe is disconnected, or NULL
+ * @data: (closure): data to pass along with the handler
+ * @notify: (allow-none): function to call when the probe is disconnected,
+ *     or NULL
  *
  * Adds a probe that will be called for all buffers passing through a pad. See
  * gst_pad_add_data_probe() for more information.
@@ -3311,6 +3463,7 @@ gst_pad_add_buffer_probe_full (GstPad * pad, GCallback handler,
   GST_PAD_DO_BUFFER_SIGNALS (pad)++;
   GST_CAT_DEBUG_OBJECT (GST_CAT_PADS, pad, "adding buffer probe, now %d probes",
       GST_PAD_DO_BUFFER_SIGNALS (pad));
+  _priv_gst_pad_invalidate_cache (pad);
   GST_OBJECT_UNLOCK (pad);
 
   return sigid;
@@ -3388,8 +3541,8 @@ gst_pad_remove_buffer_probe (GstPad * pad, guint handler_id)
 /**
  * gst_element_found_tags_for_pad:
  * @element: element for which to post taglist to bus.
- * @pad: pad on which to push tag-event.
- * @list: the taglist to post on the bus and create event from.
+ * @pad: (transfer none): pad on which to push tag-event
+ * @list: (transfer full): the taglist to post on the bus and create event from
  *
  * Posts a message to the bus that new tags were found and pushes the
  * tags as event. Takes ownership of the @list.
@@ -3422,7 +3575,7 @@ push_and_ref (GstPad * pad, GstEvent * event)
 /**
  * gst_element_found_tags:
  * @element: element for which we found the tags.
- * @list: list of tags.
+ * @list: (transfer full): list of tags.
  *
  * Posts a message to the bus that new tags were found, and pushes an event
  * to all sourcepads. Takes ownership of the @list.
@@ -3519,7 +3672,7 @@ element_find_unlinked_pad (GstElement * element, GstPadDirection direction)
  * owns a reference to it and should use gst_object_unref() on the
  * pad when it is not needed any longer.
  *
- * Returns: unlinked pad of the given direction, or NULL.
+ * Returns: (transfer full): unlinked pad of the given direction, or NULL.
  *
  * Since: 0.10.20
  */
@@ -3573,7 +3726,7 @@ gst_bin_find_unlinked_pad (GstBin * bin, GstPadDirection direction)
  * owns a reference to it and should use gst_object_unref() on the
  * pad when it is not needed any longer.
  *
- * Returns: unlinked pad of the given direction, or NULL.
+ * Returns: (transfer full): unlinked pad of the given direction, or NULL.
  *
  * Since: 0.10.3
  *
@@ -3607,7 +3760,7 @@ gst_bin_find_unconnected_pad (GstBin * bin, GstPadDirection direction)
  * and want them all ghosted, you will have to create the ghost pads
  * yourself).
  *
- * Returns: a newly-created bin, or NULL if an error occurred.
+ * Returns: (transfer full): a newly-created bin, or NULL if an error occurred.
  *
  * Since: 0.10.3
  */
@@ -3616,7 +3769,7 @@ gst_parse_bin_from_description (const gchar * bin_description,
     gboolean ghost_unlinked_pads, GError ** err)
 {
   return gst_parse_bin_from_description_full (bin_description,
-      ghost_unlinked_pads, NULL, 0, err);
+      ghost_unlinked_pads, NULL, GST_PARSE_FLAG_NONE, err);
 }
 
 /**
@@ -3624,7 +3777,8 @@ gst_parse_bin_from_description (const gchar * bin_description,
  * @bin_description: command line describing the bin
  * @ghost_unlinked_pads: whether to automatically create ghost pads
  *     for unlinked source or sink pads within the bin
- * @context: a parse context allocated with gst_parse_context_new(), or %NULL
+ * @context: (transfer none) (allow-none): a parse context allocated with
+ *     gst_parse_context_new(), or %NULL
  * @flags: parsing options, or #GST_PARSE_FLAG_NONE
  * @err: where to store the error message in case of an error, or NULL
  *
@@ -3638,7 +3792,7 @@ gst_parse_bin_from_description (const gchar * bin_description,
  * and want them all ghosted, you will have to create the ghost pads
  * yourself).
  *
- * Returns: a newly-created bin, or NULL if an error occurred.
+ * Returns: (transfer full): a newly-created bin, or NULL if an error occurred.
  *
  * Since: 0.10.20
  */
@@ -3703,7 +3857,7 @@ gst_parse_bin_from_description_full (const gchar * bin_description,
  * @base_init: Location of the base initialization function (optional).
  * @base_finalize: Location of the base finalization function (optional).
  * @class_init: Location of the class initialization function for class types
- *   Location of the default vtable inititalization function for interface
+ *   Location of the default vtable initialization function for interface
  *   types. (optional)
  * @class_finalize: Location of the class finalization function for class types.
  *   Location of the default vtable finalization function for interface types.
@@ -3749,6 +3903,9 @@ gst_type_register_static_full (GType parent_type,
 {
   GTypeInfo info;
 
+  g_return_val_if_fail (class_size <= G_MAXUINT16, G_TYPE_INVALID);
+  g_return_val_if_fail (instance_size <= G_MAXUINT16, G_TYPE_INVALID);
+
   info.class_size = class_size;
   info.base_init = base_init;
   info.base_finalize = base_finalize;
@@ -3767,7 +3924,7 @@ gst_type_register_static_full (GType parent_type,
 /**
  * gst_util_get_timestamp:
  *
- * Get a timestamp as GstClockTime to be used for interval meassurements.
+ * Get a timestamp as GstClockTime to be used for interval measurements.
  * The timestamp should not be interpreted in any other way.
  *
  * Returns: the timestamp
@@ -3795,10 +3952,10 @@ gst_util_get_timestamp (void)
  * @array: the sorted input array
  * @num_elements: number of elements in the array
  * @element_size: size of every element in bytes
- * @search_func: function to compare two elements, @search_data will always be passed as second argument
+ * @search_func: (scope call): function to compare two elements, @search_data will always be passed as second argument
  * @mode: search mode that should be used
  * @search_data: element that should be found
- * @user_data: data to pass to @search_func
+ * @user_data: (closure): data to pass to @search_func
  *
  * Searches inside @array for @search_data by using the comparison function
  * @search_func. @array must be sorted ascending.
@@ -3808,7 +3965,7 @@ gst_util_get_timestamp (void)
  *
  * The complexity of this search function is O(log (num_elements)).
  *
- * Returns: The address of the found element or %NULL if nothing was found
+ * Returns: (transfer none): The address of the found element or %NULL if nothing was found
  *
  * Since: 0.10.23
  */
@@ -3911,9 +4068,9 @@ gst_util_greatest_common_divisor (gint a, gint b)
  * gst_util_fraction_to_double:
  * @src_n: Fraction numerator as #gint
  * @src_d: Fraction denominator #gint
- * @dest: pointer to a #gdouble for the result
+ * @dest: (out): pointer to a #gdouble for the result
  *
- * Transforms a #gdouble to a fraction and simplifies the result.
+ * Transforms a fraction to a #gdouble.
  *
  * Since: 0.10.26
  */
@@ -3938,8 +4095,8 @@ gst_util_fraction_to_double (gint src_n, gint src_d, gdouble * dest)
 /**
  * gst_util_double_to_fraction:
  * @src: #gdouble to transform
- * @dest_n: pointer to a #gint to hold the result numerator
- * @dest_d: pointer to a #gint to hold the result denominator
+ * @dest_n: (out): pointer to a #gint to hold the result numerator
+ * @dest_d: (out): pointer to a #gint to hold the result denominator
  *
  * Transforms a #gdouble to a fraction and simplifies
  * the result.
@@ -4037,8 +4194,8 @@ gst_util_double_to_fraction (gdouble src, gint * dest_n, gint * dest_d)
  * @a_d: Denominator of first value
  * @b_n: Numerator of second value
  * @b_d: Denominator of second value
- * @res_n: Pointer to #gint to hold the result numerator
- * @res_d: Pointer to #gint to hold the result denominator
+ * @res_n: (out): Pointer to #gint to hold the result numerator
+ * @res_d: (out): Pointer to #gint to hold the result denominator
  *
  * Multiplies the fractions @a_n/@a_d and @b_n/@b_d and stores
  * the result in @res_n and @res_d.
@@ -4096,8 +4253,8 @@ gst_util_fraction_multiply (gint a_n, gint a_d, gint b_n, gint b_d,
  * @a_d: Denominator of first value
  * @b_n: Numerator of second value
  * @b_d: Denominator of second value
- * @res_n: Pointer to #gint to hold the result numerator
- * @res_d: Pointer to #gint to hold the result denominator
+ * @res_n: (out): Pointer to #gint to hold the result numerator
+ * @res_d: (out): Pointer to #gint to hold the result denominator
  *
  * Adds the fractions @a_n/@a_d and @b_n/@b_d and stores
  * the result in @res_n and @res_d.
@@ -4157,4 +4314,52 @@ gst_util_fraction_add (gint a_n, gint a_d, gint b_n, gint b_d, gint * res_n,
   }
 
   return TRUE;
+}
+
+/**
+ * gst_util_fraction_compare:
+ * @a_n: Numerator of first value
+ * @a_d: Denominator of first value
+ * @b_n: Numerator of second value
+ * @b_d: Denominator of second value
+ *
+ * Compares the fractions @a_n/@a_d and @b_n/@b_d and returns
+ * -1 if a < b, 0 if a = b and 1 if a > b.
+ *
+ * Returns: -1 if a < b; 0 if a = b; 1 if a > b.
+ *
+ * Since: 0.10.31
+ */
+gint
+gst_util_fraction_compare (gint a_n, gint a_d, gint b_n, gint b_d)
+{
+  gint64 new_num_1;
+  gint64 new_num_2;
+  gint gcd;
+
+  g_return_val_if_fail (a_d != 0 && b_d != 0, 0);
+
+  /* Simplify */
+  gcd = gst_util_greatest_common_divisor (a_n, a_d);
+  a_n /= gcd;
+  a_d /= gcd;
+
+  gcd = gst_util_greatest_common_divisor (b_n, b_d);
+  b_n /= gcd;
+  b_d /= gcd;
+
+  /* fractions are reduced when set, so we can quickly see if they're equal */
+  if (a_n == b_n && a_d == b_d)
+    return 0;
+
+  /* extend to 64 bits */
+  new_num_1 = ((gint64) a_n) * b_d;
+  new_num_2 = ((gint64) b_n) * a_d;
+  if (new_num_1 < new_num_2)
+    return -1;
+  if (new_num_1 > new_num_2)
+    return 1;
+
+  /* Should not happen because a_d and b_d are not 0 */
+  g_return_val_if_reached (0);
 }

@@ -1,17 +1,17 @@
-# translation of gstreamer-0.10.28.2.po to Dutch
+# translation of gstreamer-0.10.32.2.po to Dutch
 # Dutch translation of gstreamer
 # Copyright (C) 2003-2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 # This file is distributed under the same license as the gstreamer package.
 #
 # Thomas Vander Stichele <thomas@apestaart.org>, 2004.
 # Taco Witte <tcwitte@cs.uu.nl>, 2006.
-# Freek de Kruijf <f.de.kruijf@gmail.com>, 2007, 2008, 2009, 2010.
+# Freek de Kruijf <f.de.kruijf@gmail.com>, 2007, 2008, 2009, 2010, 2011.
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.28.2\n"
+"Project-Id-Version: gstreamer 0.10.32.2\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-04-30 15:45+0200\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2011-04-26 23:10+0200\n"
 "Last-Translator: Freek de Kruijf <f.de.kruijf@gmail.com>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
 "Language: nl\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Lokalize 1.0\n"
+"X-Generator: Lokalize 1.1\n"
 
 msgid "Print the GStreamer version"
 msgstr "Toon de GStreamer versie"
@@ -160,6 +160,9 @@ msgstr "Kan ondersteunende bibliotheek niet sluiten."
 
 msgid "Could not configure supporting library."
 msgstr "Kan ondersteunende bibliotheek niet configureren."
+
+msgid "Encoding error."
+msgstr "Coderingsfout."
 
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer kwam een algemene fout tegen met systeembronnen."
@@ -307,6 +310,13 @@ msgstr "datum"
 msgid "date the data was created (as a GDate structure)"
 msgstr "datum waarop het stuk gemaakt is (als GDate-structuur)"
 
+msgid "datetime"
+msgstr "datum-tijd"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr ""
+"datum en tijd waarop de gegevens zijn gemaakt (als een GstDateTime-structuur)"
+
 msgid "genre"
 msgstr "genre"
 
@@ -399,6 +409,12 @@ msgstr "auteursrecht-uri"
 
 msgid "URI to the copyright notice of the data"
 msgstr "URI naar de auteursrechtvermelding van de gegevens"
+
+msgid "encoded by"
+msgstr "gecodeerd door"
+
+msgid "name of the encoding person or organization"
+msgstr "naam van de coderende persoon of organisatie"
 
 msgid "contact"
 msgstr "contact"
@@ -641,33 +657,42 @@ msgstr ""
 "een sublocatie in een stad waar het medium is opgenomen of geproduceerd "
 "(bijv. de buurt)"
 
-#, fuzzy
+msgid "geo location horizontal error"
+msgstr "fout in horizontale geo-locatie"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr "verwachte fout van de horizontale positioneringsafmetingen (in meters)"
+
 msgid "geo location movement speed"
-msgstr "breedtegraad van de geografische locatie"
+msgstr "verplaatsingssnelheid op de geografische locatie"
 
 msgid ""
 "movement speed of the capturing device while performing the capture in m/s"
-msgstr ""
+msgstr "verplaatsingssnelheid van het opnameapparaat tijdens de opname in m/s"
 
-#, fuzzy
 msgid "geo location movement direction"
-msgstr "hoogte van de geografische locatie"
+msgstr "bewegingsrichting op de geografische locatie"
 
 msgid ""
 "indicates the movement direction of the device performing the capture of a "
 "media. It is represented as degrees in floating point representation, 0 "
 "means the geographic north, and increases clockwise"
 msgstr ""
+"geeft de bewegingsrichting aan van het apparaat dat de opname op het medium "
+"doet. Het wordt weergegeven in graden in drijvendekommavorm, 0 betekent het "
+"geografische noorden en neem rechtsom toe"
 
-#, fuzzy
 msgid "geo location capture direction"
-msgstr "hoogte van de geografische locatie"
+msgstr "opnamerichting op de geografische locatie"
 
 msgid ""
 "indicates the direction the device is pointing to when capturing  a media. "
 "It is represented as degrees in floating point  representation, 0 means the "
 "geographic north, and increases clockwise"
 msgstr ""
+"geeft de richting aan waarnaar het apparaat wijst dat de opname op het "
+"medium doet. Het wordt weergegeven in graden in drijvendekommavorm, 0 "
+"betekent het geografische noorden en neem rechtsom toe"
 
 #. TRANSLATORS: 'show name' = 'TV/radio/podcast show name' here
 msgid "show name"
@@ -731,24 +756,37 @@ msgstr ""
 "de gebruiker dit medium waardeert"
 
 msgid "device manufacturer"
-msgstr ""
+msgstr "apparaatfabrikant"
 
-#, fuzzy
 msgid "Manufacturer of the device used to create this media"
-msgstr "versie van de encoder gebruikt om deze stroom te coderen"
+msgstr ""
+"Fabrikant van het apparaat dat gebruikt wordt om dit medium aan te maken"
 
 msgid "device model"
-msgstr ""
+msgstr "apparaatmodel"
 
-#, fuzzy
 msgid "Model of the device used to create this media"
-msgstr "versie van de encoder gebruikt om deze stroom te coderen"
+msgstr "Model van het apparaat dat gebruikt wordt om dit medium aan te maken"
+
+msgid "application name"
+msgstr "toepassingsnaam"
+
+msgid "Application used to create the media"
+msgstr "Gebruikte toepassing om het medium aan te maken"
+
+msgid "application data"
+msgstr "toepassingsgegevens"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr ""
+"Willekeurige toepassingsgegevens die geserialiseerd moeten worden op het "
+"medium"
 
 msgid "image orientation"
-msgstr ""
+msgstr "oriëntatie van de afbeelding"
 
 msgid "How the image should be rotated or flipped before display"
-msgstr ""
+msgstr "Hoe de afbeelding geroteerd moet worden of gespiegeld bij tonen"
 
 msgid ", "
 msgstr ", "
@@ -885,15 +923,15 @@ msgstr "Bestand \"%s\" is een socket."
 msgid "Failed after iterations as requested."
 msgstr "Mislukt na iteraties zoals gevraagd."
 
-msgid "Error while writing to download file."
-msgstr "Fout bij het schrijven om bestand te downloaden."
-
 msgid "No Temp directory specified."
 msgstr "Geen tijdelijke map opgegeven."
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "Kon geen tijdelijk bestand \"%s\" aanmaken."
+
+msgid "Error while writing to download file."
+msgstr "Fout bij het schrijven om bestand te downloaden."
 
 msgid "caps"
 msgstr "mogelijkheden"
@@ -927,6 +965,15 @@ msgstr "schrijfbaar"
 
 msgid "controllable"
 msgstr "controleerbaar"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr "te veranderen in NUL, GEREED-, GEPAUZEERD- of SPEEL-status"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr "te veranderen in NUL, GEREED- of GEPAUZEERD-status"
+
+msgid "changeable only in NULL or READY state"
+msgstr "alleen te veranderen in NUL of GEREED-status"
 
 msgid "Blacklisted files:"
 msgstr "Bestanden op de zwarte lijst:"
@@ -1015,6 +1062,9 @@ msgstr "FOUT: kon argument %d op opdrachtregel niet verwerken: %s.\n"
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "WAARSCHUWING: element met naam '%s' niet gevonden.\n"
 
+msgid "Index statistics"
+msgstr "Indexstatistieken"
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "Bericht #%u ontvangen uit element \"%s\" (%s): "
@@ -1084,6 +1134,10 @@ msgstr "Stel de status in op %s zoals verzocht door %s...\n"
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Interrupt: Pijplijn ingesteld op gestopt ...\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "geen element \"%s\""
+
 msgid "Output tags (also known as metadata)"
 msgstr "Tags (ook bekend als metadata) weergeven"
 
@@ -1112,13 +1166,16 @@ msgid "Do not install a fault handler"
 msgstr "Geen foutafhandelaar installeren"
 
 msgid "Do not install signal handlers for SIGUSR1 and SIGUSR2"
-msgstr ""
+msgstr "Geen signaalafhandelaars installeren voor SIGUSR1 en SIGUSR2"
 
 msgid "Print alloc trace (if enabled at compile time)"
 msgstr "Toewijzingsspoor weergeven (indien aangezet tijdens compileren)"
 
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "Forceer een EOS op de bron bij het afsluiten van de pijplijn"
+
+msgid "Gather and print index statistics"
+msgstr "Verzamel en print indexstatistieken"
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

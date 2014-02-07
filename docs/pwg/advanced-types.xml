@@ -738,7 +738,7 @@ plugin_init (GstPlugin *plugin)
               property does not guarantee in <emphasis>any</emphasis> way that
               it will actually come close to this value. If you need a fixed
               framerate, please use an element that provides that (such as
-              <quote>videodrop</quote>). 0 means a variable framerate.
+              <quote>videorate</quote>). 0 means a variable framerate.
             </entry>
           </row>
 
@@ -774,7 +774,7 @@ plugin_init (GstPlugin *plugin)
 
           <row>
             <entry morerows="3">video/x-raw-rgb</entry>
-            <entry morerows="3">Red-Green-Blue (RBG) video.</entry>
+            <entry morerows="3">Red-Green-Blue (RGB) video.</entry>
             <entry>bpp</entry>
             <entry>integer</entry>
             <entry>greater than 0</entry>

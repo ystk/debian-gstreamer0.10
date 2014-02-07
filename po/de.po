@@ -1,16 +1,16 @@
-# German translation for gstreamer 0.10.25.2
+# German translation for gstreamer 0.10.30.3
 # Copyright (C) 2004 Free Software Foundation, Inc.
 # This file is distributed under the same license as the gstreamer package.
 #
 # Roland Illig <roland.illig@gmx.de>, 2004.
-# Christian Kirbach <christian.kirbach@googlemail.com>, 2009, 2010.
+# Christian Kirbach <christian.kirbach@googlemail.com>, 2009, 2010, 2011.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.29.2\n"
+"Project-Id-Version: gstreamer 0.10.32.2\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-07-09 01:12+0200\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2011-04-27 23:44+0200\n"
 "Last-Translator: Christian Kirbach <christian.kirbach@googlemail.com>\n"
 "Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
 "Language: de\n"
@@ -160,6 +160,9 @@ msgstr "Die Unterstützungsbibliothek konnte nicht geschlossen werden."
 
 msgid "Could not configure supporting library."
 msgstr "Die Unterstützungsbibliothek konnte nicht konfiguriert werden."
+
+msgid "Encoding error."
+msgstr "Fehler bei der Kodierung."
 
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer hat einen allgemeinen Ressourcenfehler festgestellt."
@@ -315,6 +318,14 @@ msgstr "Datum"
 msgid "date the data was created (as a GDate structure)"
 msgstr "Datum, an dem die Daten erzeugt wurden (als GDate-Struktur)"
 
+msgid "datetime"
+msgstr "DatumUhrzeit"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr ""
+"Datum und Uhrzeit, an denen die Daten erzeugt wurden (als GstDateTime-"
+"Struktur)"
+
 msgid "genre"
 msgstr "Genre"
 
@@ -408,6 +419,12 @@ msgstr "Copyright-URI"
 
 msgid "URI to the copyright notice of the data"
 msgstr "URI zu der Copyrightangabe der Daten"
+
+msgid "encoded by"
+msgstr "codiert durch"
+
+msgid "name of the encoding person or organization"
+msgstr "Der Name der codierenden Person oder Organisation"
 
 msgid "contact"
 msgstr "Kontakt"
@@ -655,6 +672,12 @@ msgstr ""
 "ein Ort innerhalb einer Stadt, in dem das Medium aufgezeichnet oder "
 "produziert wurde"
 
+msgid "geo location horizontal error"
+msgstr "Geografischer horizontaler Fehler"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr "Erwarteter Fehler der horizontalen Positionsmessung (in Meter)"
+
 msgid "geo location movement speed"
 msgstr "Geografische Bewegungsgeschwindigkeit"
 
@@ -760,6 +783,18 @@ msgstr "Gerätemodell"
 
 msgid "Model of the device used to create this media"
 msgstr "Das Modell des Geräts zur Erstellung dieses Mediums"
+
+msgid "application name"
+msgstr "Anwendungsname"
+
+msgid "Application used to create the media"
+msgstr "Die zur Erstellung dieses Mediums verwendete Anwendung"
+
+msgid "application data"
+msgstr "Anwendungsdaten"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr "Beliebige Anwendungsdaten zur Serialisierung in das Medium"
 
 msgid "image orientation"
 msgstr "Bildorientierung"
@@ -902,15 +937,15 @@ msgstr "Die Datei »%s« ist ein Socket."
 msgid "Failed after iterations as requested."
 msgstr "Nach dem Durchlaufen fehlgeschlagen. Wie gewünscht."
 
-msgid "Error while writing to download file."
-msgstr "Fehler beim Schreiben in die Download-Datei."
-
 msgid "No Temp directory specified."
 msgstr "Kein temporärer Ordner angegeben."
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "Die temporäre Datei »%s« konnte nicht angelegt werden."
+
+msgid "Error while writing to download file."
+msgstr "Fehler beim Schreiben in die Download-Datei."
 
 msgid "caps"
 msgstr "Fähigkeiten"
@@ -944,6 +979,15 @@ msgstr "schreibbar"
 
 msgid "controllable"
 msgstr "regelbar"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr "änderbar in den Status NULL, BEREIT, PAUSIERT oder ABSPIELEN"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr "änderbar nur in den Status NULL, BEREIT oder PAUSIERT"
+
+msgid "changeable only in NULL or READY state"
+msgstr "änderbar nur in den Status NULL oder BEREIT"
 
 msgid "Blacklisted files:"
 msgstr "Dateien auf der schwarzen Liste:"
@@ -1030,6 +1074,9 @@ msgstr ""
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "WARNUNG: Element namens »%s« nicht gefunden.\n"
 
+msgid "Index statistics"
+msgstr "Index-Statistiken"
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "Nachricht #%u wurde von Element »%s« (%s) erhalten: "
@@ -1085,7 +1132,7 @@ msgstr "Zwischenspeichern läuft …"
 
 msgid "Done buffering, setting pipeline to PLAYING ...\n"
 msgstr ""
-"Zwischenspeichern abgeschlossen, Leitung wird auf »PLAYING« gesetzt …\n"
+"Zwischenspeichern abgeschlossen, Leitung wird auf ABSPIELEN gesetzt …\n"
 
 msgid "Buffering, setting pipeline to PAUSED ...\n"
 msgstr ""
@@ -1101,6 +1148,10 @@ msgstr "Status wird auf %s gesetzt wie von %s gewünscht...\n"
 
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Interrupt: Leitung wird gestoppt ...\n"
+
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "Kein Element »%s«"
 
 msgid "Output tags (also known as metadata)"
 msgstr "Kennzeichen (auch bekannt als Metadaten) ausgeben"
@@ -1138,6 +1189,9 @@ msgstr ""
 
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "EOS auf Quelle vor dem Beenden der Leitung erzwingen"
+
+msgid "Gather and print index statistics"
+msgstr "Index-Statistiken sammeln und ausgeben"
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

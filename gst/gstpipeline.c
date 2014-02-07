@@ -29,7 +29,7 @@
  * A #GstPipeline is a special #GstBin used as the toplevel container for
  * the filter graph. The #GstPipeline will manage the selection and
  * distribution of a global #GstClock as well as provide a #GstBus to the
- * application. It will also implement a default behavour for managing
+ * application. It will also implement a default behaviour for managing
  * seek events (see gst_element_seek()).
  *
  * gst_pipeline_new() is used to create a pipeline. when you are done with
@@ -310,7 +310,7 @@ reset_start_time (GstPipeline * pipeline)
  *
  * Create a new pipeline with the given name.
  *
- * Returns: newly created GstPipeline
+ * Returns: (transfer full): newly created GstPipeline
  *
  * MT safe.
  */
@@ -343,7 +343,14 @@ pipeline_update_start_time (GstElement * element)
     GST_OBJECT_LOCK (element);
     /* store the current running time */
     if (GST_ELEMENT_START_TIME (pipeline) != GST_CLOCK_TIME_NONE) {
-      GST_ELEMENT_START_TIME (pipeline) = now - element->base_time;
+      if (now != GST_CLOCK_TIME_NONE)
+        GST_ELEMENT_START_TIME (pipeline) = now - element->base_time;
+      else
+        GST_WARNING_OBJECT (element,
+            "Clock %s returned invalid time, can't calculate "
+            "running_time when going to the PAUSED state",
+            GST_OBJECT_NAME (clock));
+
       /* we went to PAUSED, when going to PLAYING select clock and new
        * base_time */
       pipeline->priv->update_clock = TRUE;
@@ -401,7 +408,7 @@ gst_pipeline_change_state (GstElement * element, GstStateChange transition)
 
       /* running time changed, either with a PAUSED or a flush, we need to check
        * if there is a new clock & update the base time */
-      if (last_start_time != start_time) {
+      if (update_clock || last_start_time != start_time) {
         GST_DEBUG_OBJECT (pipeline, "Need to update start_time");
 
         /* when going to PLAYING, select a clock when needed. If we just got
@@ -418,7 +425,7 @@ gst_pipeline_change_state (GstElement * element, GstStateChange transition)
         if (clock) {
           now = gst_clock_get_time (clock);
         } else {
-          GST_DEBUG ("no clock, using base time of NONE");
+          GST_DEBUG_OBJECT (pipeline, "no clock, using base time of NONE");
           now = GST_CLOCK_TIME_NONE;
         }
 
@@ -560,6 +567,20 @@ gst_pipeline_handle_message (GstBin * bin, GstMessage * message)
 
       break;
     }
+    case GST_MESSAGE_CLOCK_LOST:
+    {
+      GstClock *clock;
+
+      gst_message_parse_clock_lost (message, &clock);
+
+      GST_OBJECT_LOCK (bin);
+      if (clock == GST_ELEMENT_CAST (bin)->clock) {
+        GST_DEBUG_OBJECT (bin, "Used clock '%s' got lost",
+            GST_OBJECT_NAME (clock));
+        pipeline->priv->update_clock = TRUE;
+      }
+      GST_OBJECT_UNLOCK (bin);
+    }
     default:
       break;
   }
@@ -573,7 +594,7 @@ gst_pipeline_handle_message (GstBin * bin, GstMessage * message)
  * Gets the #GstBus of @pipeline. The bus allows applications to receive
  * #GstMessage packets.
  *
- * Returns: a #GstBus, unref after usage.
+ * Returns: (transfer full): a #GstBus, unref after usage.
  *
  * MT safe.
  */
@@ -699,7 +720,7 @@ gst_pipeline_provide_clock_func (GstElement * element)
  *
  * Gets the current clock used by @pipeline.
  *
- * Returns: a #GstClock, unref after usage.
+ * Returns: (transfer full): a #GstClock, unref after usage.
  */
 GstClock *
 gst_pipeline_get_clock (GstPipeline * pipeline)
@@ -713,7 +734,7 @@ gst_pipeline_get_clock (GstPipeline * pipeline)
 /**
  * gst_pipeline_use_clock:
  * @pipeline: a #GstPipeline
- * @clock: the clock to use
+ * @clock: (transfer none): the clock to use
  *
  * Force @pipeline to use the given @clock. The pipeline will
  * always use the given clock even if new clock providers are added
@@ -745,7 +766,7 @@ gst_pipeline_use_clock (GstPipeline * pipeline, GstClock * clock)
 /**
  * gst_pipeline_set_clock:
  * @pipeline: a #GstPipeline
- * @clock: the clock to set
+ * @clock: (transfer none): the clock to set
  *
  * Set the clock for @pipeline. The clock will be distributed
  * to all the elements managed by the pipeline.

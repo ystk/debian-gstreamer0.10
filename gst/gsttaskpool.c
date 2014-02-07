@@ -40,7 +40,9 @@
 GST_DEBUG_CATEGORY_STATIC (taskpool_debug);
 #define GST_CAT_DEFAULT (taskpool_debug)
 
+#ifndef GST_DISABLE_GST_DEBUG
 static void gst_task_pool_finalize (GObject * object);
+#endif
 
 #define _do_init \
 { \
@@ -126,7 +128,9 @@ gst_task_pool_class_init (GstTaskPoolClass * klass)
   gobject_class = (GObjectClass *) klass;
   gsttaskpool_class = (GstTaskPoolClass *) klass;
 
+#ifndef GST_DISABLE_GST_DEBUG
   gobject_class->finalize = gst_task_pool_finalize;
+#endif
 
   gsttaskpool_class->prepare = default_prepare;
   gsttaskpool_class->cleanup = default_cleanup;
@@ -139,6 +143,7 @@ gst_task_pool_init (GstTaskPool * pool)
 {
 }
 
+#ifndef GST_DISABLE_GST_DEBUG
 static void
 gst_task_pool_finalize (GObject * object)
 {
@@ -146,14 +151,14 @@ gst_task_pool_finalize (GObject * object)
 
   G_OBJECT_CLASS (gst_task_pool_parent_class)->finalize (object);
 }
-
+#endif
 /**
  * gst_task_pool_new:
  *
  * Create a new default task pool. The default task pool will use a regular
  * GThreadPool for threads.
  *
- * Returns: a new #GstTaskPool. gst_object_unref() after usage.
+ * Returns: (transfer full): a new #GstTaskPool. gst_object_unref() after usage.
  *
  * Since: 0.10.24
  */
@@ -219,7 +224,7 @@ gst_task_pool_cleanup (GstTaskPool * pool)
  * gst_task_pool_push:
  * @pool: a #GstTaskPool
  * @func: the function to call
- * @user_data: data to pass to @func
+ * @user_data: (closure): data to pass to @func
  * @error: return location for an error
  *
  * Start the execution of a new thread from @pool.

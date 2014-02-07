@@ -50,7 +50,7 @@
  * Most of the event API is used inside plugins. Applications usually only 
  * construct and use seek events. 
  * To do that gst_event_new_seek() is used to create a seek event. It takes
- * the needed parameters to specity seeking time and mode.
+ * the needed parameters to specify seeking time and mode.
  * <example>
  * <title>performing a seek on a pipeline</title>
  *   <programlisting>
@@ -279,8 +279,8 @@ gst_event_new (GstEventType type)
 /**
  * gst_event_new_custom:
  * @type: The type of the new event
- * @structure: The structure for the event. The event will take ownership of
- * the structure.
+ * @structure: (transfer full): the structure for the event. The event will
+ *     take ownership of the structure.
  *
  * Create a new custom-typed event. This can be used for anything not
  * handled by other event-specific functions to pass an event to another
@@ -293,7 +293,7 @@ gst_event_new (GstEventType type)
  * New custom events can also be created by subclassing the event type if
  * needed.
  *
- * Returns: The new custom event.
+ * Returns: (transfer full): the new custom event.
  */
 GstEvent *
 gst_event_new_custom (GstEventType type, GstStructure * structure)
@@ -369,7 +369,7 @@ gst_event_has_name (GstEvent * event, const gchar * name)
  * required.
  *
  * Note that events and messages share the same sequence number incrementor;
- * two events or messages will never not have the same sequence number unless
+ * two events or messages will never have the same sequence number unless
  * that correspondence was made explicitly.
  *
  * Returns: The event's sequence number.
@@ -431,7 +431,7 @@ gst_event_set_seqnum (GstEvent * event, guint32 seqnum)
  * This event is typically generated after a seek to flush out all queued data
  * in the pipeline so that the new media is played as soon as possible.
  *
- * Returns: A new flush start event.
+ * Returns: (transfer full): a new flush start event.
  */
 GstEvent *
 gst_event_new_flush_start (void)
@@ -453,7 +453,7 @@ gst_event_new_flush_start (void)
  * This event is typically generated to complete a seek and to resume
  * dataflow.
  *
- * Returns: A new flush stop event.
+ * Returns: (transfer full): a new flush stop event.
  */
 GstEvent *
 gst_event_new_flush_stop (void)
@@ -478,7 +478,7 @@ gst_event_new_flush_stop (void)
  *
  * The EOS event itself will not cause any state transitions of the pipeline.
  *
- * Returns: The new EOS event.
+ * Returns: (transfer full): the new EOS event.
  */
 GstEvent *
 gst_event_new_eos (void)
@@ -500,7 +500,7 @@ gst_event_new_eos (void)
  * This method calls gst_event_new_new_segment_full() passing a default
  * value of 1.0 for applied_rate
  *
- * Returns: A new newsegment event.
+ * Returns: (transfer full): a new newsegment event.
  */
 GstEvent *
 gst_event_new_new_segment (gboolean update, gdouble rate, GstFormat format,
@@ -575,7 +575,7 @@ gst_event_parse_new_segment (GstEvent * event, gboolean * update,
  *
  *   position + (TIMESTAMP(buf) - start) * ABS (rate * applied_rate)
  *
- * Returns: A new newsegment event.
+ * Returns: (transfer full): a new newsegment event.
  *
  * Since: 0.10.6
  */
@@ -589,6 +589,7 @@ gst_event_new_new_segment_full (gboolean update, gdouble rate,
 
   g_return_val_if_fail (rate != 0.0, NULL);
   g_return_val_if_fail (applied_rate != 0.0, NULL);
+  g_return_val_if_fail (format != GST_FORMAT_UNDEFINED, NULL);
 
   if (format == GST_FORMAT_TIME) {
     GST_CAT_INFO (GST_CAT_EVENT,
@@ -650,7 +651,7 @@ gst_event_parse_new_segment_full (GstEvent * event, gboolean * update,
   g_return_if_fail (GST_IS_EVENT (event));
   g_return_if_fail (GST_EVENT_TYPE (event) == GST_EVENT_NEWSEGMENT);
 
-  structure = gst_event_get_structure (event);
+  structure = event->structure;
   if (G_LIKELY (update))
     *update =
         g_value_get_boolean (gst_structure_id_get_value (structure,
@@ -664,7 +665,7 @@ gst_event_parse_new_segment_full (GstEvent * event, gboolean * update,
         g_value_get_double (gst_structure_id_get_value (structure,
             GST_QUARK (APPLIED_RATE)));
   if (G_LIKELY (format))
-    *format =
+    *format = (GstFormat)
         g_value_get_enum (gst_structure_id_get_value (structure,
             GST_QUARK (FORMAT)));
   if (G_LIKELY (start))
@@ -683,11 +684,12 @@ gst_event_parse_new_segment_full (GstEvent * event, gboolean * update,
 
 /**
  * gst_event_new_tag:
- * @taglist: metadata list. The event will take ownership of @taglist.
+ * @taglist: (transfer full): metadata list. The event will take ownership
+ *     of the taglist.
  *
  * Generates a metadata tag event from the given @taglist.
  *
- * Returns: a new #GstEvent
+ * Returns: (transfer full): a new #GstEvent
  */
 GstEvent *
 gst_event_new_tag (GstTagList * taglist)
@@ -700,9 +702,12 @@ gst_event_new_tag (GstTagList * taglist)
 /**
  * gst_event_parse_tag:
  * @event: a tag event
- * @taglist: (out): pointer to metadata list
+ * @taglist: (out) (transfer none): pointer to metadata list
  *
  * Parses a tag @event and stores the results in the given @taglist location.
+ * No reference to the taglist will be returned, it remains valid only until
+ * the @event is freed. Don't modify or free the taglist, make a copy if you
+ * want to modify it or store it for later use.
  */
 void
 gst_event_parse_tag (GstEvent * event, GstTagList ** taglist)
@@ -725,9 +730,9 @@ gst_event_parse_tag (GstEvent * event, GstTagList ** taglist)
  * Create a new buffersize event. The event is sent downstream and notifies
  * elements that they should provide a buffer of the specified dimensions.
  *
- * When the @async flag is set, a thread boundary is prefered.
+ * When the @async flag is set, a thread boundary is preferred.
  *
- * Returns: a new #GstEvent
+ * Returns: (transfer full): a new #GstEvent
  */
 GstEvent *
 gst_event_new_buffer_size (GstFormat format, gint64 minsize,
@@ -770,9 +775,9 @@ gst_event_parse_buffer_size (GstEvent * event, GstFormat * format,
   g_return_if_fail (GST_IS_EVENT (event));
   g_return_if_fail (GST_EVENT_TYPE (event) == GST_EVENT_BUFFERSIZE);
 
-  structure = gst_event_get_structure (event);
+  structure = event->structure;
   if (format)
-    *format =
+    *format = (GstFormat)
         g_value_get_enum (gst_structure_id_get_value (structure,
             GST_QUARK (FORMAT)));
   if (minsize)
@@ -795,11 +800,47 @@ gst_event_parse_buffer_size (GstEvent * event, GstFormat * format,
  * @diff: The time difference of the last Clock sync
  * @timestamp: The timestamp of the buffer
  *
+ * Allocate a new qos event with the given values. This function calls
+ * gst_event_new_qos_full() with the type set to #GST_QOS_TYPE_OVERFLOW
+ * when diff is negative (buffers are in time) and #GST_QOS_TYPE_UNDERFLOW
+ * when @diff is positive (buffers are late).
+ *
+ * Returns: (transfer full): a new QOS event.
+ */
+GstEvent *
+gst_event_new_qos (gdouble proportion, GstClockTimeDiff diff,
+    GstClockTime timestamp)
+{
+  GstQOSType type;
+
+  if (diff <= 0)
+    type = GST_QOS_TYPE_OVERFLOW;
+  else
+    type = GST_QOS_TYPE_UNDERFLOW;
+
+  return gst_event_new_qos_full (type, proportion, diff, timestamp);
+}
+
+/**
+ * gst_event_new_qos_full:
+ * @type: the QoS type
+ * @proportion: the proportion of the qos message
+ * @diff: The time difference of the last Clock sync
+ * @timestamp: The timestamp of the buffer
+ *
  * Allocate a new qos event with the given values.
  * The QOS event is generated in an element that wants an upstream
  * element to either reduce or increase its rate because of
- * high/low CPU load or other resource usage such as network performance.
- * Typically sinks generate these events for each buffer they receive.
+ * high/low CPU load or other resource usage such as network performance or
+ * throttling. Typically sinks generate these events for each buffer
+ * they receive.
+ *
+ * @type indicates the reason for the QoS event. #GST_QOS_TYPE_OVERFLOW is
+ * used when a buffer arrived in time or when the sink cannot keep up with
+ * the upstream datarate. #GST_QOS_TYPE_UNDERFLOW is when the sink is not
+ * receiving buffers fast enough and thus has to drop late buffers. 
+ * #GST_QOS_TYPE_THROTTLE is used when the datarate is artificially limited
+ * by the application, for example to reduce power consumption.
  *
  * @proportion indicates the real-time performance of the streaming in the
  * element that generated the QoS event (usually the sink). The value is
@@ -814,7 +855,8 @@ gst_event_parse_buffer_size (GstEvent * event, GstFormat * format,
  * @diff is the difference against the clock in running time of the last
  * buffer that caused the element to generate the QOS event. A negative value
  * means that the buffer with @timestamp arrived in time. A positive value
- * indicates how late the buffer with @timestamp was.
+ * indicates how late the buffer with @timestamp was. When throttling is
+ * enabled, @diff will be set to the requested throttling interval.
  *
  * @timestamp is the timestamp of the last buffer that cause the element
  * to generate the QOS event. It is expressed in running time and thus an ever
@@ -829,11 +871,13 @@ gst_event_parse_buffer_size (GstEvent * event, GstFormat * format,
  * The application can use general event probes to intercept the QoS
  * event and implement custom application specific QoS handling.
  *
- * Returns: A new QOS event.
+ * Returns: (transfer full): a new QOS event.
+ *
+ * Since: 0.10.33
  */
 GstEvent *
-gst_event_new_qos (gdouble proportion, GstClockTimeDiff diff,
-    GstClockTime timestamp)
+gst_event_new_qos_full (GstQOSType type, gdouble proportion,
+    GstClockTimeDiff diff, GstClockTime timestamp)
 {
   GstEvent *event;
   GstStructure *structure;
@@ -842,11 +886,12 @@ gst_event_new_qos (gdouble proportion, GstClockTimeDiff diff,
   g_return_val_if_fail (diff >= 0 || -diff <= timestamp, NULL);
 
   GST_CAT_INFO (GST_CAT_EVENT,
-      "creating qos proportion %lf, diff %" G_GINT64_FORMAT
-      ", timestamp %" GST_TIME_FORMAT, proportion,
+      "creating qos type %d, proportion %lf, diff %" G_GINT64_FORMAT
+      ", timestamp %" GST_TIME_FORMAT, type, proportion,
       diff, GST_TIME_ARGS (timestamp));
 
   structure = gst_structure_id_new (GST_QUARK (EVENT_QOS),
+      GST_QUARK (TYPE), GST_TYPE_QOS_TYPE, type,
       GST_QUARK (PROPORTION), G_TYPE_DOUBLE, proportion,
       GST_QUARK (DIFF), G_TYPE_INT64, diff,
       GST_QUARK (TIMESTAMP), G_TYPE_UINT64, timestamp, NULL);
@@ -869,12 +914,36 @@ void
 gst_event_parse_qos (GstEvent * event, gdouble * proportion,
     GstClockTimeDiff * diff, GstClockTime * timestamp)
 {
+  gst_event_parse_qos_full (event, NULL, proportion, diff, timestamp);
+}
+
+/**
+ * gst_event_parse_qos_full:
+ * @event: The event to query
+ * @type: (out): A pointer to store the QoS type in
+ * @proportion: (out): A pointer to store the proportion in
+ * @diff: (out): A pointer to store the diff in
+ * @timestamp: (out): A pointer to store the timestamp in
+ *
+ * Get the type, proportion, diff and timestamp in the qos event. See
+ * gst_event_new_qos_full() for more information about the different QoS values.
+ *
+ * Since: 0.10.33
+ */
+void
+gst_event_parse_qos_full (GstEvent * event, GstQOSType * type,
+    gdouble * proportion, GstClockTimeDiff * diff, GstClockTime * timestamp)
+{
   const GstStructure *structure;
 
   g_return_if_fail (GST_IS_EVENT (event));
   g_return_if_fail (GST_EVENT_TYPE (event) == GST_EVENT_QOS);
 
-  structure = gst_event_get_structure (event);
+  structure = event->structure;
+  if (type)
+    *type = (GstQOSType)
+        g_value_get_enum (gst_structure_id_get_value (structure,
+            GST_QUARK (TYPE)));
   if (proportion)
     *proportion =
         g_value_get_double (gst_structure_id_get_value (structure,
@@ -931,7 +1000,7 @@ gst_event_parse_qos (GstEvent * event, gdouble * proportion,
  * #GST_QUERY_POSITION and update the playback segment current position with a
  * #GST_SEEK_TYPE_SET to the desired position. 
  *
- * Returns: A new seek event.
+ * Returns: (transfer full): a new seek event.
  */
 GstEvent *
 gst_event_new_seek (gdouble rate, GstFormat format, GstSeekFlags flags,
@@ -994,21 +1063,21 @@ gst_event_parse_seek (GstEvent * event, gdouble * rate,
   g_return_if_fail (GST_IS_EVENT (event));
   g_return_if_fail (GST_EVENT_TYPE (event) == GST_EVENT_SEEK);
 
-  structure = gst_event_get_structure (event);
+  structure = event->structure;
   if (rate)
     *rate =
         g_value_get_double (gst_structure_id_get_value (structure,
             GST_QUARK (RATE)));
   if (format)
-    *format =
+    *format = (GstFormat)
         g_value_get_enum (gst_structure_id_get_value (structure,
             GST_QUARK (FORMAT)));
   if (flags)
-    *flags =
+    *flags = (GstSeekFlags)
         g_value_get_flags (gst_structure_id_get_value (structure,
             GST_QUARK (FLAGS)));
   if (start_type)
-    *start_type =
+    *start_type = (GstSeekType)
         g_value_get_enum (gst_structure_id_get_value (structure,
             GST_QUARK (CUR_TYPE)));
   if (start)
@@ -1016,7 +1085,7 @@ gst_event_parse_seek (GstEvent * event, gdouble * rate,
         g_value_get_int64 (gst_structure_id_get_value (structure,
             GST_QUARK (CUR)));
   if (stop_type)
-    *stop_type =
+    *stop_type = (GstSeekType)
         g_value_get_enum (gst_structure_id_get_value (structure,
             GST_QUARK (STOP_TYPE)));
   if (stop)
@@ -1027,12 +1096,12 @@ gst_event_parse_seek (GstEvent * event, gdouble * rate,
 
 /**
  * gst_event_new_navigation:
- * @structure: description of the event. The event will take ownership of the
- *     structure.
+ * @structure: (transfer full): description of the event. The event will take
+ *     ownership of the structure.
  *
  * Create a new navigation event from the given description.
  *
- * Returns: a new #GstEvent
+ * Returns: (transfer full): a new #GstEvent
  */
 GstEvent *
 gst_event_new_navigation (GstStructure * structure)
@@ -1053,7 +1122,7 @@ gst_event_new_navigation (GstStructure * structure)
  * The latency is mostly used in live sinks and is always expressed in
  * the time format.
  *
- * Returns: a new #GstEvent
+ * Returns: (transfer full): a new #GstEvent
  *
  * Since: 0.10.12
  */
@@ -1085,15 +1154,12 @@ gst_event_new_latency (GstClockTime latency)
 void
 gst_event_parse_latency (GstEvent * event, GstClockTime * latency)
 {
-  const GstStructure *structure;
-
   g_return_if_fail (GST_IS_EVENT (event));
   g_return_if_fail (GST_EVENT_TYPE (event) == GST_EVENT_LATENCY);
 
-  structure = gst_event_get_structure (event);
   if (latency)
     *latency =
-        g_value_get_uint64 (gst_structure_id_get_value (structure,
+        g_value_get_uint64 (gst_structure_id_get_value (event->structure,
             GST_QUARK (LATENCY)));
 }
 
@@ -1109,8 +1175,9 @@ gst_event_parse_latency (GstEvent * event, GstClockTime * latency)
  * to skip @amount (expressed in @format) of media. It can be used to implement
  * stepping through the video frame by frame or for doing fast trick modes.
  *
- * A rate of <= 0.0 is not allowed, pause the pipeline or reverse the playback
- * direction of the pipeline to get the same effect.
+ * A rate of <= 0.0 is not allowed. Pause the pipeline, for the effect of rate
+ * = 0.0 or first reverse the direction of playback using a seek event to get
+ * the same effect as rate < 0.0.
  *
  * The @flush flag will clear any pending data in the pipeline before starting
  * the step operation.
@@ -1118,7 +1185,7 @@ gst_event_parse_latency (GstEvent * event, GstClockTime * latency)
  * The @intermediate flag instructs the pipeline that this step operation is
  * part of a larger step operation.
  *
- * Returns: a new #GstEvent
+ * Returns: (transfer full): a new #GstEvent
  *
  * Since: 0.10.24
  */
@@ -1147,11 +1214,12 @@ gst_event_new_step (GstFormat format, guint64 amount, gdouble rate,
 /**
  * gst_event_parse_step:
  * @event: The event to query
- * @format: (out): A pointer to store the format in.
- * @amount: (out): A pointer to store the amount in.
- * @rate: (out): A pointer to store the rate in.
- * @flush: (out): A pointer to store the flush boolean in.
- * @intermediate: (out): A pointer to store the intermediate boolean in.
+ * @format: (out) (allow-none): a pointer to store the format in
+ * @amount: (out) (allow-none): a pointer to store the amount in
+ * @rate: (out) (allow-none): a pointer to store the rate in
+ * @flush: (out) (allow-none): a pointer to store the flush boolean in
+ * @intermediate: (out) (allow-none): a pointer to store the intermediate
+ *     boolean in
  *
  * Parse the step event.
  *
@@ -1166,9 +1234,10 @@ gst_event_parse_step (GstEvent * event, GstFormat * format, guint64 * amount,
   g_return_if_fail (GST_IS_EVENT (event));
   g_return_if_fail (GST_EVENT_TYPE (event) == GST_EVENT_STEP);
 
-  structure = gst_event_get_structure (event);
+  structure = event->structure;
   if (format)
-    *format = g_value_get_enum (gst_structure_id_get_value (structure,
+    *format =
+        (GstFormat) g_value_get_enum (gst_structure_id_get_value (structure,
             GST_QUARK (FORMAT)));
   if (amount)
     *amount = g_value_get_uint64 (gst_structure_id_get_value (structure,
@@ -1186,16 +1255,17 @@ gst_event_parse_step (GstEvent * event, GstFormat * format, guint64 * amount,
 
 /**
  * gst_event_new_sink_message:
- * @msg: The #GstMessage to be posted
+ * @msg: (transfer none): the #GstMessage to be posted
  *
  * Create a new sink-message event. The purpose of the sink-message event is
  * to instruct a sink to post the message contained in the event synchronized
  * with the stream.
  *
- * Returns: a new #GstEvent
+ * Returns: (transfer full): a new #GstEvent
  *
  * Since: 0.10.26
  */
+/* FIXME 0.11: take ownership of msg for consistency? */
 GstEvent *
 gst_event_new_sink_message (GstMessage * msg)
 {
@@ -1216,7 +1286,7 @@ gst_event_new_sink_message (GstMessage * msg)
 /**
  * gst_event_parse_sink_message:
  * @event: The event to query
- * @msg: (out): A pointer to store the #GstMessage in.
+ * @msg: (out) (transfer full): a pointer to store the #GstMessage in.
  *
  * Parse the sink-message event. Unref @msg after usage.
  *
@@ -1225,14 +1295,11 @@ gst_event_new_sink_message (GstMessage * msg)
 void
 gst_event_parse_sink_message (GstEvent * event, GstMessage ** msg)
 {
-  const GstStructure *structure;
-
   g_return_if_fail (GST_IS_EVENT (event));
   g_return_if_fail (GST_EVENT_TYPE (event) == GST_EVENT_SINK_MESSAGE);
 
-  structure = gst_event_get_structure (event);
   if (msg)
     *msg =
         GST_MESSAGE (gst_value_dup_mini_object (gst_structure_id_get_value
-            (structure, GST_QUARK (MESSAGE))));
+            (event->structure, GST_QUARK (MESSAGE))));
 }

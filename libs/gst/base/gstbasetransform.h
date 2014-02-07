@@ -103,7 +103,6 @@ typedef struct _GstBaseTransformPrivate GstBaseTransformPrivate;
 
 /**
  * GstBaseTransform:
- * @element: the parent element.
  *
  * The opaque #GstBaseTransform data structure.
  */
@@ -144,6 +143,7 @@ struct _GstBaseTransform {
 
 /**
  * GstBaseTransformClass:
+ * @parent_class:   Element parent class
  * @transform_caps: Optional.  Given the pad in this direction and the given
  *                  caps, what caps are allowed on the other pad in this
  *                  element ?
@@ -171,7 +171,7 @@ struct _GstBaseTransform {
  *                  Transform the incoming buffer in-place.
  * @event:          Optional.
  *                  Event handler on the sink pad. This function should return
- *                  TRUE if the base class should forward the event. 
+ *                  TRUE if the base class should forward the event.
  * @src_event:      Optional.
  *                  Event handler on the source pad.
  * @passthrough_on_same_caps: If set to TRUE, passthrough mode will be
@@ -190,6 +190,10 @@ struct _GstBaseTransform {
  *               Subclasses can override this method to check if @caps can be
  *               handled by the element. The default implementation might not be
  *               the most optimal way to check this in all cases.
+ * @query: Optional Since 0.10.36
+ *                Handle a requested query. Subclasses that implement this
+ *                should must chain up to the parent if they didn't handle the
+ *                query
  *
  * Subclasses can override any of the available virtual methods or not, as
  * needed. At minimum either @transform or @transform_ip need to be overridden.
@@ -242,10 +246,12 @@ struct _GstBaseTransformClass {
   void          (*before_transform)  (GstBaseTransform *trans, GstBuffer *buffer);
 
   gboolean      (*accept_caps)  (GstBaseTransform *trans, GstPadDirection direction,
-                                         GstCaps *caps);
+                                        GstCaps *caps);
+  gboolean      (*query) (GstBaseTransform * trans, GstPadDirection direction,
+      GstQuery * query);
 
   /*< private >*/
-  gpointer       _gst_reserved[GST_PADDING_LARGE - 3];
+  gpointer       _gst_reserved[GST_PADDING_LARGE - 4];
 };
 
 GType           gst_base_transform_get_type         (void);

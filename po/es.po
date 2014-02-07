@@ -1,21 +1,21 @@
-# translation of gstreamer-0.10.28.2.po to Español
+# translation of gstreamer-0.10.32.2.po to Español
 # spanish translation for gstreamer
 # This file is put in the public domain.
-# Jorge González González <aloriel@gmail.com>, 2009, 2010.
+# Jorge González <jorgegonz@svn.gnome.org>, 2009, 2010, 2011.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.28.2\n"
+"Project-Id-Version: gstreamer 0.10.32.2\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-05-01 11:00+0200\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2011-10-02 15:45+0200\n"
 "Last-Translator: Jorge González González <aloriel@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
 
 msgid "Print the GStreamer version"
 msgstr "Imprimir la versión de GStreamer"
@@ -156,6 +156,9 @@ msgstr "No se pudo cerrar la biblioteca de soporte."
 
 msgid "Could not configure supporting library."
 msgstr "No se pudo configurar la biblioteca de soporte."
+
+msgid "Encoding error."
+msgstr "Error de codificación."
 
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer encontró un error general de recurso."
@@ -304,6 +307,13 @@ msgstr "fecha"
 msgid "date the data was created (as a GDate structure)"
 msgstr "fecha en la que se crearon los datos (como estructura GDate)"
 
+msgid "datetime"
+msgstr "fecha y hora"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr ""
+"fecha y hora en la que se crearon los datos (como estructura GstDateTime)"
+
 msgid "genre"
 msgstr "género"
 
@@ -399,6 +409,12 @@ msgstr "URI a los derechos de autor"
 
 msgid "URI to the copyright notice of the data"
 msgstr "URI a la nota de derechos de autor de los datos"
+
+msgid "encoded by"
+msgstr "codificado por"
+
+msgid "name of the encoding person or organization"
+msgstr "Nombre de la persona u organización que lo codificó"
 
 msgid "contact"
 msgstr "contacto"
@@ -641,33 +657,45 @@ msgstr ""
 "una ubicación en una ciudad donde se ha producido o creado el medio (ej. el "
 "barrio)"
 
-#, fuzzy
+msgid "geo location horizontal error"
+msgstr "error horizontal de geolocalización"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr ""
+"error esperado de las medidas de posicionamiento horizontal (en metros)"
+
 msgid "geo location movement speed"
-msgstr "longitud de la geolocalización"
+msgstr "velocidad de movimiento de la geolocalización"
 
 msgid ""
 "movement speed of the capturing device while performing the capture in m/s"
 msgstr ""
+"velocidad de movimiento del dispositivo de captura mientras realiza la "
+"captura, en m/s"
 
-#, fuzzy
 msgid "geo location movement direction"
-msgstr "elevación de la geolocalización"
+msgstr "dirección de movimiento de la geolocalización"
 
 msgid ""
 "indicates the movement direction of the device performing the capture of a "
 "media. It is represented as degrees in floating point representation, 0 "
 "means the geographic north, and increases clockwise"
 msgstr ""
+"indica la dirección de movimiento del dispositivo que realiza la captura de "
+"un medio. Se representa en grados o en una representación en coma flotante, "
+"0 significa el norte geográfico y aumenta de forma horaria."
 
-#, fuzzy
 msgid "geo location capture direction"
-msgstr "elevación de la geolocalización"
+msgstr "dirección de captura de la geolocalización"
 
 msgid ""
 "indicates the direction the device is pointing to when capturing  a media. "
 "It is represented as degrees in floating point  representation, 0 means the "
 "geographic north, and increases clockwise"
 msgstr ""
+"indica la dirección a la que apunta el dispositivo que realiza la captura de "
+"un medio. Se representa en grados o en una representación en coma flotante, "
+"0 significa el norte geográfico y aumenta de forma horaria."
 
 #. TRANSLATORS: 'show name' = 'TV/radio/podcast show name' here
 msgid "show name"
@@ -731,24 +759,34 @@ msgstr ""
 "gustará al usuario."
 
 msgid "device manufacturer"
-msgstr ""
+msgstr "fabricante del dispositivo"
 
-#, fuzzy
 msgid "Manufacturer of the device used to create this media"
-msgstr "versión del codificador usado para codificar este flujo"
+msgstr "Fabricante del dispositivo usado para crear este medio"
 
 msgid "device model"
-msgstr ""
+msgstr "modelo del dispositivo"
 
-#, fuzzy
 msgid "Model of the device used to create this media"
-msgstr "versión del codificador usado para codificar este flujo"
+msgstr "Modelo del dispositivo usado para crear este medio"
+
+msgid "application name"
+msgstr "nombre de la aplicación"
+
+msgid "Application used to create the media"
+msgstr "Aplicación usada para crear el medio"
+
+msgid "application data"
+msgstr "datos de la aplicación"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr "Datos arbitrarios de la aplicación para serializarlos en el medio"
 
 msgid "image orientation"
-msgstr ""
+msgstr "orientación de la imagen"
 
 msgid "How the image should be rotated or flipped before display"
-msgstr ""
+msgstr "Cómo se debería rotar o voltear la imagen antes de mostrarla"
 
 msgid ", "
 msgstr ", "
@@ -885,15 +923,15 @@ msgstr "El archivo «%s» es un socket."
 msgid "Failed after iterations as requested."
 msgstr "Falló después de las iteraciones, como se pidió."
 
-msgid "Error while writing to download file."
-msgstr "Error al escribir para descargar el archivo."
-
 msgid "No Temp directory specified."
 msgstr "No se especificó un directorio temporal."
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "No se pudo crear el archivo temporal «%s»."
+
+msgid "Error while writing to download file."
+msgstr "Error al escribir para descargar el archivo."
 
 msgid "caps"
 msgstr "capacidades"
@@ -927,6 +965,15 @@ msgstr "escribible"
 
 msgid "controllable"
 msgstr "controlable"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr "intercambiable entre los estados NULL, READY, PAUSED o PLAYING"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr "intercambiable sólo entre los estados NULL, READY o PAUSED"
+
+msgid "changeable only in NULL or READY state"
+msgstr "intercambiable sólo entre los estados NULL o READY"
 
 msgid "Blacklisted files:"
 msgstr "Archivos en la lista negra:"
@@ -1016,6 +1063,9 @@ msgstr ""
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "ADVERTENCIA: no se encontró el elemento llamado «%s».\n"
 
+msgid "Index statistics"
+msgstr "índice de las estadísticas"
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "Se obtuvo el mensaje nº %u del elemento «%s» (%s): "
@@ -1087,6 +1137,10 @@ msgstr "Estableciendo el estado a %s según lo solicitó %s…\n"
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Interrumpir: parando el conducto …\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "no hay un elemento «%s»"
+
 msgid "Output tags (also known as metadata)"
 msgstr "Etiquetas de salida (también conocidos como metadatos)"
 
@@ -1115,13 +1169,16 @@ msgid "Do not install a fault handler"
 msgstr "No instalar un manejador predeterminado"
 
 msgid "Do not install signal handlers for SIGUSR1 and SIGUSR2"
-msgstr ""
+msgstr "No instalar los manejadores de señales para SIGUSR1 y SIGUSR2"
 
 msgid "Print alloc trace (if enabled at compile time)"
 msgstr "Imprimir la traza de asignaciones (si se activó al compilar)"
 
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "Forzar EOS en las fuentes antes de cerrar la tubería"
+
+msgid "Gather and print index statistics"
+msgstr "Obtener y mostrar el índice de las estadísticas"
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

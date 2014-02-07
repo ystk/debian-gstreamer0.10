@@ -205,8 +205,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* FIXME 0.11: suppress warnings for deprecated API such as GStaticRecMutex
+ * with newer GLib versions (>= 2.31.0) */
+#define GLIB_DISABLE_DEPRECATION_WARNINGS
 #include "../../../gst/gst_private.h"
 #include "../../../gst/gst-i18n-lib.h"
+#include "../../../gst/glib-compat-private.h"
 #include "gstbasetransform.h"
 #include <gst/gstmarshal.h>
 
@@ -248,6 +252,27 @@ struct _GstBaseTransformPrivate
   gboolean proxy_alloc;
   GstCaps *sink_alloc;
   GstCaps *src_alloc;
+
+  /*
+   * This flag controls if basetransform should explicitly
+   * do a pad alloc when it receives a buffer even if it operates on
+   * passthrough, this is needed to check for downstream caps suggestions
+   * and this newly alloc'ed buffer is discarded.
+   *
+   * Without this flag basetransform would try a pad alloc whenever it
+   * gets a new buffer and pipelines like:
+   * "src ! basetrans1 ! basetrans2 ! basetrans3 ! sink"
+   * Would have a 3 pad allocs for each buffer pushed downstream from the src.
+   *
+   * This flag is set to TRUE on start up, on setcaps and when a buffer is
+   * pushed downstream. It is set to FALSE after a pad alloc has been requested
+   * downstream.
+   * The rationale is that when a pad alloc flows through the pipeline, all
+   * basetransform elements on passthrough will avoid pad alloc'ing when they
+   * get the buffer.
+   */
+  gboolean force_alloc;
+
   /* upstream caps and size suggestions */
   GstCaps *sink_suggest;
   guint size_suggest;
@@ -258,6 +283,12 @@ struct _GstBaseTransformPrivate
   /* QoS stats */
   guint64 processed;
   guint64 dropped;
+
+  GstClockTime last_stop_out;
+  GList *delayed_events;
+
+  GstCaps *cached_peer_caps[2];
+  GstCaps *cached_transformed_caps[2];
 };
 
 static GstElementClass *parent_class = NULL;
@@ -326,8 +357,42 @@ static gboolean gst_base_transform_acceptcaps_default (GstBaseTransform * trans,
 static gboolean gst_base_transform_setcaps (GstPad * pad, GstCaps * caps);
 static GstFlowReturn gst_base_transform_buffer_alloc (GstPad * pad,
     guint64 offset, guint size, GstCaps * caps, GstBuffer ** buf);
+static gboolean gst_base_transform_query (GstPad * pad, GstQuery * query);
+static gboolean gst_base_transform_default_query (GstBaseTransform * trans,
+    GstPadDirection direction, GstQuery * query);
+static const GstQueryType *gst_base_transform_query_type (GstPad * pad);
 
 /* static guint gst_base_transform_signals[LAST_SIGNAL] = { 0 }; */
+
+static void
+gst_base_transform_drop_delayed_events (GstBaseTransform * trans)
+{
+  GST_OBJECT_LOCK (trans);
+  if (trans->priv->delayed_events) {
+    g_list_foreach (trans->priv->delayed_events, (GFunc) gst_event_unref, NULL);
+    g_list_free (trans->priv->delayed_events);
+    trans->priv->delayed_events = NULL;
+  }
+  GST_OBJECT_UNLOCK (trans);
+}
+
+static void
+gst_base_transform_clear_transformed_caps_cache (GstBaseTransform * trans)
+{
+  struct _GstBaseTransformPrivate *priv = trans->priv;
+  int n;
+
+  for (n = 0; n < 2; ++n) {
+    if (priv->cached_peer_caps[n]) {
+      gst_caps_unref (priv->cached_peer_caps[n]);
+      priv->cached_peer_caps[n] = NULL;
+    }
+    if (priv->cached_transformed_caps[n]) {
+      gst_caps_unref (priv->cached_transformed_caps[n]);
+      priv->cached_transformed_caps[n] = NULL;
+    }
+  }
+}
 
 static void
 gst_base_transform_finalize (GObject * object)
@@ -336,8 +401,11 @@ gst_base_transform_finalize (GObject * object)
 
   trans = GST_BASE_TRANSFORM (object);
 
+  gst_base_transform_drop_delayed_events (trans);
   gst_caps_replace (&trans->priv->sink_suggest, NULL);
   g_mutex_free (trans->transform_lock);
+
+  gst_base_transform_clear_transformed_caps_cache (trans);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -372,6 +440,7 @@ gst_base_transform_class_init (GstBaseTransformClass * klass)
   klass->src_event = GST_DEBUG_FUNCPTR (gst_base_transform_src_eventfunc);
   klass->accept_caps =
       GST_DEBUG_FUNCPTR (gst_base_transform_acceptcaps_default);
+  klass->query = GST_DEBUG_FUNCPTR (gst_base_transform_default_query);
 }
 
 static void
@@ -402,6 +471,10 @@ gst_base_transform_init (GstBaseTransform * trans,
       GST_DEBUG_FUNCPTR (gst_base_transform_sink_activate_push));
   gst_pad_set_bufferalloc_function (trans->sinkpad,
       GST_DEBUG_FUNCPTR (gst_base_transform_buffer_alloc));
+  gst_pad_set_query_function (trans->sinkpad,
+      GST_DEBUG_FUNCPTR (gst_base_transform_query));
+  gst_pad_set_query_type_function (trans->sinkpad,
+      GST_DEBUG_FUNCPTR (gst_base_transform_query_type));
   gst_element_add_pad (GST_ELEMENT (trans), trans->sinkpad);
 
   pad_template =
@@ -420,6 +493,10 @@ gst_base_transform_init (GstBaseTransform * trans,
       GST_DEBUG_FUNCPTR (gst_base_transform_getrange));
   gst_pad_set_activatepull_function (trans->srcpad,
       GST_DEBUG_FUNCPTR (gst_base_transform_src_activate_pull));
+  gst_pad_set_query_function (trans->srcpad,
+      GST_DEBUG_FUNCPTR (gst_base_transform_query));
+  gst_pad_set_query_type_function (trans->srcpad,
+      GST_DEBUG_FUNCPTR (gst_base_transform_query_type));
   gst_element_add_pad (GST_ELEMENT (trans), trans->srcpad);
 
   trans->transform_lock = g_mutex_new ();
@@ -429,6 +506,7 @@ gst_base_transform_init (GstBaseTransform * trans,
   trans->cache_caps2 = NULL;
   trans->priv->pad_mode = GST_ACTIVATE_NONE;
   trans->priv->gap_aware = FALSE;
+  trans->priv->delayed_events = NULL;
 
   trans->passthrough = FALSE;
   if (bclass->transform == NULL) {
@@ -444,6 +522,7 @@ gst_base_transform_init (GstBaseTransform * trans,
 
   trans->priv->processed = 0;
   trans->priv->dropped = 0;
+  trans->priv->force_alloc = TRUE;
 }
 
 /* given @caps on the src or sink pad (given by @direction)
@@ -609,7 +688,7 @@ no_out_size:
 /* get the caps that can be handled by @pad. We perform:
  *
  *  - take the caps of peer of otherpad,
- *  - filter against the padtemplate of otherpad, 
+ *  - filter against the padtemplate of otherpad,
  *  - calculate all transforms of remaining caps
  *  - filter against template of @pad
  *
@@ -620,50 +699,97 @@ gst_base_transform_getcaps (GstPad * pad)
 {
   GstBaseTransform *trans;
   GstPad *otherpad;
-  GstCaps *caps;
+  const GstCaps *templ;
+  GstCaps *peercaps, *caps, *temp;
+  gboolean samecaps;
+  int cache_index;
 
   trans = GST_BASE_TRANSFORM (gst_pad_get_parent (pad));
 
   otherpad = (pad == trans->srcpad) ? trans->sinkpad : trans->srcpad;
+  cache_index = (pad == trans->srcpad) ? 0 : 1;
 
   /* we can do what the peer can */
-  caps = gst_pad_peer_get_caps_reffed (otherpad);
-  if (caps) {
-    GstCaps *temp;
-    const GstCaps *templ;
+  peercaps = gst_pad_peer_get_caps_reffed (otherpad);
+  GST_OBJECT_LOCK (trans);
+  samecaps = (peercaps && trans->priv->cached_peer_caps[cache_index]
+      && gst_caps_is_strictly_equal (peercaps,
+          trans->priv->cached_peer_caps[cache_index]));
+  if (!samecaps) {
+    if (trans->priv->cached_peer_caps[cache_index]) {
+      gst_caps_unref (trans->priv->cached_peer_caps[cache_index]);
+      trans->priv->cached_peer_caps[cache_index] = NULL;
+    }
+    if (trans->priv->cached_transformed_caps[cache_index]) {
+      gst_caps_unref (trans->priv->cached_transformed_caps[cache_index]);
+      trans->priv->cached_transformed_caps[cache_index] = NULL;
+    }
+  } else {
+    GST_DEBUG_OBJECT (trans,
+        "Returning cached transformed caps (index = %d)", cache_index);
+    caps = gst_caps_ref (trans->priv->cached_transformed_caps[cache_index]);
+    goto done;
+  }
+  GST_OBJECT_UNLOCK (trans);
 
-    GST_DEBUG_OBJECT (pad, "peer caps  %" GST_PTR_FORMAT, caps);
+  if (peercaps) {
+    GST_DEBUG_OBJECT (pad, "peer caps  %" GST_PTR_FORMAT, peercaps);
 
     /* filtered against our padtemplate on the other side */
     templ = gst_pad_get_pad_template_caps (otherpad);
     GST_DEBUG_OBJECT (pad, "our template  %" GST_PTR_FORMAT, templ);
-    temp = gst_caps_intersect (caps, templ);
+    temp = gst_caps_intersect_full (peercaps, templ, GST_CAPS_INTERSECT_FIRST);
     GST_DEBUG_OBJECT (pad, "intersected %" GST_PTR_FORMAT, temp);
-    gst_caps_unref (caps);
-
-    /* then see what we can transform this to */
-    caps = gst_base_transform_transform_caps (trans,
-        GST_PAD_DIRECTION (otherpad), temp);
-    GST_DEBUG_OBJECT (pad, "transformed  %" GST_PTR_FORMAT, caps);
-    gst_caps_unref (temp);
-    if (caps == NULL)
-      goto done;
-
-    /* and filter against the template of this pad */
-    templ = gst_pad_get_pad_template_caps (pad);
-    GST_DEBUG_OBJECT (pad, "our template  %" GST_PTR_FORMAT, templ);
-    temp = gst_caps_intersect (caps, templ);
-    GST_DEBUG_OBJECT (pad, "intersected %" GST_PTR_FORMAT, temp);
-    gst_caps_unref (caps);
-    /* this is what we can do */
-    caps = temp;
   } else {
-    /* no peer or the peer can do anything, our padtemplate is enough then */
-    caps = gst_caps_copy (gst_pad_get_pad_template_caps (pad));
+    temp = gst_caps_copy (gst_pad_get_pad_template_caps (otherpad));
+    GST_DEBUG_OBJECT (pad, "no peer, using our template caps %" GST_PTR_FORMAT,
+        temp);
+  }
+
+  /* then see what we can transform this to */
+  caps = gst_base_transform_transform_caps (trans,
+      GST_PAD_DIRECTION (otherpad), temp);
+  GST_DEBUG_OBJECT (pad, "transformed  %" GST_PTR_FORMAT, caps);
+  gst_caps_unref (temp);
+  if (caps == NULL)
+    goto done_update_cache;
+
+  /* and filter against the template of this pad */
+  templ = gst_pad_get_pad_template_caps (pad);
+  GST_DEBUG_OBJECT (pad, "our template  %" GST_PTR_FORMAT, templ);
+  /* We keep the caps sorted like the returned caps */
+  temp = gst_caps_intersect_full (caps, templ, GST_CAPS_INTERSECT_FIRST);
+  GST_DEBUG_OBJECT (pad, "intersected %" GST_PTR_FORMAT, temp);
+  gst_caps_unref (caps);
+  caps = temp;
+
+  if (peercaps) {
+    /* Now try if we can put the untransformed downstream caps first */
+    temp = gst_caps_intersect_full (peercaps, caps, GST_CAPS_INTERSECT_FIRST);
+    if (!gst_caps_is_empty (temp)) {
+      gst_caps_merge (temp, caps);
+      caps = temp;
+    } else {
+      gst_caps_unref (temp);
+    }
+  }
+
+done_update_cache:
+  GST_DEBUG_OBJECT (trans, "returning  %" GST_PTR_FORMAT, caps);
+
+  GST_OBJECT_LOCK (trans);
+  if (peercaps) {
+    trans->priv->cached_peer_caps[cache_index] = gst_caps_ref (peercaps);
+  }
+  if (caps) {
+    trans->priv->cached_transformed_caps[cache_index] = gst_caps_ref (caps);
   }
 
 done:
-  GST_DEBUG_OBJECT (trans, "returning  %" GST_PTR_FORMAT, caps);
+  GST_OBJECT_UNLOCK (trans);
+
+  if (peercaps)
+    gst_caps_unref (peercaps);
 
   gst_object_unref (trans);
 
@@ -711,7 +837,8 @@ gst_base_transform_configure_caps (GstBaseTransform * trans, GstCaps * in,
 
   GST_OBJECT_LOCK (trans);
   /* make sure we reevaluate how the buffer_alloc works wrt to proxy allocating
-   * the buffer. */
+   * the buffer. FIXME, this triggers some quite heavy codepaths that don't need
+   * to be taken.. */
   trans->priv->suggest_pending = TRUE;
   GST_OBJECT_UNLOCK (trans);
   trans->negotiated = ret;
@@ -817,7 +944,9 @@ gst_base_transform_find_transform (GstBaseTransform * trans, GstPad * pad,
     GST_DEBUG_OBJECT (trans,
         "intersecting against padtemplate %" GST_PTR_FORMAT, templ_caps);
 
-    intersect = gst_caps_intersect (othercaps, templ_caps);
+    intersect =
+        gst_caps_intersect_full (othercaps, templ_caps,
+        GST_CAPS_INTERSECT_FIRST);
 
     gst_caps_unref (othercaps);
     othercaps = intersect;
@@ -1060,7 +1189,7 @@ done:
   /* ERRORS */
 no_transform_possible:
   {
-    GST_WARNING_OBJECT (trans,
+    GST_DEBUG_OBJECT (trans,
         "transform could not transform %" GST_PTR_FORMAT
         " in anything we support", caps);
     ret = FALSE;
@@ -1154,6 +1283,8 @@ gst_base_transform_setcaps (GstPad * pad, GstCaps * caps)
   }
 
 done:
+  /* new caps, force alloc on next buffer on the chain */
+  trans->priv->force_alloc = TRUE;
   if (otherpeer)
     gst_object_unref (otherpeer);
   if (othercaps)
@@ -1183,12 +1314,132 @@ failed_configure:
   }
 }
 
+static gboolean
+gst_base_transform_default_query (GstBaseTransform * trans,
+    GstPadDirection direction, GstQuery * query)
+{
+  gboolean ret = FALSE;
+  GstPad *otherpad;
+
+  otherpad = (direction == GST_PAD_SRC) ? trans->sinkpad : trans->srcpad;
+
+  switch (GST_QUERY_TYPE (query)) {
+    case GST_QUERY_POSITION:{
+      GstFormat format;
+
+      gst_query_parse_position (query, &format, NULL);
+      if (format == GST_FORMAT_TIME && trans->segment.format == GST_FORMAT_TIME) {
+        gint64 pos;
+        ret = TRUE;
+
+        if ((direction == GST_PAD_SINK)
+            || (trans->priv->last_stop_out == GST_CLOCK_TIME_NONE)) {
+          pos =
+              gst_segment_to_stream_time (&trans->segment, GST_FORMAT_TIME,
+              trans->segment.last_stop);
+        } else {
+          pos = gst_segment_to_stream_time (&trans->segment, GST_FORMAT_TIME,
+              trans->priv->last_stop_out);
+        }
+        gst_query_set_position (query, format, pos);
+      } else {
+        ret = gst_pad_peer_query (otherpad, query);
+      }
+      break;
+    }
+    default:
+      ret = gst_pad_peer_query (otherpad, query);
+      break;
+  }
+
+  return ret;
+}
+
+static gboolean
+gst_base_transform_query (GstPad * pad, GstQuery * query)
+{
+  GstBaseTransform *trans;
+  GstBaseTransformClass *bclass;
+  gboolean ret;
+
+  trans = GST_BASE_TRANSFORM (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (trans == NULL))
+    return FALSE;
+
+  bclass = GST_BASE_TRANSFORM_GET_CLASS (trans);
+
+  if (bclass->query)
+    ret = bclass->query (trans, GST_PAD_DIRECTION (pad), query);
+  else
+    ret = gst_pad_query_default (pad, query);
+
+  gst_object_unref (trans);
+
+  return ret;
+}
+
+static const GstQueryType *
+gst_base_transform_query_type (GstPad * pad)
+{
+  static const GstQueryType types[] = {
+    GST_QUERY_POSITION,
+    GST_QUERY_NONE
+  };
+
+  return types;
+}
+
+static void
+compute_upstream_suggestion (GstBaseTransform * trans, guint expsize,
+    GstCaps * caps)
+{
+  GstCaps *othercaps;
+  GstBaseTransformPrivate *priv = trans->priv;
+
+  GST_DEBUG_OBJECT (trans, "trying to find upstream suggestion");
+
+  /* we cannot convert the current buffer but we might be able to suggest a
+   * new format upstream, try to find what the best format is. */
+  othercaps = gst_base_transform_find_transform (trans, trans->srcpad, caps);
+
+  if (!othercaps) {
+    GST_DEBUG_OBJECT (trans, "incompatible caps, ignoring");
+    /* we received caps that we cannot transform. Upstream is behaving badly
+     * because it should have checked if we could handle these caps. We can
+     * simply ignore these caps and produce a buffer with our original caps. */
+  } else {
+    guint size_suggest;
+
+    GST_DEBUG_OBJECT (trans, "getting size of suggestion");
+
+    /* not a subset, we have a new upstream suggestion, remember it and
+     * allocate a default buffer. First we try to convert the size */
+    if (gst_base_transform_transform_size (trans,
+            GST_PAD_SRC, caps, expsize, othercaps, &size_suggest)) {
+
+      /* ok, remember the suggestions now */
+      GST_DEBUG_OBJECT (trans,
+          "storing new caps and size suggestion of %u and %" GST_PTR_FORMAT,
+          size_suggest, othercaps);
+
+      GST_OBJECT_LOCK (trans->sinkpad);
+      if (priv->sink_suggest)
+        gst_caps_unref (priv->sink_suggest);
+      priv->sink_suggest = gst_caps_ref (othercaps);
+      priv->size_suggest = size_suggest;
+      trans->priv->suggest_pending = TRUE;
+      GST_OBJECT_UNLOCK (trans->sinkpad);
+    }
+    gst_caps_unref (othercaps);
+  }
+}
+
 /* Allocate a buffer using gst_pad_alloc_buffer
  *
  * This function can do renegotiation on the source pad
  *
  * The output buffer is always writable. outbuf can be equal to
- * inbuf, the caller should be prepared for this and perform 
+ * inbuf, the caller should be prepared for this and perform
  * appropriate refcounting.
  */
 static GstFlowReturn
@@ -1274,12 +1525,18 @@ gst_base_transform_prepare_output_buffer (GstBaseTransform * trans,
     goto alloc_failed;
 
   if (*out_buf == NULL) {
-    GST_DEBUG_OBJECT (trans, "doing alloc with caps %" GST_PTR_FORMAT, oldcaps);
+    if (trans->passthrough && !trans->priv->force_alloc) {
+      GST_DEBUG_OBJECT (trans, "Avoiding pad alloc");
+      *out_buf = gst_buffer_ref (in_buf);
+    } else {
+      GST_DEBUG_OBJECT (trans, "doing alloc with caps %" GST_PTR_FORMAT,
+          oldcaps);
 
-    ret = gst_pad_alloc_buffer (trans->srcpad,
-        GST_BUFFER_OFFSET (in_buf), outsize, oldcaps, out_buf);
-    if (ret != GST_FLOW_OK)
-      goto alloc_failed;
+      ret = gst_pad_alloc_buffer (trans->srcpad,
+          GST_BUFFER_OFFSET (in_buf), outsize, oldcaps, out_buf);
+      if (ret != GST_FLOW_OK)
+        goto alloc_failed;
+    }
   }
 
   /* must always have a buffer by now */
@@ -1289,6 +1546,7 @@ gst_base_transform_prepare_output_buffer (GstBaseTransform * trans,
   /* check if we got different caps on this new output buffer */
   newcaps = GST_BUFFER_CAPS (*out_buf);
   newsize = GST_BUFFER_SIZE (*out_buf);
+
   if (newcaps && !gst_caps_is_equal (newcaps, oldcaps)) {
     GstCaps *othercaps;
     gboolean can_convert;
@@ -1297,19 +1555,61 @@ gst_base_transform_prepare_output_buffer (GstBaseTransform * trans,
 
     incaps = GST_PAD_CAPS (trans->sinkpad);
 
+    /* check if we can convert the current incaps to the new target caps */
+    can_convert =
+        gst_base_transform_can_transform (trans, trans->sinkpad, incaps,
+        newcaps);
+
+    if (!can_convert) {
+      GST_DEBUG_OBJECT (trans, "cannot perform transform on current buffer");
+
+      gst_base_transform_transform_size (trans,
+          GST_PAD_SINK, incaps, GST_BUFFER_SIZE (in_buf), newcaps, &expsize);
+
+      compute_upstream_suggestion (trans, expsize, newcaps);
+
+      /* we got a suggested caps but we can't transform to it. See if there is
+       * another downstream format that we can transform to */
+      othercaps =
+          gst_base_transform_find_transform (trans, trans->sinkpad, incaps);
+
+      if (othercaps && !gst_caps_is_empty (othercaps)) {
+        GST_DEBUG_OBJECT (trans, "we found target caps %" GST_PTR_FORMAT,
+            othercaps);
+        *out_buf = gst_buffer_make_metadata_writable (*out_buf);
+        gst_buffer_set_caps (*out_buf, othercaps);
+        gst_caps_unref (othercaps);
+        newcaps = GST_BUFFER_CAPS (*out_buf);
+        can_convert = TRUE;
+      } else if (othercaps)
+        gst_caps_unref (othercaps);
+    }
+
     /* it's possible that the buffer we got is of the wrong size, get the
      * expected size here, we will check the size if we are going to use the
      * buffer later on. */
     gst_base_transform_transform_size (trans,
         GST_PAD_SINK, incaps, GST_BUFFER_SIZE (in_buf), newcaps, &expsize);
 
-    /* check if we can convert the current incaps to the new target caps */
-    can_convert =
-        gst_base_transform_can_transform (trans, trans->sinkpad, incaps,
-        newcaps);
-
     if (can_convert) {
       GST_DEBUG_OBJECT (trans, "reconfigure transform for current buffer");
+
+      /* subclass might want to add fields to the caps */
+      if (bclass->fixate_caps != NULL) {
+        newcaps = gst_caps_copy (newcaps);
+
+        GST_DEBUG_OBJECT (trans, "doing fixate %" GST_PTR_FORMAT
+            " using caps %" GST_PTR_FORMAT
+            " on pad %s:%s using fixate_caps vmethod", newcaps, incaps,
+            GST_DEBUG_PAD_NAME (trans->srcpad));
+        bclass->fixate_caps (trans, GST_PAD_SINK, incaps, newcaps);
+
+        *out_buf = gst_buffer_make_metadata_writable (*out_buf);
+        gst_buffer_set_caps (*out_buf, newcaps);
+        gst_caps_unref (newcaps);
+        newcaps = GST_BUFFER_CAPS (*out_buf);
+      }
+
       /* caps not empty, try to renegotiate to the new format */
       if (!gst_base_transform_configure_caps (trans, incaps, newcaps)) {
         /* not sure we need to fail hard here, we can simply continue our
@@ -1319,8 +1619,11 @@ gst_base_transform_prepare_output_buffer (GstBaseTransform * trans,
       /* new format configure, and use the new output buffer */
       gst_pad_set_caps (trans->srcpad, newcaps);
       discard = FALSE;
+      /* clear previous cached sink-pad caps, so buffer_alloc knows that
+       * it needs to revisit the decision about whether to proxy or not: */
+      gst_caps_replace (&priv->sink_alloc, NULL);
       /* if we got a buffer of the wrong size, discard it now and make sure we
-       * allocate a propertly sized buffer later. */
+       * allocate a properly sized buffer later. */
       if (newsize != expsize) {
         if (in_buf != *out_buf)
           gst_buffer_unref (*out_buf);
@@ -1328,47 +1631,18 @@ gst_base_transform_prepare_output_buffer (GstBaseTransform * trans,
       }
       outsize = expsize;
     } else {
-      GST_DEBUG_OBJECT (trans, "cannot perform transform on current buffer");
+      compute_upstream_suggestion (trans, expsize, newcaps);
 
-      /* we cannot convert the current buffer but we might be able to suggest a
-       * new format upstream, try to find what the best format is. */
-      othercaps =
-          gst_base_transform_find_transform (trans, trans->srcpad, newcaps);
-
-      if (!othercaps) {
-        GST_DEBUG_OBJECT (trans, "incompatible caps, ignoring");
-        /* we received caps that we cannot transform. Upstream is behaving badly
-         * because it should have checked if we could handle these caps. We can
-         * simply ignore these caps and produce a buffer with our original caps. */
-      } else {
-        guint size_suggest;
-
-        GST_DEBUG_OBJECT (trans, "getting size of suggestion");
-
-        /* not a subset, we have a new upstream suggestion, remember it and
-         * allocate a default buffer. First we try to convert the size */
-        if (gst_base_transform_transform_size (trans,
-                GST_PAD_SRC, newcaps, expsize, othercaps, &size_suggest)) {
-
-          /* ok, remember the suggestions now */
-          GST_DEBUG_OBJECT (trans,
-              "storing new caps and size suggestion of %u and %" GST_PTR_FORMAT,
-              size_suggest, othercaps);
-
-          GST_OBJECT_LOCK (trans->sinkpad);
-          if (priv->sink_suggest)
-            gst_caps_unref (priv->sink_suggest);
-          priv->sink_suggest = gst_caps_ref (othercaps);
-          priv->size_suggest = size_suggest;
-          trans->priv->suggest_pending = TRUE;
-          GST_OBJECT_UNLOCK (trans->sinkpad);
-        }
-        gst_caps_unref (othercaps);
-      }
       if (in_buf != *out_buf)
         gst_buffer_unref (*out_buf);
       *out_buf = NULL;
     }
+  } else if (outsize != newsize) {
+    GST_WARNING_OBJECT (trans, "Caps did not change but allocated size does "
+        "not match expected size (%d != %d)", newsize, outsize);
+    if (in_buf != *out_buf)
+      gst_buffer_unref (*out_buf);
+    *out_buf = NULL;
   }
 
   /* these are the final output caps */
@@ -1552,11 +1826,14 @@ gst_base_transform_buffer_alloc (GstPad * pad, guint64 offset, guint size,
   GstBaseTransform *trans;
   GstBaseTransformPrivate *priv;
   GstFlowReturn res;
-  gboolean proxy, suggest, same_caps;
+  gboolean alloced = FALSE;
+  gboolean proxy, suggest, new_caps;
   GstCaps *sink_suggest = NULL;
   guint size_suggest;
 
   trans = GST_BASE_TRANSFORM (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (trans == NULL))
+    return GST_FLOW_WRONG_STATE;
   priv = trans->priv;
 
   GST_DEBUG_OBJECT (pad, "alloc with caps %p %" GST_PTR_FORMAT ", size %u",
@@ -1571,32 +1848,34 @@ gst_base_transform_buffer_alloc (GstPad * pad, guint64 offset, guint size,
   /* we remember our previous alloc request to quickly see if we can proxy or
    * not. We skip this check if we have a pending suggestion. */
   GST_OBJECT_LOCK (pad);
-  same_caps = !priv->suggest_pending && caps &&
-      gst_caps_is_equal (priv->sink_alloc, caps);
+  suggest = priv->suggest_pending;
   GST_OBJECT_UNLOCK (pad);
 
-  if (same_caps) {
-    /* we have seen this before, see below if we need to proxy */
-    GST_DEBUG_OBJECT (trans, "have old caps %p, size %u", caps, size);
+  if (!suggest) {
+    /* we have no suggestion, see below if we need to proxy */
     gst_caps_replace (&sink_suggest, caps);
     size_suggest = size;
     suggest = FALSE;
-  } else {
-    GST_DEBUG_OBJECT (trans, "new format %p %" GST_PTR_FORMAT, caps, caps);
+    new_caps = sink_suggest
+        && !gst_caps_is_equal (sink_suggest, priv->sink_alloc);
 
+    if (new_caps)
+      GST_DEBUG_OBJECT (trans, "new format %p %" GST_PTR_FORMAT, caps, caps);
+    else
+      GST_DEBUG_OBJECT (trans, "have old caps %p, size %u", caps, size);
+  } else {
     /* if we have a suggestion, pretend we got these as input */
     GST_OBJECT_LOCK (pad);
-    if ((priv->sink_suggest && !gst_caps_is_equal (caps, priv->sink_suggest))) {
+    if (priv->sink_suggest &&
+        !gst_caps_can_intersect (caps, priv->sink_suggest)) {
       sink_suggest = gst_caps_ref (priv->sink_suggest);
       size_suggest = priv->size_suggest;
       GST_DEBUG_OBJECT (trans, "have suggestion %p %" GST_PTR_FORMAT " size %u",
           sink_suggest, sink_suggest, priv->size_suggest);
-      /* suggest is TRUE when we have a custom suggestion pending that we need
-       * to unref later. */
-      suggest = TRUE;
     } else {
-      GST_DEBUG_OBJECT (trans, "using caps %p %" GST_PTR_FORMAT " size %u",
-          caps, caps, size);
+      GST_DEBUG_OBJECT (trans,
+          "have suggestion equal to upstream caps %p %" GST_PTR_FORMAT, caps,
+          caps);
       gst_caps_replace (&sink_suggest, caps);
       size_suggest = size;
       suggest = FALSE;
@@ -1605,90 +1884,199 @@ gst_base_transform_buffer_alloc (GstPad * pad, guint64 offset, guint size,
     GST_OBJECT_UNLOCK (pad);
 
     /* check if we actually handle this format on the sinkpad */
-    if (sink_suggest) {
-      const GstCaps *templ;
+    if (suggest) {
+      GstCaps *peercaps;
 
-      if (!gst_caps_is_fixed (sink_suggest)) {
-        GstCaps *peercaps;
+      /* Always intersect with the peer caps to get correct
+       * and complete caps. The suggested caps could be incomplete,
+       * for example video/x-raw-yuv without any fields at all.
+       */
+      peercaps =
+          gst_pad_peer_get_caps_reffed (GST_BASE_TRANSFORM_SINK_PAD (trans));
 
-        GST_DEBUG_OBJECT (trans, "Suggested caps is not fixed: %"
-            GST_PTR_FORMAT, sink_suggest);
+      if (peercaps) {
+        GstCaps *intersect;
 
-        peercaps =
-            gst_pad_peer_get_caps_reffed (GST_BASE_TRANSFORM_SINK_PAD (trans));
-        /* try fixating by intersecting with peer caps */
-        if (peercaps) {
+        intersect =
+            gst_caps_intersect_full (sink_suggest, peercaps,
+            GST_CAPS_INTERSECT_FIRST);
+        gst_caps_unref (peercaps);
+
+        /* If intersected caps is empty then just keep them empty. The
+         * code below will try to come up with possible caps if there
+         * are any */
+        gst_caps_unref (sink_suggest);
+        sink_suggest = intersect;
+      }
+
+      /* If the suggested caps are not empty and not fixed, try to fixate them */
+      if (!gst_caps_is_fixed (sink_suggest)
+          && !gst_caps_is_empty (sink_suggest)) {
+        GST_DEBUG_OBJECT (trans,
+            "Suggested caps is not fixed: %" GST_PTR_FORMAT, sink_suggest);
+
+        /* try the alloc caps if it is still not fixed */
+        if (!gst_caps_is_fixed (sink_suggest)) {
           GstCaps *intersect;
 
-          intersect = gst_caps_intersect (peercaps, sink_suggest);
-          gst_caps_unref (peercaps);
-          gst_caps_unref (sink_suggest);
-          sink_suggest = intersect;
+          GST_DEBUG_OBJECT (trans, "Checking if the input caps is compatible "
+              "with the non-fixed caps suggestion");
+          intersect =
+              gst_caps_intersect_full (sink_suggest, caps,
+              GST_CAPS_INTERSECT_FIRST);
+          if (!gst_caps_is_empty (intersect)) {
+            GST_DEBUG_OBJECT (trans, "It is, using it");
+            gst_caps_replace (&sink_suggest, caps);
+          }
+          gst_caps_unref (intersect);
         }
-
-        if (gst_caps_is_empty (sink_suggest))
-          goto not_supported;
 
         /* be safe and call default fixate */
         sink_suggest = gst_caps_make_writable (sink_suggest);
         gst_pad_fixate_caps (GST_BASE_TRANSFORM_SINK_PAD (trans), sink_suggest);
 
         if (!gst_caps_is_fixed (sink_suggest)) {
-          gst_caps_unref (sink_suggest);
-          sink_suggest = NULL;
+          GST_DEBUG_OBJECT (trans,
+              "Impossible to fixate caps, using upstream caps");
+          gst_caps_replace (&sink_suggest, caps);
+          size_suggest = size;
+          suggest = FALSE;
         }
 
-        GST_DEBUG_OBJECT (trans, "Caps fixated to now: %" GST_PTR_FORMAT,
+        GST_DEBUG_OBJECT (trans, "Caps fixed to: %" GST_PTR_FORMAT,
             sink_suggest);
       }
-
-      if (sink_suggest) {
-        templ = gst_pad_get_pad_template_caps (pad);
-
-        if (!gst_caps_can_intersect (sink_suggest, templ))
-          goto not_supported;
-      }
     }
 
-    /* find the best format for the other side here we decide if we will proxy
-     * the caps or not. */
-    if (sink_suggest == NULL) {
-      /* always proxy when the caps are NULL. When this is a new format, see if
-       * we can proxy it downstream */
-      GST_DEBUG_OBJECT (trans, "null caps, marking for proxy");
-      priv->proxy_alloc = TRUE;
-    } else {
-      GstCaps *othercaps;
+    new_caps = sink_suggest
+        && !gst_caps_is_equal (sink_suggest, priv->sink_alloc);
+  }
 
-      /* we have a new format, see what we need to proxy to */
-      othercaps = gst_base_transform_find_transform (trans, pad, sink_suggest);
-      if (!othercaps || gst_caps_is_empty (othercaps)) {
-        /* no transform possible, we certainly can't proxy */
-        GST_DEBUG_OBJECT (trans, "can't find transform, disable proxy");
-        priv->proxy_alloc = FALSE;
-      } else {
-        /* we transformed into something */
-        if (gst_caps_is_equal (sink_suggest, othercaps)) {
-          GST_DEBUG_OBJECT (trans,
-              "best caps same as input, marking for proxy");
-          priv->proxy_alloc = TRUE;
-        } else {
-          GST_DEBUG_OBJECT (trans,
-              "best caps different from input, disable proxy");
-          priv->proxy_alloc = FALSE;
+  /* Check if the new caps are compatible with our
+   * sinkpad template caps and if they're not
+   * we try to come up with any supported caps
+   */
+  if (new_caps) {
+    const GstCaps *templ;
+
+    templ = gst_pad_get_pad_template_caps (pad);
+
+    /* Fall back to the upstream caps if the suggested caps
+     * are not actually supported. Shouldn't really happen
+     */
+    if (suggest && !gst_caps_can_intersect (sink_suggest, templ)) {
+      GST_DEBUG_OBJECT (trans,
+          "Suggested caps not supported by sinkpad, using upstream caps");
+      gst_caps_replace (&sink_suggest, caps);
+      size_suggest = size;
+      suggest = FALSE;
+      new_caps = sink_suggest
+          && !gst_caps_is_equal (sink_suggest, priv->sink_alloc);
+    }
+
+    if (new_caps && (suggest || !gst_caps_can_intersect (sink_suggest, templ))) {
+      GstCaps *allowed, *peercaps;
+
+      GST_DEBUG_OBJECT (trans,
+          "Requested pad alloc caps are not supported: %" GST_PTR_FORMAT,
+          sink_suggest);
+      /* the requested pad alloc caps are not supported, so let's try
+       * picking something allowed between the pads (they are linked,
+       * there must be something) */
+      allowed = gst_pad_get_allowed_caps (pad);
+      if (allowed && !gst_caps_is_empty (allowed)) {
+        GST_DEBUG_OBJECT (trans,
+            "pads could agree on one of the following caps: " "%"
+            GST_PTR_FORMAT, allowed);
+
+        /* Check which caps would be possible with downstream */
+        peercaps =
+            gst_pad_get_allowed_caps (GST_BASE_TRANSFORM_SRC_PAD (trans));
+        if (peercaps) {
+          GstCaps *tmp, *intersect;
+
+          tmp =
+              gst_base_transform_transform_caps (trans, GST_PAD_SRC, peercaps);
+          gst_caps_unref (peercaps);
+          intersect = gst_caps_intersect (allowed, tmp);
+          gst_caps_unref (tmp);
+          gst_caps_unref (allowed);
+
+          if (gst_caps_is_empty (intersect)) {
+            gst_caps_unref (intersect);
+            goto not_supported;
+          }
+
+          allowed = intersect;
         }
+
+        allowed = gst_caps_make_writable (allowed);
+
+        /* Fixate them to be safe if the subclass didn't do it */
+        gst_caps_truncate (allowed);
+        gst_pad_fixate_caps (pad, allowed);
+
+        if (!gst_caps_is_fixed (allowed)) {
+          GST_ERROR_OBJECT (trans, "Impossible to fixate any caps");
+          gst_caps_unref (allowed);
+          goto not_supported;
+        }
+
+        gst_caps_replace (&sink_suggest, allowed);
+        gst_caps_unref (allowed);
+
+        suggest = TRUE;
+        new_caps = !gst_caps_is_equal (sink_suggest, priv->sink_alloc);
+
+        GST_DEBUG_OBJECT (trans, "Calculated new suggestion caps %"
+            GST_PTR_FORMAT, sink_suggest);
+      } else {
+        if (allowed)
+          gst_caps_unref (allowed);
+        goto not_supported;
       }
-      if (othercaps)
-        gst_caps_unref (othercaps);
     }
   }
+
+  /* find the best format for the other side here we decide if we will proxy
+   * the caps or not. */
+  if (sink_suggest == NULL) {
+    /* always proxy when the caps are NULL. When this is a new format, see if
+     * we can proxy it downstream */
+    GST_DEBUG_OBJECT (trans, "null caps, marking for proxy");
+    priv->proxy_alloc = TRUE;
+  } else if (new_caps) {
+    GstCaps *othercaps;
+
+    /* we have a new format, see what we need to proxy to */
+    othercaps = gst_base_transform_find_transform (trans, pad, sink_suggest);
+    if (!othercaps || gst_caps_is_empty (othercaps)) {
+      /* no transform possible, we certainly can't proxy */
+      GST_DEBUG_OBJECT (trans, "can't find transform, disable proxy");
+      priv->proxy_alloc = FALSE;
+    } else {
+      /* we transformed into something */
+      if (gst_caps_is_equal (sink_suggest, othercaps)) {
+        GST_DEBUG_OBJECT (trans, "best caps same as input, marking for proxy");
+        priv->proxy_alloc = TRUE;
+      } else {
+        GST_DEBUG_OBJECT (trans,
+            "best caps different from input, disable proxy");
+        priv->proxy_alloc = FALSE;
+      }
+    }
+    if (othercaps)
+      gst_caps_unref (othercaps);
+  }
+
   /* remember the new caps */
   GST_OBJECT_LOCK (pad);
   gst_caps_replace (&priv->sink_alloc, sink_suggest);
   GST_OBJECT_UNLOCK (pad);
 
   proxy = priv->proxy_alloc;
-  GST_DEBUG_OBJECT (trans, "doing default alloc, proxy %d", proxy);
+  GST_DEBUG_OBJECT (trans, "doing default alloc, proxy %d, suggest %d", proxy,
+      suggest);
 
   /* we only want to proxy if we have no suggestion pending, FIXME */
   if (proxy && !suggest) {
@@ -1702,6 +2090,7 @@ gst_base_transform_buffer_alloc (GstPad * pad, guint64 offset, guint size,
     res = gst_pad_alloc_buffer (trans->srcpad, offset, size, caps, buf);
     if (res != GST_FLOW_OK)
       goto alloc_failed;
+    alloced = TRUE;
 
     /* check if the caps changed */
     newcaps = GST_BUFFER_CAPS (*buf);
@@ -1720,17 +2109,18 @@ gst_base_transform_buffer_alloc (GstPad * pad, guint64 offset, guint size,
         GST_OBJECT_UNLOCK (pad);
       } else {
         GST_DEBUG_OBJECT (trans, "peer did not accept new caps");
-        /* peer does not accept the caps, free the buffer we received and
-         * create a buffer of the requested format by the default handler. */
+        /* peer does not accept the caps, disable proxy_alloc, free the
+         * buffer we received and create a buffer of the requested format
+         * by the default handler. */
+        GST_DEBUG_OBJECT (trans, "disabling proxy");
+        priv->proxy_alloc = FALSE;
         gst_buffer_unref (*buf);
         *buf = NULL;
       }
     } else {
       GST_DEBUG_OBJECT (trans, "received required caps from peer");
     }
-  }
-
-  if (suggest) {
+  } else if (suggest) {
     /* there was a custom suggestion, create a buffer of this format and return
      * it. Note that this format  */
     *buf = gst_buffer_new_and_alloc (size_suggest);
@@ -1739,12 +2129,22 @@ gst_base_transform_buffer_alloc (GstPad * pad, guint64 offset, guint size,
         sink_suggest, sink_suggest);
     GST_BUFFER_CAPS (*buf) = sink_suggest;
     sink_suggest = NULL;
+  } else {
+    /* fallback buffer allocation by gst_pad_alloc_buffer() with the
+     * caps and size provided by the caller */
   }
 
-  gst_object_unref (trans);
   if (sink_suggest)
     gst_caps_unref (sink_suggest);
 
+  if (res == GST_FLOW_OK && alloced) {
+    /* just alloc'ed a buffer, so we only want to do this again if we
+     * received a buffer */
+    GST_DEBUG_OBJECT (trans, "Cleaning force alloc");
+    trans->priv->force_alloc = FALSE;
+  }
+
+  gst_object_unref (trans);
   return res;
 
   /* ERRORS */
@@ -1766,6 +2166,28 @@ not_supported:
   }
 }
 
+static void
+gst_base_transform_send_delayed_events (GstBaseTransform * trans)
+{
+  GList *list, *tmp;
+
+  GST_OBJECT_LOCK (trans);
+  list = trans->priv->delayed_events;
+  trans->priv->delayed_events = NULL;
+  GST_OBJECT_UNLOCK (trans);
+  if (!list)
+    return;
+
+  for (tmp = list; tmp; tmp = tmp->next) {
+    GstEvent *ev = tmp->data;
+
+    GST_DEBUG_OBJECT (trans->srcpad, "Sending delayed event %s",
+        GST_EVENT_TYPE_NAME (ev));
+    gst_pad_push_event (trans->srcpad, ev);
+  }
+  g_list_free (list);
+}
+
 static gboolean
 gst_base_transform_sink_event (GstPad * pad, GstEvent * event)
 {
@@ -1775,6 +2197,10 @@ gst_base_transform_sink_event (GstPad * pad, GstEvent * event)
   gboolean forward = TRUE;
 
   trans = GST_BASE_TRANSFORM (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (trans == NULL)) {
+    gst_event_unref (event);
+    return FALSE;
+  }
   bclass = GST_BASE_TRANSFORM_GET_CLASS (trans);
 
   if (bclass->event)
@@ -1782,9 +2208,31 @@ gst_base_transform_sink_event (GstPad * pad, GstEvent * event)
 
   /* FIXME, do this in the default event handler so the subclass can do
    * something different. */
-  if (forward)
-    ret = gst_pad_push_event (trans->srcpad, event);
-  else
+  if (forward) {
+    gboolean delay, caps_set = (GST_PAD_CAPS (trans->srcpad) != NULL);
+
+    /* src caps may not yet be set, so we delay any serialized events
+       that we receive before (in particular newsegment events), except
+       EOS and flush stops, since those'll obsolete previous events */
+    if (GST_EVENT_TYPE (event) == GST_EVENT_FLUSH_STOP) {
+      gst_base_transform_drop_delayed_events (trans);
+      delay = FALSE;
+    } else {
+      delay = GST_EVENT_IS_SERIALIZED (event) && !caps_set
+          && GST_EVENT_TYPE (event) != GST_EVENT_EOS;
+    }
+
+    if (delay) {
+      GST_OBJECT_LOCK (trans);
+      trans->priv->delayed_events =
+          g_list_append (trans->priv->delayed_events, event);
+      GST_OBJECT_UNLOCK (trans);
+    } else {
+      if (caps_set && GST_EVENT_IS_SERIALIZED (event))
+        gst_base_transform_send_delayed_events (trans);
+      ret = gst_pad_push_event (trans->srcpad, event);
+    }
+  } else
     gst_event_unref (event);
 
   gst_object_unref (trans);
@@ -1810,6 +2258,7 @@ gst_base_transform_sink_eventfunc (GstBaseTransform * trans, GstEvent * event)
       /* we need new segment info after the flush. */
       trans->have_newsegment = FALSE;
       gst_segment_init (&trans->segment, GST_FORMAT_UNDEFINED);
+      trans->priv->last_stop_out = GST_CLOCK_TIME_NONE;
       break;
     case GST_EVENT_EOS:
       break;
@@ -1862,10 +2311,17 @@ gst_base_transform_src_event (GstPad * pad, GstEvent * event)
   gboolean ret = TRUE;
 
   trans = GST_BASE_TRANSFORM (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (trans == NULL)) {
+    gst_event_unref (event);
+    return FALSE;
+  }
+
   bclass = GST_BASE_TRANSFORM_GET_CLASS (trans);
 
   if (bclass->src_event)
     ret = bclass->src_event (trans, event);
+  else
+    gst_event_unref (event);
 
   gst_object_unref (trans);
 
@@ -1876,6 +2332,8 @@ static gboolean
 gst_base_transform_src_eventfunc (GstBaseTransform * trans, GstEvent * event)
 {
   gboolean ret;
+
+  GST_DEBUG_OBJECT (trans, "handling event %p %" GST_PTR_FORMAT, event, event);
 
   switch (GST_EVENT_TYPE (event)) {
     case GST_EVENT_SEEK:
@@ -2017,7 +2475,7 @@ no_qos:
 
   /* first try to allocate an output buffer based on the currently negotiated
    * format. While we call pad-alloc we could renegotiate the srcpad format or
-   * have a new suggestion for upstream buffer-alloc. 
+   * have a new suggestion for upstream buffer-alloc.
    * In any case, outbuf will contain a buffer suitable for doing the configured
    * transform after this function. */
   ret = gst_base_transform_prepare_output_buffer (trans, inbuf, outbuf);
@@ -2042,10 +2500,17 @@ no_qos:
       GST_DEBUG_OBJECT (trans, "doing inplace transform");
 
       if (inbuf != *outbuf) {
-        /* different buffers, copy the input to the output first, we then do an
-         * in-place transform on the output buffer. */
-        memcpy (GST_BUFFER_DATA (*outbuf), GST_BUFFER_DATA (inbuf),
-            GST_BUFFER_SIZE (inbuf));
+        guint8 *indata, *outdata;
+
+        /* Different buffer. The data can still be the same when we are dealing
+         * with subbuffers of the same buffer. Note that because of the FIXME in
+         * prepare_output_buffer() we have decreased the refcounts of inbuf and
+         * outbuf to keep them writable */
+        indata = GST_BUFFER_DATA (inbuf);
+        outdata = GST_BUFFER_DATA (*outbuf);
+
+        if (indata != outdata)
+          memcpy (outdata, indata, GST_BUFFER_SIZE (inbuf));
       }
       ret = bclass->transform_ip (trans, *outbuf);
     } else {
@@ -2063,6 +2528,9 @@ skip:
   if (*outbuf != inbuf)
     gst_buffer_unref (inbuf);
 
+  /* pushed a buffer, we can now try an alloc */
+  GST_DEBUG_OBJECT (trans, "Pushed a buffer, setting force alloc to true");
+  trans->priv->force_alloc = TRUE;
   return ret;
 
   /* ERRORS */
@@ -2164,6 +2632,8 @@ gst_base_transform_chain (GstPad * pad, GstBuffer * buffer)
   if (klass->before_transform)
     klass->before_transform (trans, buffer);
 
+  gst_base_transform_send_delayed_events (trans);
+
   /* protect transform method and concurrent buffer alloc */
   GST_BASE_TRANSFORM_LOCK (trans);
   ret = gst_base_transform_handle_buffer (trans, buffer, &outbuf);
@@ -2173,10 +2643,23 @@ gst_base_transform_chain (GstPad * pad, GstBuffer * buffer)
    * GST_BASE_TRANSFORM_FLOW_DROPPED we will not push either. */
   if (outbuf != NULL) {
     if ((ret == GST_FLOW_OK)) {
+      GstClockTime last_stop_out = GST_CLOCK_TIME_NONE;
+
       /* Remember last stop position */
-      if ((last_stop != GST_CLOCK_TIME_NONE) &&
-          (trans->segment.format == GST_FORMAT_TIME))
+      if (last_stop != GST_CLOCK_TIME_NONE &&
+          trans->segment.format == GST_FORMAT_TIME)
         gst_segment_set_last_stop (&trans->segment, GST_FORMAT_TIME, last_stop);
+
+      if (GST_BUFFER_TIMESTAMP_IS_VALID (outbuf)) {
+        last_stop_out = GST_BUFFER_TIMESTAMP (outbuf);
+        if (GST_BUFFER_DURATION_IS_VALID (outbuf))
+          last_stop_out += GST_BUFFER_DURATION (outbuf);
+      } else if (last_stop != GST_CLOCK_TIME_NONE) {
+        last_stop_out = last_stop;
+      }
+      if (last_stop_out != GST_CLOCK_TIME_NONE
+          && trans->segment.format == GST_FORMAT_TIME)
+        trans->priv->last_stop_out = last_stop_out;
 
       /* apply DISCONT flag if the buffer is not yet marked as such */
       if (trans->priv->discont) {
@@ -2187,6 +2670,7 @@ gst_base_transform_chain (GstPad * pad, GstBuffer * buffer)
         trans->priv->discont = FALSE;
       }
       trans->priv->processed++;
+
       ret = gst_pad_push (trans->srcpad, outbuf);
     } else {
       gst_buffer_unref (outbuf);
@@ -2247,6 +2731,10 @@ gst_base_transform_activate (GstBaseTransform * trans, gboolean active)
 
   bclass = GST_BASE_TRANSFORM_GET_CLASS (trans);
 
+  GST_OBJECT_LOCK (trans);
+  gst_base_transform_clear_transformed_caps_cache (trans);
+  GST_OBJECT_UNLOCK (trans);
+
   if (active) {
     if (trans->priv->pad_mode == GST_ACTIVATE_NONE && bclass->start)
       result &= bclass->start (trans);
@@ -2263,12 +2751,14 @@ gst_base_transform_activate (GstBaseTransform * trans, gboolean active)
     trans->negotiated = FALSE;
     trans->have_newsegment = FALSE;
     gst_segment_init (&trans->segment, GST_FORMAT_UNDEFINED);
+    trans->priv->last_stop_out = GST_CLOCK_TIME_NONE;
     trans->priv->proportion = 1.0;
     trans->priv->earliest_time = -1;
     trans->priv->discont = FALSE;
     gst_caps_replace (&trans->priv->sink_suggest, NULL);
     trans->priv->processed = 0;
     trans->priv->dropped = 0;
+    trans->priv->force_alloc = TRUE;
 
     GST_OBJECT_UNLOCK (trans);
   } else {
@@ -2277,8 +2767,10 @@ gst_base_transform_activate (GstBaseTransform * trans, gboolean active)
     GST_PAD_STREAM_LOCK (trans->sinkpad);
     GST_PAD_STREAM_UNLOCK (trans->sinkpad);
 
+    gst_base_transform_drop_delayed_events (trans);
+
     trans->have_same_caps = FALSE;
-    /* We can only reset the passthrough mode if the instance told us to 
+    /* We can only reset the passthrough mode if the instance told us to
        handle it in configure_caps */
     if (bclass->passthrough_on_same_caps) {
       gst_base_transform_set_passthrough (trans, FALSE);
@@ -2570,7 +3062,7 @@ gst_base_transform_set_gap_aware (GstBaseTransform * trans, gboolean gap_aware)
 /**
  * gst_base_transform_suggest:
  * @trans: a #GstBaseTransform
- * @caps: caps to suggest
+ * @caps: (transfer none): caps to suggest
  * @size: buffer size to suggest
  *
  * Instructs @trans to suggest new @caps upstream. A copy of @caps will be
@@ -2592,6 +3084,7 @@ gst_base_transform_suggest (GstBaseTransform * trans, GstCaps * caps,
   trans->priv->sink_suggest = caps;
   trans->priv->size_suggest = size;
   trans->priv->suggest_pending = TRUE;
+  gst_base_transform_clear_transformed_caps_cache (trans);
   GST_DEBUG_OBJECT (trans, "new suggest %" GST_PTR_FORMAT, caps);
   GST_OBJECT_UNLOCK (trans->sinkpad);
 }
@@ -2614,6 +3107,7 @@ gst_base_transform_reconfigure (GstBaseTransform * trans)
   GST_OBJECT_LOCK (trans);
   GST_DEBUG_OBJECT (trans, "marking reconfigure");
   trans->priv->reconfigure = TRUE;
+  gst_base_transform_clear_transformed_caps_cache (trans);
   gst_caps_replace (&trans->priv->sink_alloc, NULL);
   GST_OBJECT_UNLOCK (trans);
 }

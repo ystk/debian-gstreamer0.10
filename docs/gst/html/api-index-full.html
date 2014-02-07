@@ -3,12 +3,12 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>API Index</title>
-<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
 <link rel="home" href="index.html" title="GStreamer 0.10 Core Reference Manual">
 <link rel="up" href="index.html" title="GStreamer 0.10 Core Reference Manual">
 <link rel="prev" href="gstreamer-hierarchy.html" title="Object Hierarchy">
 <link rel="next" href="api-index-deprecated.html" title="Index of deprecated API">
-<meta name="generator" content="GTK-Doc V1.15 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.18 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -64,7 +64,7 @@
                    <a class="shortcut" href="#idxX">X</a>
 </td></tr>
 </table>
-<div class="index" title="API Index">
+<div class="index">
 <div class="titlepage"><div><div><h2 class="title">
 <a name="api-index-full"></a>API Index</h2></div></div></div>
 <a name="idx"></a><a name="idxA"></a><h3 class="title">A</h3>
@@ -73,7 +73,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstTrace.html#GstAllocTrace" title="GstAllocTrace">GstAllocTrace</a>, struct in <a class="link" href="gstreamer-GstTrace.html" title="GstTrace">GstTrace</a>
+<a class="link" href="gstreamer-GstTrace.html#GstAllocTrace" title="struct GstAllocTrace">GstAllocTrace</a>, struct in <a class="link" href="gstreamer-GstTrace.html" title="GstTrace">GstTrace</a>
 </dt>
 <dd></dd>
 <dt>
@@ -133,12 +133,44 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#GstAtomicQueue" title="GstAtomicQueue">GstAtomicQueue</a>, struct in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstUtils.html#gst-atomic-int-set" title="gst_atomic_int_set ()">gst_atomic_int_set</a>, function in <a class="link" href="gstreamer-GstUtils.html" title="GstUtils">GstUtils</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#gst-atomic-queue-length" title="gst_atomic_queue_length ()">gst_atomic_queue_length</a>, function in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#gst-atomic-queue-new" title="gst_atomic_queue_new ()">gst_atomic_queue_new</a>, function in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#gst-atomic-queue-peek" title="gst_atomic_queue_peek ()">gst_atomic_queue_peek</a>, function in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#gst-atomic-queue-pop" title="gst_atomic_queue_pop ()">gst_atomic_queue_pop</a>, function in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#gst-atomic-queue-push" title="gst_atomic_queue_push ()">gst_atomic_queue_push</a>, function in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#gst-atomic-queue-ref" title="gst_atomic_queue_ref ()">gst_atomic_queue_ref</a>, function in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstAtomicQueue.html#gst-atomic-queue-unref" title="gst_atomic_queue_unref ()">gst_atomic_queue_unref</a>, function in <a class="link" href="gstreamer-GstAtomicQueue.html" title="GstAtomicQueue">GstAtomicQueue</a>
 </dt>
 <dd></dd>
 <a name="idxB"></a><h3 class="title">B</h3>
 <dt>
-<a class="link" href="GstBin.html#GstBin-struct" title="GstBin">GstBin</a>, struct in <a class="link" href="GstBin.html" title="GstBin">GstBin</a>
+<a class="link" href="GstBin.html#GstBin-struct" title="struct GstBin">GstBin</a>, struct in <a class="link" href="GstBin.html" title="GstBin">GstBin</a>
 </dt>
 <dd></dd>
 <dt>
@@ -158,7 +190,11 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstBin.html#GstBinClass" title="GstBinClass">GstBinClass</a>, struct in <a class="link" href="GstBin.html" title="GstBin">GstBin</a>
+<a class="link" href="GstBin.html#GstBin--message-forward" title='The "message-forward" property'>GstBin:message-forward</a>, object property in <a class="link" href="GstBin.html" title="GstBin">GstBin</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstBin.html#GstBinClass" title="struct GstBinClass">GstBinClass</a>, struct in <a class="link" href="GstBin.html" title="GstBin">GstBin</a>
 </dt>
 <dd></dd>
 <dt>
@@ -258,7 +294,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstBuffer.html#GstBuffer" title="GstBuffer">GstBuffer</a>, struct in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
+<a class="link" href="gstreamer-GstBuffer.html#GstBuffer" title="struct GstBuffer">GstBuffer</a>, struct in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
 </dt>
 <dd></dd>
 <dt>
@@ -350,6 +386,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstBuffer.html#gst-buffer-get-qdata" title="gst_buffer_get_qdata ()">gst_buffer_get_qdata</a>, function in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstBuffer.html#GST-BUFFER-IS-DISCONT:CAPS" title="GST_BUFFER_IS_DISCONT()">GST_BUFFER_IS_DISCONT</a>, macro in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
 </dt>
 <dd></dd>
@@ -395,6 +435,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstBufferList.html#gst-buffer-list-iterator-add-group" title="gst_buffer_list_iterator_add_group ()">gst_buffer_list_iterator_add_group</a>, function in <a class="link" href="gstreamer-GstBufferList.html" title="GstBufferList">GstBufferList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstBufferList.html#gst-buffer-list-iterator-add-list" title="gst_buffer_list_iterator_add_list ()">gst_buffer_list_iterator_add_list</a>, function in <a class="link" href="gstreamer-GstBufferList.html" title="GstBufferList">GstBufferList</a>
 </dt>
 <dd></dd>
 <dt>
@@ -502,7 +546,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstBuffer.html#gst-buffer-replace" title="gst_buffer_replace()">gst_buffer_replace</a>, macro in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
+<a class="link" href="gstreamer-GstBuffer.html#gst-buffer-replace" title="gst_buffer_replace ()">gst_buffer_replace</a>, function in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
 </dt>
 <dd></dd>
 <dt>
@@ -511,6 +555,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstBuffer.html#gst-buffer-set-data" title="gst_buffer_set_data()">gst_buffer_set_data</a>, macro in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstBuffer.html#gst-buffer-set-qdata" title="gst_buffer_set_qdata ()">gst_buffer_set_qdata</a>, function in <a class="link" href="gstreamer-GstBuffer.html" title="GstBuffer">GstBuffer</a>
 </dt>
 <dd></dd>
 <dt>
@@ -546,7 +594,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstBus.html#GstBus-struct" title="GstBus">GstBus</a>, struct in <a class="link" href="GstBus.html" title="GstBus">GstBus</a>
+<a class="link" href="GstBus.html#GstBus-struct" title="struct GstBus">GstBus</a>, struct in <a class="link" href="GstBus.html" title="GstBus">GstBus</a>
 </dt>
 <dd></dd>
 <dt>
@@ -667,11 +715,15 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstCaps.html#GstCaps" title="GstCaps">GstCaps</a>, struct in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
+<a class="link" href="gstreamer-GstCaps.html#GstCaps" title="struct GstCaps">GstCaps</a>, struct in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
 </dt>
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstCaps.html#GstCapsFlags" title="enum GstCapsFlags">GstCapsFlags</a>, enum in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstCaps.html#GstCapsIntersectMode" title="enum GstCapsIntersectMode">GstCapsIntersectMode</a>, enum in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
 </dt>
 <dd></dd>
 <dt>
@@ -719,6 +771,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstCaps.html#gst-caps-intersect-full" title="gst_caps_intersect_full ()">gst_caps_intersect_full</a>, function in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstCaps.html#gst-caps-is-always-compatible" title="gst_caps_is_always_compatible ()">gst_caps_is_always_compatible</a>, function in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
 </dt>
 <dd></dd>
@@ -748,6 +804,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstCaps.html#gst-caps-is-subset" title="gst_caps_is_subset ()">gst_caps_is_subset</a>, function in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstCaps.html#gst-caps-is-subset-structure" title="gst_caps_is_subset_structure ()">gst_caps_is_subset_structure</a>, function in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
 </dt>
 <dd></dd>
 <dt>
@@ -939,7 +999,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstChildProxy.html#GstChildProxyInterface" title="GstChildProxyInterface">GstChildProxyInterface</a>, struct in <a class="link" href="GstChildProxy.html" title="GstChildProxy">GstChildProxy</a>
+<a class="link" href="GstChildProxy.html#GstChildProxyInterface" title="struct GstChildProxyInterface">GstChildProxyInterface</a>, struct in <a class="link" href="GstChildProxy.html" title="GstChildProxy">GstChildProxy</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1015,7 +1075,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstClock.html#GstClock-struct" title="GstClock">GstClock</a>, struct in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
+<a class="link" href="GstClock.html#GstClock-struct" title="struct GstClock">GstClock</a>, struct in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1039,11 +1099,11 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstClock.html#GstClockClass" title="GstClockClass">GstClockClass</a>, struct in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
+<a class="link" href="GstClock.html#GstClockClass" title="struct GstClockClass">GstClockClass</a>, struct in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstClock.html#GstClockEntry" title="GstClockEntry">GstClockEntry</a>, struct in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
+<a class="link" href="GstClock.html#GstClockEntry" title="struct GstClockEntry">GstClockEntry</a>, struct in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1187,6 +1247,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstClock.html#gst-clock-periodic-id-reinit" title="gst_clock_periodic_id_reinit ()">gst_clock_periodic_id_reinit</a>, function in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstClock.html#gst-clock-set-calibration" title="gst_clock_set_calibration ()">gst_clock_set_calibration</a>, function in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
 </dt>
 <dd></dd>
@@ -1196,6 +1260,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="GstClock.html#gst-clock-set-resolution" title="gst_clock_set_resolution ()">gst_clock_set_resolution</a>, function in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstClock.html#gst-clock-single-shot-id-reinit" title="gst_clock_single_shot_id_reinit ()">gst_clock_single_shot_id_reinit</a>, function in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1232,11 +1300,79 @@
 <dd></dd>
 <a name="idxD"></a><h3 class="title">D</h3>
 <dt>
+<a class="link" href="gstreamer-GstDateTime.html#GstDateTime" title="GstDateTime">GstDateTime</a>, struct in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-day" title="gst_date_time_get_day ()">gst_date_time_get_day</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-hour" title="gst_date_time_get_hour ()">gst_date_time_get_hour</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-microsecond" title="gst_date_time_get_microsecond ()">gst_date_time_get_microsecond</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-minute" title="gst_date_time_get_minute ()">gst_date_time_get_minute</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-month" title="gst_date_time_get_month ()">gst_date_time_get_month</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-second" title="gst_date_time_get_second ()">gst_date_time_get_second</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-time-zone-offset" title="gst_date_time_get_time_zone_offset ()">gst_date_time_get_time_zone_offset</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-get-year" title="gst_date_time_get_year ()">gst_date_time_get_year</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-new" title="gst_date_time_new ()">gst_date_time_new</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-new-from-unix-epoch-local-time" title="gst_date_time_new_from_unix_epoch_local_time ()">gst_date_time_new_from_unix_epoch_local_time</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-new-from-unix-epoch-utc" title="gst_date_time_new_from_unix_epoch_utc ()">gst_date_time_new_from_unix_epoch_utc</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-new-local-time" title="gst_date_time_new_local_time ()">gst_date_time_new_local_time</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-new-now-local-time" title="gst_date_time_new_now_local_time ()">gst_date_time_new_now_local_time</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-new-now-utc" title="gst_date_time_new_now_utc ()">gst_date_time_new_now_utc</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-ref" title="gst_date_time_ref ()">gst_date_time_ref</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#gst-date-time-unref" title="gst_date_time_unref ()">gst_date_time_unref</a>, function in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstInfo.html#GST-DEBUG:CAPS" title="GST_DEBUG()">GST_DEBUG</a>, macro in <a class="link" href="gstreamer-GstInfo.html" title="GstInfo">GstInfo</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstInfo.html#GstDebugCategory" title="GstDebugCategory">GstDebugCategory</a>, struct in <a class="link" href="gstreamer-GstInfo.html" title="GstInfo">GstInfo</a>
+<a class="link" href="gstreamer-GstInfo.html#GstDebugCategory" title="struct GstDebugCategory">GstDebugCategory</a>, struct in <a class="link" href="gstreamer-GstInfo.html" title="GstInfo">GstInfo</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1485,7 +1621,7 @@
 <dd></dd>
 <a name="idxE"></a><h3 class="title">E</h3>
 <dt>
-<a class="link" href="GstElement.html#GstElement-struct" title="GstElement">GstElement</a>, struct in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
+<a class="link" href="GstElement.html#GstElement-struct" title="struct GstElement">GstElement</a>, struct in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1501,15 +1637,19 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstElement.html#GstElementClass" title="GstElementClass">GstElementClass</a>, struct in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
+<a class="link" href="GstElement.html#GstElementClass" title="struct GstElementClass">GstElementClass</a>, struct in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstElementFactory.html#GstElementDetails" title="GstElementDetails">GstElementDetails</a>, struct in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+<a class="link" href="GstElementFactory.html#GstElementDetails" title="struct GstElementDetails">GstElementDetails</a>, struct in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstElementFactory.html#GstElementFactory-struct" title="GstElementFactory">GstElementFactory</a>, struct in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+<a class="link" href="GstElementFactory.html#GstElementFactory-struct" title="struct GstElementFactory">GstElementFactory</a>, struct in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GstElementFactoryListType" title="GstElementFactoryListType">GstElementFactoryListType</a>, typedef in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1557,6 +1697,14 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstElement.html#gst-element-class-set-documentation-uri" title="gst_element_class_set_documentation_uri ()">gst_element_class_set_documentation_uri</a>, function in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElement.html#gst-element-class-set-icon-name" title="gst_element_class_set_icon_name ()">gst_element_class_set_icon_name</a>, function in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstElement.html#GST-ELEMENT-CLOCK:CAPS" title="GST_ELEMENT_CLOCK()">GST_ELEMENT_CLOCK</a>, macro in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
 </dt>
 <dd></dd>
@@ -1577,7 +1725,23 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-can-sink-all-caps" title="gst_element_factory_can_sink_all_caps ()">gst_element_factory_can_sink_all_caps</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-can-sink-any-caps" title="gst_element_factory_can_sink_any_caps ()">gst_element_factory_can_sink_any_caps</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstElementFactory.html#gst-element-factory-can-sink-caps" title="gst_element_factory_can_sink_caps ()">gst_element_factory_can_sink_caps</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-can-src-all-caps" title="gst_element_factory_can_src_all_caps ()">gst_element_factory_can_src_all_caps</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-can-src-any-caps" title="gst_element_factory_can_src_any_caps ()">gst_element_factory_can_src_any_caps</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1601,7 +1765,15 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-get-documentation-uri" title="gst_element_factory_get_documentation_uri ()">gst_element_factory_get_documentation_uri</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstElementFactory.html#gst-element-factory-get-element-type" title="gst_element_factory_get_element_type ()">gst_element_factory_get_element_type</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-get-icon-name" title="gst_element_factory_get_icon_name ()">gst_element_factory_get_icon_name</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1633,7 +1805,107 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-list-filter" title="gst_element_factory_list_filter ()">gst_element_factory_list_filter</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-list-get-elements" title="gst_element_factory_list_get_elements ()">gst_element_factory_list_get_elements</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#gst-element-factory-list-is-type" title="gst_element_factory_list_is_type ()">gst_element_factory_list_is_type</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstElementFactory.html#gst-element-factory-make" title="gst_element_factory_make ()">gst_element_factory_make</a>, function in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-ANY:CAPS" title="GST_ELEMENT_FACTORY_TYPE_ANY">GST_ELEMENT_FACTORY_TYPE_ANY</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-AUDIOVIDEO-SINKS:CAPS" title="GST_ELEMENT_FACTORY_TYPE_AUDIOVIDEO_SINKS">GST_ELEMENT_FACTORY_TYPE_AUDIOVIDEO_SINKS</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-AUDIO-ENCODER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_AUDIO_ENCODER">GST_ELEMENT_FACTORY_TYPE_AUDIO_ENCODER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-DECODABLE:CAPS" title="GST_ELEMENT_FACTORY_TYPE_DECODABLE">GST_ELEMENT_FACTORY_TYPE_DECODABLE</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-DECODER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_DECODER">GST_ELEMENT_FACTORY_TYPE_DECODER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-DEMUXER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_DEMUXER">GST_ELEMENT_FACTORY_TYPE_DEMUXER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-DEPAYLOADER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_DEPAYLOADER">GST_ELEMENT_FACTORY_TYPE_DEPAYLOADER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-ENCODER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_ENCODER">GST_ELEMENT_FACTORY_TYPE_ENCODER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-FORMATTER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_FORMATTER">GST_ELEMENT_FACTORY_TYPE_FORMATTER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MAX-ELEMENTS:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MAX_ELEMENTS">GST_ELEMENT_FACTORY_TYPE_MAX_ELEMENTS</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MEDIA-ANY:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MEDIA_ANY">GST_ELEMENT_FACTORY_TYPE_MEDIA_ANY</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MEDIA-AUDIO:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MEDIA_AUDIO">GST_ELEMENT_FACTORY_TYPE_MEDIA_AUDIO</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MEDIA-IMAGE:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MEDIA_IMAGE">GST_ELEMENT_FACTORY_TYPE_MEDIA_IMAGE</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MEDIA-METADATA:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MEDIA_METADATA">GST_ELEMENT_FACTORY_TYPE_MEDIA_METADATA</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MEDIA-SUBTITLE:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MEDIA_SUBTITLE">GST_ELEMENT_FACTORY_TYPE_MEDIA_SUBTITLE</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MEDIA-VIDEO:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO">GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-MUXER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_MUXER">GST_ELEMENT_FACTORY_TYPE_MUXER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-PARSER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_PARSER">GST_ELEMENT_FACTORY_TYPE_PARSER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-PAYLOADER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_PAYLOADER">GST_ELEMENT_FACTORY_TYPE_PAYLOADER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-SINK:CAPS" title="GST_ELEMENT_FACTORY_TYPE_SINK">GST_ELEMENT_FACTORY_TYPE_SINK</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-SRC:CAPS" title="GST_ELEMENT_FACTORY_TYPE_SRC">GST_ELEMENT_FACTORY_TYPE_SRC</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstElementFactory.html#GST-ELEMENT-FACTORY-TYPE-VIDEO-ENCODER:CAPS" title="GST_ELEMENT_FACTORY_TYPE_VIDEO_ENCODER">GST_ELEMENT_FACTORY_TYPE_VIDEO_ENCODER</a>, macro in <a class="link" href="GstElementFactory.html" title="GstElementFactory">GstElementFactory</a>
 </dt>
 <dd></dd>
 <dt>
@@ -1833,6 +2105,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstElement.html#gst-element-request-pad" title="gst_element_request_pad ()">gst_element_request_pad</a>, function in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstElement.html#gst-element-requires-clock" title="gst_element_requires_clock ()">gst_element_requires_clock</a>, function in <a class="link" href="GstElement.html" title="GstElement">GstElement</a>
 </dt>
 <dd></dd>
@@ -1933,7 +2209,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstEvent.html#GstEvent" title="GstEvent">GstEvent</a>, struct in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
+<a class="link" href="gstreamer-GstEvent.html#GstEvent" title="struct GstEvent">GstEvent</a>, struct in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2017,6 +2293,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstEvent.html#gst-event-new-qos-full" title="gst_event_new_qos_full ()">gst_event_new_qos_full</a>, function in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstEvent.html#gst-event-new-seek" title="gst_event_new_seek ()">gst_event_new_seek</a>, function in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
 </dt>
 <dd></dd>
@@ -2053,6 +2333,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstEvent.html#gst-event-parse-qos-full" title="gst_event_parse_qos_full ()">gst_event_parse_qos_full</a>, function in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstEvent.html#gst-event-parse-seek" title="gst_event_parse_seek ()">gst_event_parse_seek</a>, function in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
 </dt>
 <dd></dd>
@@ -2073,7 +2357,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstEvent.html#gst-event-replace" title="gst_event_replace()">gst_event_replace</a>, macro in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
+<a class="link" href="gstreamer-GstEvent.html#gst-event-replace" title="gst_event_replace ()">gst_event_replace</a>, function in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2122,6 +2406,10 @@
 <dd></dd>
 <a name="idxF"></a><h3 class="title">F</h3>
 <dt>
+<a class="link" href="gstreamer-GstUriHandler.html#gst-filename-to-uri" title="gst_filename_to_uri ()">gst_filename_to_uri</a>, function in <a class="link" href="gstreamer-GstUriHandler.html" title="GstUriHandler">GstUriHandler</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstFilter.html#GstFilterFunc" title="GstFilterFunc ()">GstFilterFunc</a>, user_function in <a class="link" href="gstreamer-GstFilter.html" title="GstFilter">GstFilter</a>
 </dt>
 <dd></dd>
@@ -2162,7 +2450,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstFormat.html#GstFormatDefinition" title="GstFormatDefinition">GstFormatDefinition</a>, struct in <a class="link" href="gstreamer-GstFormat.html" title="GstFormat">GstFormat</a>
+<a class="link" href="gstreamer-GstFormat.html#GstFormatDefinition" title="struct GstFormatDefinition">GstFormatDefinition</a>, struct in <a class="link" href="gstreamer-GstFormat.html" title="GstFormat">GstFormat</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2259,7 +2547,15 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstGhostPad.html#GstGhostPad-struct" title="GstGhostPad">GstGhostPad</a>, struct in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+<a class="link" href="GstGhostPad.html#GstGhostPad-struct" title="struct GstGhostPad">GstGhostPad</a>, struct in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-ghost-pad-activate-pull-default" title="gst_ghost_pad_activate_pull_default ()">gst_ghost_pad_activate_pull_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-ghost-pad-activate-push-default" title="gst_ghost_pad_activate_push_default ()">gst_ghost_pad_activate_push_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2268,6 +2564,18 @@
 <dd></dd>
 <dt>
 <a class="link" href="GstGhostPad.html#gst-ghost-pad-get-target" title="gst_ghost_pad_get_target ()">gst_ghost_pad_get_target</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-ghost-pad-internal-activate-pull-default" title="gst_ghost_pad_internal_activate_pull_default ()">gst_ghost_pad_internal_activate_pull_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-ghost-pad-internal-activate-push-default" title="gst_ghost_pad_internal_activate_push_default ()">gst_ghost_pad_internal_activate_push_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-ghost-pad-link-default" title="gst_ghost_pad_link_default ()">gst_ghost_pad_link_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2287,7 +2595,15 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstGhostPad.html#gst-ghost-pad-setcaps-default" title="gst_ghost_pad_setcaps_default ()">gst_ghost_pad_setcaps_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstGhostPad.html#gst-ghost-pad-set-target" title="gst_ghost_pad_set_target ()">gst_ghost_pad_set_target</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-ghost-pad-unlink-default" title="gst_ghost_pad_unlink_default ()">gst_ghost_pad_unlink_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2308,7 +2624,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstIndex.html#GstIndex-struct" title="GstIndex">GstIndex</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
+<a class="link" href="GstIndex.html#GstIndex-struct" title="struct GstIndex">GstIndex</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2320,7 +2636,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstIndex.html#GstIndexAssociation" title="GstIndexAssociation">GstIndexAssociation</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
+<a class="link" href="GstIndex.html#GstIndexAssociation" title="struct GstIndexAssociation">GstIndexAssociation</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2328,7 +2644,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstIndex.html#GstIndexEntry" title="GstIndexEntry">GstIndexEntry</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
+<a class="link" href="GstIndex.html#GstIndexEntry" title="struct GstIndexEntry">GstIndexEntry</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2336,7 +2652,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstIndexFactory.html#GstIndexFactory-struct" title="GstIndexFactory">GstIndexFactory</a>, struct in <a class="link" href="GstIndexFactory.html" title="GstIndexFactory">GstIndexFactory</a>
+<a class="link" href="GstIndexFactory.html#GstIndexFactory-struct" title="struct GstIndexFactory">GstIndexFactory</a>, struct in <a class="link" href="GstIndexFactory.html" title="GstIndexFactory">GstIndexFactory</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2348,7 +2664,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstIndex.html#GstIndexGroup" title="GstIndexGroup">GstIndexGroup</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
+<a class="link" href="GstIndex.html#GstIndexGroup" title="struct GstIndexGroup">GstIndexGroup</a>, struct in <a class="link" href="GstIndex.html" title="GstIndex">GstIndex</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2536,11 +2852,15 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-Gst.html#gst-is-initialized" title="gst_is_initialized ()">gst_is_initialized</a>, function in <a class="link" href="gstreamer-Gst.html" title="Gst">Gst</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstTagList.html#gst-is-tag-list" title="gst_is_tag_list ()">gst_is_tag_list</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstIterator.html#GstIterator" title="GstIterator">GstIterator</a>, struct in <a class="link" href="gstreamer-GstIterator.html" title="GstIterator">GstIterator</a>
+<a class="link" href="gstreamer-GstIterator.html#GstIterator" title="struct GstIterator">GstIterator</a>, struct in <a class="link" href="gstreamer-GstIterator.html" title="GstIterator">GstIterator</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2678,7 +2998,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstMessage.html#GstMessage" title="GstMessage">GstMessage</a>, struct in <a class="link" href="gstreamer-GstMessage.html" title="GstMessage">GstMessage</a>
+<a class="link" href="gstreamer-GstMessage.html#GstMessage" title="struct GstMessage">GstMessage</a>, struct in <a class="link" href="gstreamer-GstMessage.html" title="GstMessage">GstMessage</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2759,6 +3079,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstMessage.html#gst-message-new-new-clock" title="gst_message_new_new_clock ()">gst_message_new_new_clock</a>, function in <a class="link" href="gstreamer-GstMessage.html" title="GstMessage">GstMessage</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstMessage.html#gst-message-new-progress" title="gst_message_new_progress ()">gst_message_new_progress</a>, function in <a class="link" href="gstreamer-GstMessage.html" title="GstMessage">GstMessage</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2847,6 +3171,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstMessage.html#gst-message-parse-new-clock" title="gst_message_parse_new_clock ()">gst_message_parse_new_clock</a>, function in <a class="link" href="gstreamer-GstMessage.html" title="GstMessage">GstMessage</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstMessage.html#gst-message-parse-progress" title="gst_message_parse_progress ()">gst_message_parse_progress</a>, function in <a class="link" href="gstreamer-GstMessage.html" title="GstMessage">GstMessage</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2966,7 +3294,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstMiniObject.html#GstMiniObject" title="GstMiniObject">GstMiniObject</a>, struct in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
+<a class="link" href="gstreamer-GstMiniObject.html#GstMiniObject" title="struct GstMiniObject">GstMiniObject</a>, struct in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
 </dt>
 <dd></dd>
 <dt>
@@ -2979,6 +3307,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstMiniObject.html#GstMiniObjectFlags" title="enum GstMiniObjectFlags">GstMiniObjectFlags</a>, enum in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstMiniObject.html#GstMiniObjectWeakNotify" title="GstMiniObjectWeakNotify ()">GstMiniObjectWeakNotify</a>, user_function in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
 </dt>
 <dd></dd>
 <dt>
@@ -3034,6 +3366,14 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstMiniObject.html#gst-mini-object-weak-ref" title="gst_mini_object_weak_ref ()">gst_mini_object_weak_ref</a>, function in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstMiniObject.html#gst-mini-object-weak-unref" title="gst_mini_object_weak_unref ()">gst_mini_object_weak_unref</a>, function in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstClock.html#GST-MSECOND:CAPS" title="GST_MSECOND">GST_MSECOND</a>, macro in <a class="link" href="GstClock.html" title="GstClock">GstClock</a>
 </dt>
 <dd></dd>
@@ -3044,7 +3384,7 @@
 <dd></dd>
 <a name="idxO"></a><h3 class="title">O</h3>
 <dt>
-<a class="link" href="GstObject.html#GstObject-struct" title="GstObject">GstObject</a>, struct in <a class="link" href="GstObject.html" title="GstObject">GstObject</a>
+<a class="link" href="GstObject.html#GstObject-struct" title="struct GstObject">GstObject</a>, struct in <a class="link" href="GstObject.html" title="GstObject">GstObject</a>
 </dt>
 <dd></dd>
 <dt>
@@ -3068,7 +3408,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstObject.html#GstObjectClass" title="GstObjectClass">GstObjectClass</a>, struct in <a class="link" href="GstObject.html" title="GstObject">GstObject</a>
+<a class="link" href="GstObject.html#GstObjectClass" title="struct GstObjectClass">GstObjectClass</a>, struct in <a class="link" href="GstObject.html" title="GstObject">GstObject</a>
 </dt>
 <dd></dd>
 <dt>
@@ -3209,7 +3549,7 @@
 <dd></dd>
 <a name="idxP"></a><h3 class="title">P</h3>
 <dt>
-<a class="link" href="GstPad.html#GstPad-struct" title="GstPad">GstPad</a>, struct in <a class="link" href="GstPad.html" title="GstPad">GstPad</a>
+<a class="link" href="GstPad.html#GstPad-struct" title="struct GstPad">GstPad</a>, struct in <a class="link" href="GstPad.html" title="GstPad">GstPad</a>
 </dt>
 <dd></dd>
 <dt>
@@ -3837,11 +4177,11 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstParamSpec.html#GstParamSpecFraction" title="GstParamSpecFraction">GstParamSpecFraction</a>, struct in <a class="link" href="gstreamer-GstParamSpec.html" title="GstParamSpec">GstParamSpec</a>
+<a class="link" href="gstreamer-GstParamSpec.html#GstParamSpecFraction" title="struct GstParamSpecFraction">GstParamSpecFraction</a>, struct in <a class="link" href="gstreamer-GstParamSpec.html" title="GstParamSpec">GstParamSpec</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstMiniObject.html#GstParamSpecMiniObject" title="GstParamSpecMiniObject">GstParamSpecMiniObject</a>, struct in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
+<a class="link" href="gstreamer-GstMiniObject.html#GstParamSpecMiniObject" title="struct GstParamSpecMiniObject">GstParamSpecMiniObject</a>, struct in <a class="link" href="gstreamer-GstMiniObject.html" title="GstMiniObject">GstMiniObject</a>
 </dt>
 <dd></dd>
 <dt>
@@ -3929,7 +4269,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstPipeline.html#GstPipeline-struct" title="GstPipeline">GstPipeline</a>, struct in <a class="link" href="GstPipeline.html" title="GstPipeline">GstPipeline</a>
+<a class="link" href="GstPipeline.html#GstPipeline-struct" title="struct GstPipeline">GstPipeline</a>, struct in <a class="link" href="GstPipeline.html" title="GstPipeline">GstPipeline</a>
 </dt>
 <dd></dd>
 <dt>
@@ -3993,7 +4333,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstPlugin.html#GstPlugin-struct" title="GstPlugin">GstPlugin</a>, struct in <a class="link" href="GstPlugin.html" title="GstPlugin">GstPlugin</a>
+<a class="link" href="GstPlugin.html#GstPlugin-struct" title="struct GstPlugin">GstPlugin</a>, struct in <a class="link" href="GstPlugin.html" title="GstPlugin">GstPlugin</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4001,7 +4341,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstPlugin.html#GstPluginDesc" title="GstPluginDesc">GstPluginDesc</a>, struct in <a class="link" href="GstPlugin.html" title="GstPlugin">GstPlugin</a>
+<a class="link" href="GstPlugin.html#GstPluginDesc" title="struct GstPluginDesc">GstPluginDesc</a>, struct in <a class="link" href="GstPlugin.html" title="GstPlugin">GstPlugin</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4009,7 +4349,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstPluginFeature.html#GstPluginFeature-struct" title="GstPluginFeature">GstPluginFeature</a>, struct in <a class="link" href="GstPluginFeature.html" title="GstPluginFeature">GstPluginFeature</a>
+<a class="link" href="GstPluginFeature.html#GstPluginFeature-struct" title="struct GstPluginFeature">GstPluginFeature</a>, struct in <a class="link" href="GstPluginFeature.html" title="GstPluginFeature">GstPluginFeature</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4073,6 +4413,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstPluginFeature.html#GST-PLUGIN-FEATURE-LIST-DEBUG:CAPS" title="GST_PLUGIN_FEATURE_LIST_DEBUG()">GST_PLUGIN_FEATURE_LIST_DEBUG</a>, macro in <a class="link" href="GstPluginFeature.html" title="GstPluginFeature">GstPluginFeature</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstPluginFeature.html#gst-plugin-feature-list-free" title="gst_plugin_feature_list_free ()">gst_plugin_feature_list_free</a>, function in <a class="link" href="GstPluginFeature.html" title="GstPluginFeature">GstPluginFeature</a>
 </dt>
 <dd></dd>
@@ -4082,6 +4426,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="GstPluginFeature.html#GST-PLUGIN-FEATURE-NAME:CAPS" title="GST_PLUGIN_FEATURE_NAME()">GST_PLUGIN_FEATURE_NAME</a>, macro in <a class="link" href="GstPluginFeature.html" title="GstPluginFeature">GstPluginFeature</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstPluginFeature.html#gst-plugin-feature-rank-compare-func" title="gst_plugin_feature_rank_compare_func ()">gst_plugin_feature_rank_compare_func</a>, function in <a class="link" href="GstPluginFeature.html" title="GstPluginFeature">GstPluginFeature</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4225,6 +4573,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstPoll.html#gst-poll-get-read-gpollfd" title="gst_poll_get_read_gpollfd ()">gst_poll_get_read_gpollfd</a>, function in <a class="link" href="gstreamer-GstPoll.html" title="GstPoll">GstPoll</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstPoll.html#gst-poll-new" title="gst_poll_new ()">gst_poll_new</a>, function in <a class="link" href="gstreamer-GstPoll.html" title="GstPoll">GstPoll</a>
 </dt>
 <dd></dd>
@@ -4265,11 +4617,15 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstPreset.html#GstPresetInterface" title="GstPresetInterface">GstPresetInterface</a>, struct in <a class="link" href="GstPreset.html" title="GstPreset">GstPreset</a>
+<a class="link" href="GstPreset.html#GstPresetInterface" title="struct GstPresetInterface">GstPresetInterface</a>, struct in <a class="link" href="GstPreset.html" title="GstPreset">GstPreset</a>
 </dt>
 <dd></dd>
 <dt>
 <a class="link" href="GstPreset.html#gst-preset-delete-preset" title="gst_preset_delete_preset ()">gst_preset_delete_preset</a>, function in <a class="link" href="GstPreset.html" title="GstPreset">GstPreset</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstPreset.html#gst-preset-get-app-dir" title="gst_preset_get_app_dir ()">gst_preset_get_app_dir</a>, function in <a class="link" href="GstPreset.html" title="GstPreset">GstPreset</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4297,6 +4653,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="GstPreset.html#gst-preset-set-app-dir" title="gst_preset_set_app_dir ()">gst_preset_set_app_dir</a>, function in <a class="link" href="GstPreset.html" title="GstPreset">GstPreset</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="GstPreset.html#gst-preset-set-meta" title="gst_preset_set_meta ()">gst_preset_set_meta</a>, function in <a class="link" href="GstPreset.html" title="GstPreset">GstPreset</a>
 </dt>
 <dd></dd>
@@ -4308,9 +4668,81 @@
 <a class="link" href="gstreamer-GstUtils.html#gst-print-pad-caps" title="gst_print_pad_caps ()">gst_print_pad_caps</a>, function in <a class="link" href="gstreamer-GstUtils.html" title="GstUtils">GstUtils</a>
 </dt>
 <dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstMessage.html#GstProgressType" title="enum GstProgressType">GstProgressType</a>, enum in <a class="link" href="gstreamer-GstMessage.html" title="GstMessage">GstMessage</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#GstProxyPad-struct" title="struct GstProxyPad">GstProxyPad</a>, struct in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-acceptcaps-default" title="gst_proxy_pad_acceptcaps_default ()">gst_proxy_pad_acceptcaps_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-bufferalloc-default" title="gst_proxy_pad_bufferalloc_default ()">gst_proxy_pad_bufferalloc_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-chain-default" title="gst_proxy_pad_chain_default ()">gst_proxy_pad_chain_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-chain-list-default" title="gst_proxy_pad_chain_list_default ()">gst_proxy_pad_chain_list_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-checkgetrange-default" title="gst_proxy_pad_checkgetrange_default ()">gst_proxy_pad_checkgetrange_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-event-default" title="gst_proxy_pad_event_default ()">gst_proxy_pad_event_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-fixatecaps-default" title="gst_proxy_pad_fixatecaps_default ()">gst_proxy_pad_fixatecaps_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-getcaps-default" title="gst_proxy_pad_getcaps_default ()">gst_proxy_pad_getcaps_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-getrange-default" title="gst_proxy_pad_getrange_default ()">gst_proxy_pad_getrange_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-get-internal" title="gst_proxy_pad_get_internal ()">gst_proxy_pad_get_internal</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-iterate-internal-links-default" title="gst_proxy_pad_iterate_internal_links_default ()">gst_proxy_pad_iterate_internal_links_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-query-default" title="gst_proxy_pad_query_default ()">gst_proxy_pad_query_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-query-type-default" title="gst_proxy_pad_query_type_default ()">gst_proxy_pad_query_type_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-setcaps-default" title="gst_proxy_pad_setcaps_default ()">gst_proxy_pad_setcaps_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="GstGhostPad.html#gst-proxy-pad-unlink-default" title="gst_proxy_pad_unlink_default ()">gst_proxy_pad_unlink_default</a>, function in <a class="link" href="GstGhostPad.html" title="GstGhostPad">GstGhostPad</a>
+</dt>
+<dd></dd>
 <a name="idxQ"></a><h3 class="title">Q</h3>
 <dt>
-<a class="link" href="gstreamer-GstQuery.html#GstQuery" title="GstQuery">GstQuery</a>, struct in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
+<a class="link" href="gstreamer-GstEvent.html#GstQOSType" title="enum GstQOSType">GstQOSType</a>, enum in <a class="link" href="gstreamer-GstEvent.html" title="GstEvent">GstEvent</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstQuery.html#GstQuery" title="struct GstQuery">GstQuery</a>, struct in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4318,11 +4750,19 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstQuery.html#GstQueryTypeDefinition" title="GstQueryTypeDefinition">GstQueryTypeDefinition</a>, struct in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
+<a class="link" href="gstreamer-GstQuery.html#GstQueryTypeDefinition" title="struct GstQueryTypeDefinition">GstQueryTypeDefinition</a>, struct in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstQuery.html#gst-query-add-buffering-range" title="gst_query_add_buffering_range ()">gst_query_add_buffering_range</a>, function in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
 </dt>
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstQuery.html#gst-query-copy" title="gst_query_copy ()">gst_query_copy</a>, function in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstQuery.html#gst-query-get-n-buffering-ranges" title="gst_query_get_n_buffering_ranges ()">gst_query_get_n_buffering_ranges</a>, function in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4403,6 +4843,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstQuery.html#gst-query-parse-latency" title="gst_query_parse_latency ()">gst_query_parse_latency</a>, function in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstQuery.html#gst-query-parse-nth-buffering-range" title="gst_query_parse_nth_buffering_range ()">gst_query_parse_nth_buffering_range</a>, function in <a class="link" href="gstreamer-GstQuery.html" title="GstQuery">GstQuery</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4567,7 +5011,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstRegistry.html#GstRegistry-struct" title="GstRegistry">GstRegistry</a>, struct in <a class="link" href="GstRegistry.html" title="GstRegistry">GstRegistry</a>
+<a class="link" href="GstRegistry.html#GstRegistry-struct" title="struct GstRegistry">GstRegistry</a>, struct in <a class="link" href="GstRegistry.html" title="GstRegistry">GstRegistry</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4732,7 +5176,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstSegment.html#GstSegment" title="GstSegment">GstSegment</a>, struct in <a class="link" href="gstreamer-GstSegment.html" title="GstSegment">GstSegment</a>
+<a class="link" href="gstreamer-GstSegment.html#GstSegment" title="struct GstSegment">GstSegment</a>, struct in <a class="link" href="gstreamer-GstSegment.html" title="GstSegment">GstSegment</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4856,11 +5300,11 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstCaps.html#GstStaticCaps" title="GstStaticCaps">GstStaticCaps</a>, struct in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
+<a class="link" href="gstreamer-GstCaps.html#GstStaticCaps" title="struct GstStaticCaps">GstStaticCaps</a>, struct in <a class="link" href="gstreamer-GstCaps.html" title="GstCaps">GstCaps</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstPadTemplate.html#GstStaticPadTemplate" title="GstStaticPadTemplate">GstStaticPadTemplate</a>, struct in <a class="link" href="GstPadTemplate.html" title="GstPadTemplate">GstPadTemplate</a>
+<a class="link" href="GstPadTemplate.html#GstStaticPadTemplate" title="struct GstStaticPadTemplate">GstStaticPadTemplate</a>, struct in <a class="link" href="GstPadTemplate.html" title="GstPadTemplate">GstPadTemplate</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4904,7 +5348,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstStructure.html#GstStructure" title="GstStructure">GstStructure</a>, struct in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+<a class="link" href="gstreamer-GstStructure.html#GstStructure" title="struct GstStructure">GstStructure</a>, struct in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4917,6 +5361,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstStructure.html#GstStructureMapFunc" title="GstStructureMapFunc ()">GstStructureMapFunc</a>, user_function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstStructure.html#gst-structure-can-intersect" title="gst_structure_can_intersect ()">gst_structure_can_intersect</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
 </dt>
 <dd></dd>
 <dt>
@@ -4973,6 +5421,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstStructure.html#gst-structure-get-date" title="gst_structure_get_date ()">gst_structure_get_date</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstStructure.html#gst-structure-get-date-time" title="gst_structure_get_date_time ()">gst_structure_get_date_time</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5076,6 +5528,22 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstStructure.html#gst-structure-id-take-value" title="gst_structure_id_take_value ()">gst_structure_id_take_value</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstStructure.html#gst-structure-intersect" title="gst_structure_intersect ()">gst_structure_intersect</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstStructure.html#gst-structure-is-equal" title="gst_structure_is_equal ()">gst_structure_is_equal</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstStructure.html#gst-structure-is-subset" title="gst_structure_is_subset ()">gst_structure_is_subset</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstStructure.html#gst-structure-map-in-place" title="gst_structure_map_in_place ()">gst_structure_map_in_place</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
 </dt>
 <dd></dd>
@@ -5132,6 +5600,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstStructure.html#gst-structure-take-value" title="gst_structure_take_value ()">gst_structure_take_value</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstStructure.html#gst-structure-to-string" title="gst_structure_to_string ()">gst_structure_to_string</a>, function in <a class="link" href="gstreamer-GstStructure.html" title="GstStructure">GstStructure</a>
 </dt>
 <dd></dd>
@@ -5144,7 +5616,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstSystemClock.html#GstSystemClock-struct" title="GstSystemClock">GstSystemClock</a>, struct in <a class="link" href="GstSystemClock.html" title="GstSystemClock">GstSystemClock</a>
+<a class="link" href="GstSystemClock.html#GstSystemClock-struct" title="struct GstSystemClock">GstSystemClock</a>, struct in <a class="link" href="GstSystemClock.html" title="GstSystemClock">GstSystemClock</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5165,7 +5637,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstTagList.html#GstTagList" title="GstTagList">GstTagList</a>, struct in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+<a class="link" href="gstreamer-GstTagList.html#GstTagList" title="GstTagList">GstTagList</a>, typedef in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5181,7 +5653,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstTagSetter.html#GstTagSetterIFace" title="GstTagSetterIFace">GstTagSetterIFace</a>, struct in <a class="link" href="GstTagSetter.html" title="GstTagSetter">GstTagSetter</a>
+<a class="link" href="GstTagSetter.html#GstTagSetterIFace" title="struct GstTagSetterIFace">GstTagSetterIFace</a>, struct in <a class="link" href="GstTagSetter.html" title="GstTagSetter">GstTagSetter</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5214,6 +5686,14 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstTagList.html#GST-TAG-ALBUM-VOLUME-NUMBER:CAPS" title="GST_TAG_ALBUM_VOLUME_NUMBER">GST_TAG_ALBUM_VOLUME_NUMBER</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstTagList.html#GST-TAG-APPLICATION-DATA:CAPS" title="GST_TAG_APPLICATION_DATA">GST_TAG_APPLICATION_DATA</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstTagList.html#GST-TAG-APPLICATION-NAME:CAPS" title="GST_TAG_APPLICATION_NAME">GST_TAG_APPLICATION_NAME</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5277,6 +5757,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstTagList.html#GST-TAG-DATE-TIME:CAPS" title="GST_TAG_DATE_TIME">GST_TAG_DATE_TIME</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstTagList.html#GST-TAG-DESCRIPTION:CAPS" title="GST_TAG_DESCRIPTION">GST_TAG_DESCRIPTION</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
@@ -5290,6 +5774,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstTagList.html#GST-TAG-DURATION:CAPS" title="GST_TAG_DURATION">GST_TAG_DURATION</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstTagList.html#GST-TAG-ENCODED-BY:CAPS" title="GST_TAG_ENCODED_BY">GST_TAG_ENCODED_BY</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5326,6 +5814,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstTagList.html#GST-TAG-GEO-LOCATION-ELEVATION:CAPS" title="GST_TAG_GEO_LOCATION_ELEVATION">GST_TAG_GEO_LOCATION_ELEVATION</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstTagList.html#GST-TAG-GEO-LOCATION-HORIZONTAL-ERROR:CAPS" title="GST_TAG_GEO_LOCATION_HORIZONTAL_ERROR">GST_TAG_GEO_LOCATION_HORIZONTAL_ERROR</a>, macro in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5477,6 +5969,14 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstTagList.html#gst-tag-list-get-date-time" title="gst_tag_list_get_date_time ()">gst_tag_list_get_date_time</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstTagList.html#gst-tag-list-get-date-time-index" title="gst_tag_list_get_date_time_index ()">gst_tag_list_get_date_time_index</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstTagList.html#gst-tag-list-get-double" title="gst_tag_list_get_double ()">gst_tag_list_get_double</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
@@ -5581,11 +6081,19 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstTagList.html#gst-tag-list-is-equal" title="gst_tag_list_is_equal ()">gst_tag_list_is_equal</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstTagList.html#gst-tag-list-merge" title="gst_tag_list_merge ()">gst_tag_list_merge</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstTagList.html#gst-tag-list-new" title="gst_tag_list_new ()">gst_tag_list_new</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstTagList.html#gst-tag-list-new-from-string" title="gst_tag_list_new_from_string ()">gst_tag_list_new_from_string</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5602,6 +6110,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstTagList.html#gst-tag-list-remove-tag" title="gst_tag_list_remove_tag ()">gst_tag_list_remove_tag</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstTagList.html#gst-tag-list-to-string" title="gst_tag_list_to_string ()">gst_tag_list_to_string</a>, function in <a class="link" href="gstreamer-GstTagList.html" title="GstTagList">GstTagList</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5753,7 +6265,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstTask.html#GstTask-struct" title="GstTask">GstTask</a>, struct in <a class="link" href="GstTask.html" title="GstTask">GstTask</a>
+<a class="link" href="GstTask.html#GstTask-struct" title="struct GstTask">GstTask</a>, struct in <a class="link" href="GstTask.html" title="GstTask">GstTask</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5761,11 +6273,11 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstTaskPool.html#GstTaskPool-struct" title="GstTaskPool">GstTaskPool</a>, struct in <a class="link" href="GstTaskPool.html" title="GstTaskPool">GstTaskPool</a>
+<a class="link" href="GstTaskPool.html#GstTaskPool-struct" title="struct GstTaskPool">GstTaskPool</a>, struct in <a class="link" href="GstTaskPool.html" title="GstTaskPool">GstTaskPool</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstTaskPool.html#GstTaskPoolClass" title="GstTaskPoolClass">GstTaskPoolClass</a>, struct in <a class="link" href="GstTaskPool.html" title="GstTaskPool">GstTaskPool</a>
+<a class="link" href="GstTaskPool.html#GstTaskPoolClass" title="struct GstTaskPoolClass">GstTaskPoolClass</a>, struct in <a class="link" href="GstTaskPool.html" title="GstTaskPool">GstTaskPool</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5921,7 +6433,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstTrace.html#GstTrace" title="GstTrace">GstTrace</a>, struct in <a class="link" href="gstreamer-GstTrace.html" title="GstTrace">GstTrace</a>
+<a class="link" href="gstreamer-GstTrace.html#GstTrace" title="struct GstTrace">GstTrace</a>, struct in <a class="link" href="gstreamer-GstTrace.html" title="GstTrace">GstTrace</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5969,11 +6481,11 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstTypeFind.html#GstTypeFind" title="GstTypeFind">GstTypeFind</a>, struct in <a class="link" href="gstreamer-GstTypeFind.html" title="GstTypeFind">GstTypeFind</a>
+<a class="link" href="gstreamer-GstTypeFind.html#GstTypeFind" title="struct GstTypeFind">GstTypeFind</a>, struct in <a class="link" href="gstreamer-GstTypeFind.html" title="GstTypeFind">GstTypeFind</a>
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="GstTypeFindFactory.html#GstTypeFindFactory-struct" title="GstTypeFindFactory">GstTypeFindFactory</a>, struct in <a class="link" href="GstTypeFindFactory.html" title="GstTypeFindFactory">GstTypeFindFactory</a>
+<a class="link" href="GstTypeFindFactory.html#GstTypeFindFactory-struct" title="struct GstTypeFindFactory">GstTypeFindFactory</a>, struct in <a class="link" href="GstTypeFindFactory.html" title="GstTypeFindFactory">GstTypeFindFactory</a>
 </dt>
 <dd></dd>
 <dt>
@@ -5994,6 +6506,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstValue.html#GST-TYPE-DATE:CAPS" title="GST_TYPE_DATE">GST_TYPE_DATE</a>, macro in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstDateTime.html#GST-TYPE-DATE-TIME:CAPS" title="GST_TYPE_DATE_TIME">GST_TYPE_DATE_TIME</a>, macro in <a class="link" href="gstreamer-GstDateTime.html" title="GstDateTime">GstDateTime</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6049,6 +6565,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstValue.html#GST-TYPE-INT64-RANGE:CAPS" title="GST_TYPE_INT64_RANGE">GST_TYPE_INT64_RANGE</a>, macro in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstValue.html#GST-TYPE-INT-RANGE:CAPS" title="GST_TYPE_INT_RANGE">GST_TYPE_INT_RANGE</a>, macro in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
 </dt>
 <dd></dd>
@@ -6074,7 +6594,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstUriHandler.html#GstURIHandlerInterface" title="GstURIHandlerInterface">GstURIHandlerInterface</a>, struct in <a class="link" href="gstreamer-GstUriHandler.html" title="GstUriHandler">GstUriHandler</a>
+<a class="link" href="gstreamer-GstUriHandler.html#GstURIHandlerInterface" title="struct GstURIHandlerInterface">GstURIHandlerInterface</a>, struct in <a class="link" href="gstreamer-GstUriHandler.html" title="GstUriHandler">GstUriHandler</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6151,6 +6671,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstUtils.html#gst-util-fraction-add" title="gst_util_fraction_add ()">gst_util_fraction_add</a>, function in <a class="link" href="gstreamer-GstUtils.html" title="GstUtils">GstUtils</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstUtils.html#gst-util-fraction-compare" title="gst_util_fraction_compare ()">gst_util_fraction_compare</a>, function in <a class="link" href="gstreamer-GstUtils.html" title="GstUtils">GstUtils</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6231,7 +6755,7 @@
 </dt>
 <dd></dd>
 <dt>
-<a class="link" href="gstreamer-GstValue.html#GstValueTable" title="GstValueTable">GstValueTable</a>, struct in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+<a class="link" href="gstreamer-GstValue.html#GstValueTable" title="struct GstValueTable">GstValueTable</a>, struct in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6335,6 +6859,14 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstValue.html#gst-value-get-int64-range-max" title="gst_value_get_int64_range_max ()">gst_value_get_int64_range_max</a>, function in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstValue.html#gst-value-get-int64-range-min" title="gst_value_get_int64_range_min ()">gst_value_get_int64_range_min</a>, function in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstValue.html#gst-value-get-int-range-max" title="gst_value_get_int_range_max ()">gst_value_get_int_range_max</a>, function in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
 </dt>
 <dd></dd>
@@ -6371,6 +6903,10 @@
 </dt>
 <dd></dd>
 <dt>
+<a class="link" href="gstreamer-GstValue.html#GST-VALUE-HOLDS-DATE-TIME:CAPS" title="GST_VALUE_HOLDS_DATE_TIME()">GST_VALUE_HOLDS_DATE_TIME</a>, macro in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
 <a class="link" href="gstreamer-GstValue.html#GST-VALUE-HOLDS-DOUBLE-RANGE:CAPS" title="GST_VALUE_HOLDS_DOUBLE_RANGE()">GST_VALUE_HOLDS_DOUBLE_RANGE</a>, macro in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
 </dt>
 <dd></dd>
@@ -6384,6 +6920,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstValue.html#GST-VALUE-HOLDS-FRACTION-RANGE:CAPS" title="GST_VALUE_HOLDS_FRACTION_RANGE()">GST_VALUE_HOLDS_FRACTION_RANGE</a>, macro in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstValue.html#GST-VALUE-HOLDS-INT64-RANGE:CAPS" title="GST_VALUE_HOLDS_INT64_RANGE()">GST_VALUE_HOLDS_INT64_RANGE</a>, macro in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6432,6 +6972,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstValue.html#gst-value-list-get-value" title="gst_value_list_get_value ()">gst_value_list_get_value</a>, function in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstValue.html#gst-value-list-merge" title="gst_value_list_merge ()">gst_value_list_merge</a>, function in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6488,6 +7032,10 @@
 <dd></dd>
 <dt>
 <a class="link" href="gstreamer-GstValue.html#gst-value-set-fraction-range-full" title="gst_value_set_fraction_range_full ()">gst_value_set_fraction_range_full</a>, function in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
+</dt>
+<dd></dd>
+<dt>
+<a class="link" href="gstreamer-GstValue.html#gst-value-set-int64-range" title="gst_value_set_int64_range ()">gst_value_set_int64_range</a>, function in <a class="link" href="gstreamer-GstValue.html" title="GstValue">GstValue</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6609,7 +7157,7 @@
 <dd></dd>
 <a name="idxX"></a><h3 class="title">X</h3>
 <dt>
-<a class="link" href="GstXML.html#GstXML-struct" title="GstXML">GstXML</a>, struct in <a class="link" href="GstXML.html" title="GstXML">GstXML</a>
+<a class="link" href="GstXML.html#GstXML-struct" title="struct GstXML">GstXML</a>, struct in <a class="link" href="GstXML.html" title="GstXML">GstXML</a>
 </dt>
 <dd></dd>
 <dt>
@@ -6655,6 +7203,6 @@
 </div>
 <div class="footer">
 <hr>
-          Generated by GTK-Doc V1.15</div>
+          Generated by GTK-Doc V1.18</div>
 </body>
 </html>

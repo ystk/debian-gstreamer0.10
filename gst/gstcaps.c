@@ -157,7 +157,7 @@ gst_caps_get_type (void)
  * #GstCaps contains no media formats.
  * Caller is responsible for unreffing the returned caps.
  *
- * Returns: the new #GstCaps
+ * Returns: (transfer full): the new #GstCaps
  */
 GstCaps *
 gst_caps_new_empty (void)
@@ -166,7 +166,7 @@ gst_caps_new_empty (void)
 
   caps->type = GST_TYPE_CAPS;
   caps->refcount = 1;
-  caps->flags = 0;
+  caps->flags = GST_CAPS_FLAGS_NONE;
   caps->structs = g_ptr_array_new ();
   /* the 32 has been determined by logging caps sizes in _gst_caps_free
    * but g_ptr_array uses 16 anyway if it expands once, so this does not help
@@ -175,7 +175,7 @@ gst_caps_new_empty (void)
    */
 
 #ifdef DEBUG_REFCOUNT
-  GST_CAT_LOG (GST_CAT_CAPS, "created caps %p", caps);
+  GST_CAT_TRACE (GST_CAT_CAPS, "created caps %p", caps);
 #endif
 
   return caps;
@@ -187,7 +187,7 @@ gst_caps_new_empty (void)
  * Creates a new #GstCaps that indicates that it is compatible with
  * any media format.
  *
- * Returns: the new #GstCaps
+ * Returns: (transfer full): the new #GstCaps
  */
 GstCaps *
 gst_caps_new_any (void)
@@ -210,7 +210,7 @@ gst_caps_new_any (void)
  * as gst_structure_new().
  * Caller is responsible for unreffing the returned caps.
  *
- * Returns: the new #GstCaps
+ * Returns: (transfer full): the new #GstCaps
  */
 GstCaps *
 gst_caps_new_simple (const char *media_type, const char *fieldname, ...)
@@ -225,7 +225,10 @@ gst_caps_new_simple (const char *media_type, const char *fieldname, ...)
   structure = gst_structure_new_valist (media_type, fieldname, var_args);
   va_end (var_args);
 
-  gst_caps_append_structure_unchecked (caps, structure);
+  if (structure)
+    gst_caps_append_structure_unchecked (caps, structure);
+  else
+    gst_caps_replace (&caps, NULL);
 
   return caps;
 }
@@ -239,7 +242,7 @@ gst_caps_new_simple (const char *media_type, const char *fieldname, ...)
  * arguments.  The list must be NULL-terminated.  The structures
  * are not copied; the returned #GstCaps owns the structures.
  *
- * Returns: the new #GstCaps
+ * Returns: (transfer full): the new #GstCaps
  */
 GstCaps *
 gst_caps_new_full (GstStructure * struct1, ...)
@@ -263,7 +266,7 @@ gst_caps_new_full (GstStructure * struct1, ...)
  * arguments.  The list must be NULL-terminated.  The structures
  * are not copied; the returned #GstCaps owns the structures.
  *
- * Returns: the new #GstCaps
+ * Returns: (transfer full): the new #GstCaps
  */
 GstCaps *
 gst_caps_new_full_valist (GstStructure * structure, va_list var_args)
@@ -293,7 +296,7 @@ gst_caps_new_full_valist (GstStructure * structure, va_list var_args)
  *
  * When you are finished with the caps, call gst_caps_unref() on it.
  *
- * Returns: the new #GstCaps
+ * Returns: (transfer full): the new #GstCaps
  */
 GstCaps *
 gst_caps_copy (const GstCaps * caps)
@@ -339,14 +342,14 @@ _gst_caps_free (GstCaps * caps)
 #endif
 
 #ifdef DEBUG_REFCOUNT
-  GST_CAT_LOG (GST_CAT_CAPS, "freeing caps %p", caps);
+  GST_CAT_TRACE (GST_CAT_CAPS, "freeing caps %p", caps);
 #endif
   g_slice_free (GstCaps, caps);
 }
 
 /**
  * gst_caps_make_writable:
- * @caps: the #GstCaps to make writable
+ * @caps: (transfer full): the #GstCaps to make writable
  *
  * Returns a writable copy of @caps.
  *
@@ -360,7 +363,7 @@ _gst_caps_free (GstCaps * caps)
  * that it returns. Don't access the argument after calling this function. See
  * also: gst_caps_ref().
  *
- * Returns: the same #GstCaps object.
+ * Returns: (transfer full): the same #GstCaps object.
  */
 GstCaps *
 gst_caps_make_writable (GstCaps * caps)
@@ -394,7 +397,7 @@ gst_caps_make_writable (GstCaps * caps)
  * implicitly by e.g. gst_caps_new_simple(), or via taking one explicitly with
  * this function.
  *
- * Returns: the same #GstCaps object.
+ * Returns: (transfer full): the same #GstCaps object.
  */
 GstCaps *
 gst_caps_ref (GstCaps * caps)
@@ -414,9 +417,9 @@ gst_caps_ref (GstCaps * caps)
 
 /**
  * gst_caps_unref:
- * @caps: the #GstCaps to unref
+ * @caps: (transfer full): the #GstCaps to unref
  *
- * Unref a #GstCaps and and free all its structures and the
+ * Unref a #GstCaps and free all its structures and the
  * structures' values when the refcount reaches 0.
  */
 void
@@ -454,9 +457,9 @@ gst_static_caps_get_type (void)
  *
  * Converts a #GstStaticCaps to a #GstCaps.
  *
- * Returns: A pointer to the #GstCaps. Unref after usage. Since the
- * core holds an additional ref to the returned caps,
- * use gst_caps_make_writable() on the returned caps to modify it.
+ * Returns: (transfer full): a pointer to the #GstCaps. Unref after usage.
+ *     Since the core holds an additional ref to the returned caps,
+ *     use gst_caps_make_writable() on the returned caps to modify it.
  */
 GstCaps *
 gst_static_caps_get (GstStaticCaps * static_caps)
@@ -482,14 +485,14 @@ gst_static_caps_get (GstStaticCaps * static_caps)
     if (G_UNLIKELY (string == NULL))
       goto no_string;
 
-    GST_CAT_LOG (GST_CAT_CAPS, "creating %p", static_caps);
+    GST_CAT_TRACE (GST_CAT_CAPS, "creating %p", static_caps);
 
     /* we construct the caps on the stack, then copy over the struct into our
      * real caps, refcount last. We do this because we must leave the refcount
      * of the result caps to 0 so that other threads don't run away with the
      * caps while we are constructing it. */
     temp.type = GST_TYPE_CAPS;
-    temp.flags = 0;
+    temp.flags = GST_CAPS_FLAGS_NONE;
     temp.structs = g_ptr_array_new ();
 
     /* initialize the caps to a refcount of 1 so the caps can be writable for
@@ -507,7 +510,7 @@ gst_static_caps_get (GstStaticCaps * static_caps)
     /* and bump the refcount so other threads can now read */
     g_atomic_int_set (&caps->refcount, 1);
 
-    GST_CAT_LOG (GST_CAT_CAPS, "created %p", static_caps);
+    GST_CAT_TRACE (GST_CAT_CAPS, "created %p", static_caps);
   done:
     G_UNLOCK (static_caps_lock);
   }
@@ -540,107 +543,32 @@ gst_caps_remove_and_get_structure (GstCaps * caps, guint idx)
 /**
  * gst_caps_steal_structure:
  * @caps: the #GstCaps to retrieve from
- * @idx: Index of the structure to retrieve
+ * @index: Index of the structure to retrieve
  *
  * Retrieves the stucture with the given index from the list of structures
  * contained in @caps. The caller becomes the owner of the returned structure.
  *
- * Returns: a pointer to the #GstStructure corresponding to @index.
+ * Returns: (transfer full): a pointer to the #GstStructure corresponding
+ *     to @index.
  *
  * Since: 0.10.30
  */
 GstStructure *
-gst_caps_steal_structure (GstCaps * caps, guint idx)
+gst_caps_steal_structure (GstCaps * caps, guint index)
 {
   g_return_val_if_fail (caps != NULL, NULL);
   g_return_val_if_fail (IS_WRITABLE (caps), NULL);
 
-  if (G_UNLIKELY (idx >= caps->structs->len))
+  if (G_UNLIKELY (index >= caps->structs->len))
     return NULL;
 
-  return gst_caps_remove_and_get_structure (caps, idx);
-}
-
-static gboolean
-gst_structure_is_equal_foreach (GQuark field_id, const GValue * val2,
-    gpointer data)
-{
-  GstStructure *struct1 = (GstStructure *) data;
-  const GValue *val1 = gst_structure_id_get_value (struct1, field_id);
-
-  if (G_UNLIKELY (val1 == NULL))
-    return FALSE;
-  if (gst_value_compare (val1, val2) == GST_VALUE_EQUAL) {
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-static gboolean
-gst_caps_structure_is_subset_field (GQuark field_id, const GValue * value,
-    gpointer user_data)
-{
-  GstStructure *subtract_from = user_data;
-  GValue subtraction = { 0, };
-  const GValue *other;
-
-  if (!(other = gst_structure_id_get_value (subtract_from, field_id)))
-    /* field is missing in one set */
-    return FALSE;
-
-  /* equal values are subset */
-  if (gst_value_compare (other, value) == GST_VALUE_EQUAL)
-    return TRUE;
-
-  /*
-   * 1 - [1,2] = empty
-   * -> !subset
-   *
-   * [1,2] - 1 = 2
-   *  -> 1 - [1,2] = empty
-   *  -> subset
-   *
-   * [1,3] - [1,2] = 3
-   * -> [1,2] - [1,3] = empty
-   * -> subset
-   *
-   * {1,2} - {1,3} = 2
-   * -> {1,3} - {1,2} = 3
-   * -> !subset
-   *
-   *  First caps subtraction needs to return a non-empty set, second
-   *  subtractions needs to give en empty set.
-   */
-  if (gst_value_subtract (&subtraction, other, value)) {
-    g_value_unset (&subtraction);
-    /* !empty result, swapping must be empty */
-    if (!gst_value_subtract (&subtraction, value, other))
-      return TRUE;
-
-    g_value_unset (&subtraction);
-  }
-  return FALSE;
-}
-
-static gboolean
-gst_caps_structure_is_subset (const GstStructure * minuend,
-    const GstStructure * subtrahend)
-{
-  if ((minuend->name != subtrahend->name) ||
-      (gst_structure_n_fields (minuend) !=
-          gst_structure_n_fields (subtrahend))) {
-    return FALSE;
-  }
-
-  return gst_structure_foreach ((GstStructure *) subtrahend,
-      gst_caps_structure_is_subset_field, (gpointer) minuend);
+  return gst_caps_remove_and_get_structure (caps, index);
 }
 
 /**
  * gst_caps_append:
  * @caps1: the #GstCaps that will be appended to
- * @caps2: the #GstCaps to append
+ * @caps2: (transfer full): the #GstCaps to append
  *
  * Appends the structures contained in @caps2 to @caps1. The structures in
  * @caps2 are not copied -- they are transferred to @caps1, and then @caps2 is
@@ -655,7 +583,8 @@ gst_caps_append (GstCaps * caps1, GstCaps * caps2)
   g_return_if_fail (GST_IS_CAPS (caps1));
   g_return_if_fail (GST_IS_CAPS (caps2));
   g_return_if_fail (IS_WRITABLE (caps1));
-  g_return_if_fail (IS_WRITABLE (caps2));
+
+  caps2 = gst_caps_make_writable (caps2);
 
 #ifdef USE_POISONING
   CAPS_POISON (caps2);
@@ -679,7 +608,7 @@ gst_caps_append (GstCaps * caps1, GstCaps * caps2)
 /**
  * gst_caps_merge:
  * @caps1: the #GstCaps that will take the new entries
- * @caps2: the #GstCaps to merge in
+ * @caps2: (transfer full): the #GstCaps to merge in
  *
  * Appends the structures contained in @caps2 to @caps1 if they are not yet
  * expressed by @caps1. The structures in @caps2 are not copied -- they are
@@ -697,7 +626,8 @@ gst_caps_merge (GstCaps * caps1, GstCaps * caps2)
   g_return_if_fail (GST_IS_CAPS (caps1));
   g_return_if_fail (GST_IS_CAPS (caps2));
   g_return_if_fail (IS_WRITABLE (caps1));
-  g_return_if_fail (IS_WRITABLE (caps2));
+
+  caps2 = gst_caps_make_writable (caps2);
 
 #ifdef USE_POISONING
   CAPS_POISON (caps2);
@@ -734,7 +664,7 @@ gst_caps_merge (GstCaps * caps1, GstCaps * caps2)
 /**
  * gst_caps_append_structure:
  * @caps: the #GstCaps that will be appended to
- * @structure: the #GstStructure to append
+ * @structure: (transfer full): the #GstStructure to append
  *
  * Appends @structure to @caps.  The structure is not copied; @caps
  * becomes the owner of @structure.
@@ -779,8 +709,8 @@ gst_caps_remove_structure (GstCaps * caps, guint idx)
 
 /**
  * gst_caps_merge_structure:
- * @caps: the #GstCaps that will the the new structure
- * @structure: the #GstStructure to merge
+ * @caps: the #GstCaps that will the new structure
+ * @structure: (transfer full): the #GstStructure to merge
  *
  * Appends @structure to @caps if its not already expressed by @caps.  The
  * structure is not copied; @caps becomes the owner of @structure.
@@ -806,7 +736,7 @@ gst_caps_merge_structure (GstCaps * caps, GstStructure * structure)
     for (i = caps->structs->len - 1; i >= 0; i--) {
       structure1 = gst_caps_get_structure_unchecked (caps, i);
       /* if structure is a subset of structure1, then skip it */
-      if (gst_caps_structure_is_subset (structure1, structure)) {
+      if (gst_structure_is_subset (structure, structure1)) {
         unique = FALSE;
         break;
       }
@@ -855,7 +785,8 @@ gst_caps_get_size (const GstCaps * caps)
  * You do not need to free or unref the structure returned, it
  * belongs to the #GstCaps.
  *
- * Returns: a pointer to the #GstStructure corresponding to @index
+ * Returns: (transfer none): a pointer to the #GstStructure corresponding
+ *     to @index
  */
 GstStructure *
 gst_caps_get_structure (const GstCaps * caps, guint index)
@@ -874,7 +805,7 @@ gst_caps_get_structure (const GstCaps * caps, guint index)
  * Creates a new #GstCaps and appends a copy of the nth structure
  * contained in @caps.
  *
- * Returns: the new #GstCaps
+ * Returns: (transfer full): the new #GstCaps
  */
 GstCaps *
 gst_caps_copy_nth (const GstCaps * caps, guint nth)
@@ -955,7 +886,7 @@ gst_caps_set_value (GstCaps * caps, const char *field, const GValue * value)
  * Sets fields in a #GstCaps.  The arguments must be passed in the same
  * manner as gst_structure_set(), and be NULL-terminated.
  * <note>Prior to GStreamer version 0.10.26, this function failed when
- * @caps was not simple. If your code needs to work with those versions 
+ * @caps was not simple. If your code needs to work with those versions
  * of GStreamer, you may only call this function when GST_CAPS_IS_SIMPLE()
  * is %TRUE for @caps.</note>
  */
@@ -977,12 +908,7 @@ gst_caps_set_simple_valist (GstCaps * caps, const char *field, va_list varargs)
       g_warning ("Don't use G_TYPE_DATE, use GST_TYPE_DATE instead\n");
       type = GST_TYPE_DATE;
     }
-#if GLIB_CHECK_VERSION(2,23,3)
     G_VALUE_COLLECT_INIT (&value, type, varargs, 0, &err);
-#else
-    g_value_init (&value, type);
-    G_VALUE_COLLECT (&value, varargs, 0, &err);
-#endif
     if (G_UNLIKELY (err)) {
       g_critical ("%s", err);
       return;
@@ -1112,15 +1038,7 @@ gst_caps_is_equal_fixed (const GstCaps * caps1, const GstCaps * caps2)
   struct1 = gst_caps_get_structure_unchecked (caps1, 0);
   struct2 = gst_caps_get_structure_unchecked (caps2, 0);
 
-  if (struct1->name != struct2->name) {
-    return FALSE;
-  }
-  if (struct1->fields->len != struct2->fields->len) {
-    return FALSE;
-  }
-
-  return gst_structure_foreach (struct1, gst_structure_is_equal_foreach,
-      struct2);
+  return gst_structure_is_equal (struct1, struct2);
 }
 
 /**
@@ -1157,8 +1075,9 @@ gst_caps_is_always_compatible (const GstCaps * caps1, const GstCaps * caps2)
 gboolean
 gst_caps_is_subset (const GstCaps * subset, const GstCaps * superset)
 {
-  GstCaps *caps;
-  gboolean ret;
+  GstStructure *s1, *s2;
+  gboolean ret = TRUE;
+  gint i, j;
 
   g_return_val_if_fail (subset != NULL, FALSE);
   g_return_val_if_fail (superset != NULL, FALSE);
@@ -1168,10 +1087,63 @@ gst_caps_is_subset (const GstCaps * subset, const GstCaps * superset)
   if (CAPS_IS_ANY (subset) || CAPS_IS_EMPTY (superset))
     return FALSE;
 
-  caps = gst_caps_subtract (subset, superset);
-  ret = CAPS_IS_EMPTY_SIMPLE (caps);
-  gst_caps_unref (caps);
+  for (i = subset->structs->len - 1; i >= 0; i--) {
+    for (j = superset->structs->len - 1; j >= 0; j--) {
+      s1 = gst_caps_get_structure_unchecked (subset, i);
+      s2 = gst_caps_get_structure_unchecked (superset, j);
+      if (gst_structure_is_subset (s1, s2)) {
+        /* If we found a superset, continue with the next
+         * subset structure */
+        break;
+      }
+    }
+    /* If we found no superset for this subset structure
+     * we return FALSE immediately */
+    if (j == -1) {
+      ret = FALSE;
+      break;
+    }
+  }
+
   return ret;
+}
+
+/**
+ * gst_caps_is_subset_structure:
+ * @caps: a #GstCaps
+ * @structure: a potential #GstStructure subset of @caps
+ *
+ * Checks if @structure is a subset of @caps. See gst_caps_is_subset()
+ * for more information.
+ *
+ * Returns: %TRUE if @structure is a subset of @caps
+ *
+ * Since: 0.10.36
+ */
+gboolean
+gst_caps_is_subset_structure (const GstCaps * caps,
+    const GstStructure * structure)
+{
+  GstStructure *s;
+  gint i;
+
+  g_return_val_if_fail (caps != NULL, FALSE);
+  g_return_val_if_fail (structure != NULL, FALSE);
+
+  if (CAPS_IS_ANY (caps))
+    return TRUE;
+  if (CAPS_IS_EMPTY (caps))
+    return FALSE;
+
+  for (i = caps->structs->len - 1; i >= 0; i--) {
+    s = gst_caps_get_structure_unchecked (caps, i);
+    if (gst_structure_is_subset (structure, s)) {
+      /* If we found a superset return TRUE */
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
 /**
@@ -1208,135 +1180,55 @@ gst_caps_is_equal (const GstCaps * caps1, const GstCaps * caps2)
   return gst_caps_is_subset (caps1, caps2) && gst_caps_is_subset (caps2, caps1);
 }
 
+/**
+ * gst_caps_is_strictly_equal:
+ * @caps1: a #GstCaps
+ * @caps2: another #GstCaps
+ *
+ * Checks if the given caps are exactly the same set of caps.
+ *
+ * This function deals correctly with passing NULL for any of the caps.
+ *
+ * Returns: TRUE if both caps are strictly equal.
+ *
+ * Since: 0.10.36
+ */
+gboolean
+gst_caps_is_strictly_equal (const GstCaps * caps1, const GstCaps * caps2)
+{
+  int i;
+  /* FIXME 0.11: NULL pointers are no valid Caps but indicate an error
+   * So there should be an assertion that caps1 and caps2 != NULL */
+
+  /* NULL <-> NULL is allowed here */
+  if (G_UNLIKELY (caps1 == caps2))
+    return TRUE;
+
+  /* one of them NULL => they are different (can't be both NULL because
+   * we checked that above) */
+  if (G_UNLIKELY (caps1 == NULL || caps2 == NULL))
+    return FALSE;
+
+  if (caps1->structs->len != caps2->structs->len)
+    return FALSE;
+
+  for (i = 0; i < caps1->structs->len; i++) {
+    if (!gst_structure_is_equal (gst_caps_get_structure_unchecked (caps1, i),
+            gst_caps_get_structure_unchecked (caps2, i)))
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
 /* intersect operation */
-
-typedef struct
-{
-  GstStructure *dest;
-  const GstStructure *intersect;
-}
-IntersectData;
-
-static gboolean
-gst_caps_structure_intersect_field1 (GQuark id, const GValue * val1,
-    gpointer data)
-{
-  IntersectData *idata = (IntersectData *) data;
-  const GValue *val2 = gst_structure_id_get_value (idata->intersect, id);
-
-  if (G_UNLIKELY (val2 == NULL)) {
-    gst_structure_id_set_value (idata->dest, id, val1);
-  } else {
-    GValue dest_value = { 0 };
-    if (gst_value_intersect (&dest_value, val1, val2)) {
-      gst_structure_id_set_value (idata->dest, id, &dest_value);
-      g_value_unset (&dest_value);
-    } else {
-      return FALSE;
-    }
-  }
-  return TRUE;
-}
-
-static gboolean
-gst_caps_structure_intersect_field2 (GQuark id, const GValue * val1,
-    gpointer data)
-{
-  IntersectData *idata = (IntersectData *) data;
-  const GValue *val2 = gst_structure_id_get_value (idata->intersect, id);
-
-  if (G_UNLIKELY (val2 == NULL)) {
-    gst_structure_id_set_value (idata->dest, id, val1);
-  }
-  return TRUE;
-}
-
-static GstStructure *
-gst_caps_structure_intersect (const GstStructure * struct1,
-    const GstStructure * struct2)
-{
-  IntersectData data;
-
-  g_assert (struct1 != NULL);
-  g_assert (struct2 != NULL);
-
-  if (G_UNLIKELY (struct1->name != struct2->name))
-    return NULL;
-
-  /* copy fields from struct1 which we have not in struct2 to target
-   * intersect if we have the field in both */
-  data.dest = gst_structure_id_empty_new (struct1->name);
-  data.intersect = struct2;
-  if (G_UNLIKELY (!gst_structure_foreach ((GstStructure *) struct1,
-              gst_caps_structure_intersect_field1, &data)))
-    goto error;
-
-  /* copy fields from struct2 which we have not in struct1 to target */
-  data.intersect = struct1;
-  if (G_UNLIKELY (!gst_structure_foreach ((GstStructure *) struct2,
-              gst_caps_structure_intersect_field2, &data)))
-    goto error;
-
-  return data.dest;
-
-error:
-  gst_structure_free (data.dest);
-  return NULL;
-}
-
-static gboolean
-gst_caps_structure_can_intersect_field (GQuark id, const GValue * val1,
-    gpointer data)
-{
-  GstStructure *other = (GstStructure *) data;
-  const GValue *val2 = gst_structure_id_get_value (other, id);
-
-  if (G_LIKELY (val2)) {
-    if (!gst_value_can_intersect (val1, val2)) {
-      return FALSE;
-    } else {
-      gint eq = gst_value_compare (val1, val2);
-
-      if (eq == GST_VALUE_UNORDERED) {
-        /* we need to try interseting */
-        GValue dest_value = { 0 };
-        if (gst_value_intersect (&dest_value, val1, val2)) {
-          g_value_unset (&dest_value);
-        } else {
-          return FALSE;
-        }
-      } else if (eq != GST_VALUE_EQUAL) {
-        return FALSE;
-      }
-    }
-  }
-  return TRUE;
-}
-
-static gboolean
-gst_caps_structure_can_intersect (const GstStructure * struct1,
-    const GstStructure * struct2)
-{
-  g_assert (struct1 != NULL);
-  g_assert (struct2 != NULL);
-
-  if (G_UNLIKELY (struct1->name != struct2->name))
-    return FALSE;
-
-  /* tries to intersect if we have the field in both */
-  if (G_UNLIKELY (!gst_structure_foreach ((GstStructure *) struct1,
-              gst_caps_structure_can_intersect_field, (gpointer) struct2)))
-    return FALSE;
-
-  return TRUE;
-}
 
 /**
  * gst_caps_can_intersect:
  * @caps1: a #GstCaps to intersect
  * @caps2: a #GstCaps to intersect
  *
- * Tries intersecting @caps1 and @caps2 and reports wheter the result would not
+ * Tries intersecting @caps1 and @caps2 and reports whether the result would not
  * be empty
  *
  * Returns: %TRUE if intersection would be not empty
@@ -1372,15 +1264,16 @@ gst_caps_can_intersect (const GstCaps * caps1, const GstCaps * caps2)
    * This algorithm zigzags over the caps structures as demonstrated in
    * the folowing matrix:
    *
-   *          caps1
-   *       +-------------
-   *       | 1  2  4  7
-   * caps2 | 3  5  8 10
-   *       | 6  9 11 12
+   *          caps1                              0  1  2  3
+   *       +-------------     total distance:  +-------------
+   *       | 1  2  4  7                      0 | 0  1  2  3
+   * caps2 | 3  5  8 10                      1 | 1  2  3  4
+   *       | 6  9 11 12                      2 | 2  3  4  5
    *
    * First we iterate over the caps1 structures (top line) intersecting
    * the structures diagonally down, then we iterate over the caps2
-   * structures.
+   * structures. The result is that the intersections are ordered based on the
+   * sum of the indexes in the list.
    */
   len1 = caps1->structs->len;
   len2 = caps2->structs->len;
@@ -1389,7 +1282,7 @@ gst_caps_can_intersect (const GstCaps * caps1, const GstCaps * caps2)
     j = MIN (i, len1 - 1);
     /* subset index stays 0 until i reaches superset->structs->len, then it
      * counts up from 1 to subset->structs->len - 1 */
-    k = MAX (0, i - j);
+    k = (i > j) ? (i - j) : 0;  /* MAX (0, i - j) */
 
     /* now run the diagonal line, end condition is the left or bottom
      * border */
@@ -1397,7 +1290,7 @@ gst_caps_can_intersect (const GstCaps * caps1, const GstCaps * caps2)
       struct1 = gst_caps_get_structure_unchecked (caps1, j);
       struct2 = gst_caps_get_structure_unchecked (caps2, k);
 
-      if (gst_caps_structure_can_intersect (struct1, struct2)) {
+      if (gst_structure_can_intersect (struct1, struct2)) {
         return TRUE;
       }
       /* move down left */
@@ -1410,18 +1303,8 @@ gst_caps_can_intersect (const GstCaps * caps1, const GstCaps * caps2)
   return FALSE;
 }
 
-/**
- * gst_caps_intersect:
- * @caps1: a #GstCaps to intersect
- * @caps2: a #GstCaps to intersect
- *
- * Creates a new #GstCaps that contains all the formats that are common
- * to both @caps1 and @caps2.
- *
- * Returns: the new #GstCaps
- */
-GstCaps *
-gst_caps_intersect (const GstCaps * caps1, const GstCaps * caps2)
+static GstCaps *
+gst_caps_intersect_zig_zag (const GstCaps * caps1, const GstCaps * caps2)
 {
   guint64 i;                    /* index can be up to 2 * G_MAX_UINT */
   guint j, k, len1, len2;
@@ -1430,9 +1313,6 @@ gst_caps_intersect (const GstCaps * caps1, const GstCaps * caps2)
   GstStructure *struct2;
   GstCaps *dest;
   GstStructure *istruct;
-
-  g_return_val_if_fail (GST_IS_CAPS (caps1), NULL);
-  g_return_val_if_fail (GST_IS_CAPS (caps2), NULL);
 
   /* caps are exactly the same pointers, just copy one caps */
   if (G_UNLIKELY (caps1 == caps2))
@@ -1473,7 +1353,7 @@ gst_caps_intersect (const GstCaps * caps1, const GstCaps * caps2)
     j = MIN (i, len1 - 1);
     /* caps2 index stays 0 until i reaches caps1->structs->len, then it counts
      * up from 1 to caps2->structs->len - 1 */
-    k = MAX (0, i - j);
+    k = (i > j) ? (i - j) : 0;  /* MAX (0, i - j) */
 
     /* now run the diagonal line, end condition is the left or bottom
      * border */
@@ -1481,9 +1361,9 @@ gst_caps_intersect (const GstCaps * caps1, const GstCaps * caps2)
       struct1 = gst_caps_get_structure_unchecked (caps1, j);
       struct2 = gst_caps_get_structure_unchecked (caps2, k);
 
-      istruct = gst_caps_structure_intersect (struct1, struct2);
+      istruct = gst_structure_intersect (struct1, struct2);
 
-      gst_caps_append_structure (dest, istruct);
+      gst_caps_merge_structure (dest, istruct);
       /* move down left */
       k++;
       if (G_UNLIKELY (j == 0))
@@ -1493,6 +1373,109 @@ gst_caps_intersect (const GstCaps * caps1, const GstCaps * caps2)
   }
   return dest;
 }
+
+/**
+ * gst_caps_intersect_first:
+ * @caps1: a #GstCaps to intersect
+ * @caps2: a #GstCaps to intersect
+ *
+ * Creates a new #GstCaps that contains all the formats that are common
+ * to both @caps1 and @caps2.
+ *
+ * Unlike @gst_caps_intersect, the returned caps will be ordered in a similar
+ * fashion as @caps1.
+ *
+ * Returns: the new #GstCaps
+ */
+static GstCaps *
+gst_caps_intersect_first (const GstCaps * caps1, const GstCaps * caps2)
+{
+  guint i;
+  guint j, len1, len2;
+
+  GstStructure *struct1;
+  GstStructure *struct2;
+  GstCaps *dest;
+  GstStructure *istruct;
+
+  /* caps are exactly the same pointers, just copy one caps */
+  if (G_UNLIKELY (caps1 == caps2))
+    return gst_caps_copy (caps1);
+
+  /* empty caps on either side, return empty */
+  if (G_UNLIKELY (CAPS_IS_EMPTY (caps1) || CAPS_IS_EMPTY (caps2)))
+    return gst_caps_new_empty ();
+
+  /* one of the caps is any, just copy the other caps */
+  if (G_UNLIKELY (CAPS_IS_ANY (caps1)))
+    return gst_caps_copy (caps2);
+  if (G_UNLIKELY (CAPS_IS_ANY (caps2)))
+    return gst_caps_copy (caps1);
+
+  dest = gst_caps_new_empty ();
+
+  len1 = caps1->structs->len;
+  len2 = caps2->structs->len;
+  for (i = 0; i < len1; i++) {
+    struct1 = gst_caps_get_structure_unchecked (caps1, i);
+    for (j = 0; j < len2; j++) {
+      struct2 = gst_caps_get_structure_unchecked (caps2, j);
+      istruct = gst_structure_intersect (struct1, struct2);
+      if (istruct)
+        gst_caps_merge_structure (dest, istruct);
+    }
+  }
+
+  return dest;
+}
+
+/**
+ * gst_caps_intersect_full:
+ * @caps1: a #GstCaps to intersect
+ * @caps2: a #GstCaps to intersect
+ * @mode: The intersection algorithm/mode to use
+ *
+ * Creates a new #GstCaps that contains all the formats that are common
+ * to both @caps1 and @caps2, the order is defined by the #GstCapsIntersectMode
+ * used.
+ *
+ * Returns: the new #GstCaps
+ * Since: 0.10.33
+ */
+GstCaps *
+gst_caps_intersect_full (const GstCaps * caps1, const GstCaps * caps2,
+    GstCapsIntersectMode mode)
+{
+  g_return_val_if_fail (GST_IS_CAPS (caps1), NULL);
+  g_return_val_if_fail (GST_IS_CAPS (caps2), NULL);
+
+  switch (mode) {
+    case GST_CAPS_INTERSECT_FIRST:
+      return gst_caps_intersect_first (caps1, caps2);
+    default:
+      g_warning ("Unknown caps intersect mode: %d", mode);
+      /* fallthrough */
+    case GST_CAPS_INTERSECT_ZIG_ZAG:
+      return gst_caps_intersect_zig_zag (caps1, caps2);
+  }
+}
+
+/**
+ * gst_caps_intersect:
+ * @caps1: a #GstCaps to intersect
+ * @caps2: a #GstCaps to intersect
+ *
+ * Creates a new #GstCaps that contains all the formats that are common
+ * to both @caps1 and @caps2. Defaults to %GST_CAPS_INTERSECT_ZIG_ZAG mode.
+ *
+ * Returns: the new #GstCaps
+ */
+GstCaps *
+gst_caps_intersect (const GstCaps * caps1, const GstCaps * caps2)
+{
+  return gst_caps_intersect_full (caps1, caps2, GST_CAPS_INTERSECT_ZIG_ZAG);
+}
+
 
 /* subtract operation */
 
@@ -1557,8 +1540,8 @@ gst_caps_structure_subtract (GSList ** into, const GstStructure * minuend,
 
 /**
  * gst_caps_subtract:
- * @minuend: #GstCaps to substract from
- * @subtrahend: #GstCaps to substract
+ * @minuend: #GstCaps to subtract from
+ * @subtrahend: #GstCaps to subtract
  *
  * Subtracts the @subtrahend from the @minuend.
  * <note>This function does not work reliably if optional properties for caps
@@ -1837,24 +1820,17 @@ gst_caps_structure_simplify (GstStructure ** result,
 
   /* try to subtract to get a real subset */
   if (gst_caps_structure_subtract (&list, simplify, compare)) {
-    switch (g_slist_length (list)) {
-      case 0:
-        *result = NULL;
-        return TRUE;
-      case 1:
-        *result = list->data;
-        g_slist_free (list);
-        return TRUE;
-      default:
-      {
-        GSList *walk;
-
-        for (walk = list; walk; walk = g_slist_next (walk)) {
-          gst_structure_free (walk->data);
-        }
-        g_slist_free (list);
-        break;
-      }
+    if (list == NULL) {         /* no result */
+      *result = NULL;
+      return TRUE;
+    } else if (list->next == NULL) {    /* one result */
+      *result = list->data;
+      g_slist_free (list);
+      return TRUE;
+    } else {                    /* multiple results */
+      g_slist_foreach (list, (GFunc) gst_structure_free, NULL);
+      g_slist_free (list);
+      list = NULL;
     }
   }
 
@@ -2011,7 +1987,7 @@ gst_caps_load_thyself (xmlNodePtr parent)
 
 /**
  * gst_caps_replace:
- * @caps: a pointer to #GstCaps
+ * @caps: (inout) (transfer full): a pointer to #GstCaps
  * @newcaps: a #GstCaps to replace *caps
  *
  * Replaces *caps with @newcaps.  Unrefs the #GstCaps in the location
@@ -2056,7 +2032,7 @@ gst_caps_replace (GstCaps ** caps, GstCaps * newcaps)
  * ]|
  * This prints the caps in human readble form.
  *
- * Returns: a newly allocated string representing @caps.
+ * Returns: (transfer full): a newly allocated string representing @caps.
  */
 gchar *
 gst_caps_to_string (const GstCaps * caps)
@@ -2152,7 +2128,7 @@ gst_caps_from_string_inplace (GstCaps * caps, const gchar * string)
  *
  * Converts @caps from a string representation.
  *
- * Returns: a newly allocated #GstCaps
+ * Returns: (transfer full): a newly allocated #GstCaps
  */
 GstCaps *
 gst_caps_from_string (const gchar * string)
@@ -2179,8 +2155,8 @@ gst_caps_transform_to_string (const GValue * src_value, GValue * dest_value)
   g_return_if_fail (G_VALUE_HOLDS (dest_value, G_TYPE_STRING)
       || G_VALUE_HOLDS (dest_value, G_TYPE_POINTER));
 
-  dest_value->data[0].v_pointer =
-      gst_caps_to_string (src_value->data[0].v_pointer);
+  g_value_take_string (dest_value,
+      gst_caps_to_string (gst_value_get_caps (src_value)));
 }
 
 static GstCaps *

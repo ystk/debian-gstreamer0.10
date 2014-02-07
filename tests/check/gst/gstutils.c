@@ -453,7 +453,7 @@ GST_START_TEST (test_parse_bin_from_description)
     }
 
     if (strcmp (s->str, bin_tests[i].pad_names) != 0) {
-      g_error ("FAILED: expted '%s', got '%s' for bin '%s'",
+      g_error ("FAILED: expected '%s', got '%s' for bin '%s'",
           bin_tests[i].pad_names, s->str, bin_tests[i].bin_desc);
     }
     g_string_free (s, TRUE);
@@ -880,6 +880,9 @@ _gmp_test_scale (gsl_rng * rng)
       bygst = gst_util_uint64_scale (val, a, b);
       func = "gst_util_uint64_scale";
       break;
+    default:
+      g_assert_not_reached ();
+      break;
   }
   fail_unless (bygst == bygmp,
       "error: %s(): %" G_GUINT64_FORMAT " * %" G_GUINT64_FORMAT " / %"
@@ -910,6 +913,9 @@ _gmp_test_scale_int (gsl_rng * rng)
     case ROUND_DOWN:
       bygst = gst_util_uint64_scale_int (val, a, b);
       func = "gst_util_uint64_scale_int";
+      break;
+    default:
+      g_assert_not_reached ();
       break;
   }
   fail_unless (bygst == bygmp,
@@ -948,6 +954,105 @@ GST_END_TEST;
 #endif
 #endif
 
+GST_START_TEST (test_pad_proxy_getcaps_aggregation)
+{
+  GstElement *tee, *sink1, *sink2;
+  GstCaps *caps;
+  GstPad *tee_src1, *tee_src2, *tee_sink, *sink1_sink, *sink2_sink;
+
+  tee = gst_element_factory_make ("tee", "tee");
+
+  sink1 = gst_element_factory_make ("fakesink", "sink1");
+  tee_src1 = gst_element_get_request_pad (tee, "src%d");
+  sink1_sink = gst_element_get_static_pad (sink1, "sink");
+  fail_unless_equals_int (gst_pad_link (tee_src1, sink1_sink), GST_PAD_LINK_OK);
+
+  sink2 = gst_element_factory_make ("fakesink", "sink2");
+  tee_src2 = gst_element_get_request_pad (tee, "src%d");
+  sink2_sink = gst_element_get_static_pad (sink2, "sink");
+  fail_unless_equals_int (gst_pad_link (tee_src2, sink2_sink), GST_PAD_LINK_OK);
+
+  tee_sink = gst_element_get_static_pad (tee, "sink");
+
+  /* by default, ANY caps should intersect to ANY */
+  caps = gst_pad_get_caps (tee_sink);
+  GST_INFO ("got caps: %" GST_PTR_FORMAT, caps);
+  fail_unless (caps != NULL);
+  fail_unless (gst_caps_is_any (caps));
+  gst_caps_unref (caps);
+
+  /* these don't intersect we should get empty caps */
+  caps = gst_caps_new_simple ("foo/bar", NULL);
+  fail_unless (gst_pad_set_caps (sink1_sink, caps));
+  gst_pad_use_fixed_caps (sink1_sink);
+  gst_caps_unref (caps);
+
+  caps = gst_caps_new_simple ("bar/ter", NULL);
+  fail_unless (gst_pad_set_caps (sink2_sink, caps));
+  gst_pad_use_fixed_caps (sink2_sink);
+  gst_caps_unref (caps);
+
+  caps = gst_pad_get_caps (tee_sink);
+  GST_INFO ("got caps: %" GST_PTR_FORMAT, caps);
+  fail_unless (caps != NULL);
+  fail_unless (gst_caps_is_empty (caps));
+  gst_caps_unref (caps);
+
+  /* test intersection */
+  caps = gst_caps_new_simple ("foo/bar", "barversion", G_TYPE_INT, 1, NULL);
+  fail_unless (gst_pad_set_caps (sink2_sink, caps));
+  gst_pad_use_fixed_caps (sink2_sink);
+  gst_caps_unref (caps);
+
+  caps = gst_pad_get_caps (tee_sink);
+  GST_INFO ("got caps: %" GST_PTR_FORMAT, caps);
+  fail_unless (caps != NULL);
+  fail_if (gst_caps_is_empty (caps));
+  {
+    GstStructure *s = gst_caps_get_structure (caps, 0);
+
+    fail_unless_equals_string (gst_structure_get_name (s), "foo/bar");
+    fail_unless (gst_structure_has_field_typed (s, "barversion", G_TYPE_INT));
+  }
+  gst_caps_unref (caps);
+
+  /* clean up */
+  gst_element_release_request_pad (tee, tee_src1);
+  gst_object_unref (tee_src1);
+  gst_element_release_request_pad (tee, tee_src2);
+  gst_object_unref (tee_src2);
+  gst_object_unref (tee_sink);
+  gst_object_unref (tee);
+  gst_object_unref (sink1_sink);
+  gst_object_unref (sink1);
+  gst_object_unref (sink2_sink);
+  gst_object_unref (sink2);
+}
+
+GST_END_TEST;
+
+GST_START_TEST (test_greatest_common_divisor)
+{
+  fail_if (gst_util_greatest_common_divisor (1, 1) != 1);
+  fail_if (gst_util_greatest_common_divisor (2, 3) != 1);
+  fail_if (gst_util_greatest_common_divisor (3, 5) != 1);
+  fail_if (gst_util_greatest_common_divisor (-1, 1) != 1);
+  fail_if (gst_util_greatest_common_divisor (-2, 3) != 1);
+  fail_if (gst_util_greatest_common_divisor (-3, 5) != 1);
+  fail_if (gst_util_greatest_common_divisor (-1, -1) != 1);
+  fail_if (gst_util_greatest_common_divisor (-2, -3) != 1);
+  fail_if (gst_util_greatest_common_divisor (-3, -5) != 1);
+  fail_if (gst_util_greatest_common_divisor (1, -1) != 1);
+  fail_if (gst_util_greatest_common_divisor (2, -3) != 1);
+  fail_if (gst_util_greatest_common_divisor (3, -5) != 1);
+  fail_if (gst_util_greatest_common_divisor (2, 2) != 2);
+  fail_if (gst_util_greatest_common_divisor (2, 4) != 2);
+  fail_if (gst_util_greatest_common_divisor (1001, 11) != 11);
+
+}
+
+GST_END_TEST;
+
 static Suite *
 gst_utils_suite (void)
 {
@@ -978,6 +1083,9 @@ gst_utils_suite (void)
   tcase_add_test (tc_chain, test_element_unlink);
   tcase_add_test (tc_chain, test_set_value_from_string);
   tcase_add_test (tc_chain, test_binary_search);
+
+  tcase_add_test (tc_chain, test_pad_proxy_getcaps_aggregation);
+  tcase_add_test (tc_chain, test_greatest_common_divisor);
   return s;
 }
 

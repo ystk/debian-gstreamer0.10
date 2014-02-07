@@ -48,6 +48,12 @@ extern const char             g_log_domain_gstreamer[];
 /* for the flags in the GstPluginDep structure below */
 #include "gstplugin.h"
 
+/* for the pad cache */
+#include "gstpad.h"
+
+/* for GstElement */
+#include "gstelement.h"
+
 G_BEGIN_DECLS
 
 /* used by gstparse.c and grammar.y */
@@ -108,6 +114,12 @@ gboolean _priv_gst_registry_remove_cache_plugins (GstRegistry *registry);
 void _priv_gst_registry_cleanup (void);
 gboolean _gst_plugin_loader_client_run (void);
 
+void _priv_gst_pad_invalidate_cache (GstPad *pad);
+
+/* Used in GstBin for manual state handling */
+void _priv_gst_element_state_changed (GstElement *element, GstState oldstate,
+    GstState newstate, GstState pending);
+
 /* used in both gststructure.c and gstcaps.c; numbers are completely made up */
 #define STRUCTURE_ESTIMATED_STRING_LEN(s) (16 + (s)->fields->len * 22)
 
@@ -123,6 +135,9 @@ gboolean 		gst_registry_binary_write_cache	(GstRegistry * registry, const char *
 #define GST_ASCII_IS_STRING(c) (g_ascii_isalnum((c)) || ((c) == '_') || \
     ((c) == '-') || ((c) == '+') || ((c) == '/') || ((c) == ':') || \
     ((c) == '.'))
+
+/* This is only meant for internal uses */
+gint priv_gst_date_time_compare (gconstpointer dt1, gconstpointer dt2);
 
 #ifndef GST_DISABLE_REGISTRY
 /* Secret variable to initialise gst without registry cache */
@@ -225,6 +240,11 @@ extern GstDebugCategory *_priv_GST_CAT_POLL;
 #define GST_CAT_POLL             NULL
 
 #endif
+
+#ifdef GST_DISABLE_DEPRECATED
+typedef GList*			(*GstPadIntLinkFunction)	(GstPad *pad);
+#endif
+
 
 G_END_DECLS
 #endif /* __GST_PRIVATE_H__ */

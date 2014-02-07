@@ -348,6 +348,46 @@ GST_START_TEST (test_truncate)
 
 GST_END_TEST;
 
+GST_START_TEST (test_subset)
+{
+  GstCaps *c1, *c2;
+
+  c1 = gst_caps_from_string ("video/x-raw-yuv; video/x-raw-rgb");
+  c2 = gst_caps_from_string ("video/x-raw-yuv, format=(fourcc)YUY2");
+  fail_unless (gst_caps_is_subset (c2, c1));
+  fail_if (gst_caps_is_subset (c1, c2));
+  gst_caps_unref (c1);
+  gst_caps_unref (c2);
+
+  c1 = gst_caps_from_string
+      ("audio/x-raw-int, channels=(int)[ 1, 2 ], rate=(int)44100");
+  c2 = gst_caps_from_string
+      ("audio/x-raw-int, channels=(int)1, rate=(int)44100");
+  fail_unless (gst_caps_is_subset (c2, c1));
+  fail_if (gst_caps_is_subset (c1, c2));
+  gst_caps_unref (c1);
+  gst_caps_unref (c2);
+
+  c1 = gst_caps_from_string ("audio/x-raw-int, channels=(int) {1}");
+  c2 = gst_caps_from_string ("audio/x-raw-int, channels=(int)1");
+  fail_unless (gst_caps_is_subset (c2, c1));
+  fail_unless (gst_caps_is_subset (c1, c2));
+  fail_unless (gst_caps_is_equal (c1, c2));
+  gst_caps_unref (c1);
+  gst_caps_unref (c2);
+
+  c1 = gst_caps_from_string
+      ("audio/x-raw-int, rate=(int)44100, channels=(int)3, endianness=(int)1234, width=(int)16, depth=(int)16, signed=(boolean)false");
+  c2 = gst_caps_from_string
+      ("audio/x-raw-int, rate=(int)[ 1, 2147483647 ], channels=(int)[ 1, 2147483647 ], endianness=(int){ 1234, 4321 }, width=(int)16, depth=(int)[ 1, 16 ], signed=(boolean){ true, false }");
+  fail_unless (gst_caps_is_subset (c1, c2));
+  fail_if (gst_caps_is_subset (c2, c1));
+  gst_caps_unref (c1);
+  gst_caps_unref (c2);
+}
+
+GST_END_TEST;
+
 GST_START_TEST (test_merge_fundamental)
 {
   GstCaps *c1, *c2;
@@ -573,6 +613,26 @@ GST_START_TEST (test_merge_subset)
   fail_unless (gst_caps_is_subset (test, c2));
   gst_caps_unref (test);
   gst_caps_unref (c2);
+
+  c2 = gst_caps_from_string ("audio/x-raw-int");
+  c1 = gst_caps_from_string ("audio/x-raw-int,channels=1");
+  gst_caps_merge (c2, c1);
+  GST_DEBUG ("merged: (%d) %" GST_PTR_FORMAT, gst_caps_get_size (c2), c2);
+  fail_unless (gst_caps_get_size (c2) == 1, NULL);
+  test = gst_caps_from_string ("audio/x-raw-int");
+  fail_unless (gst_caps_is_equal (c2, test));
+  gst_caps_unref (c2);
+  gst_caps_unref (test);
+
+  c2 = gst_caps_from_string ("audio/x-raw-int,channels=1");
+  c1 = gst_caps_from_string ("audio/x-raw-int");
+  gst_caps_merge (c2, c1);
+  GST_DEBUG ("merged: (%d) %" GST_PTR_FORMAT, gst_caps_get_size (c2), c2);
+  fail_unless (gst_caps_get_size (c2) == 2, NULL);
+  test = gst_caps_from_string ("audio/x-raw-int,channels=1; audio/x-raw-int");
+  fail_unless (gst_caps_is_equal (c2, test));
+  gst_caps_unref (c2);
+  gst_caps_unref (test);
 }
 
 GST_END_TEST;
@@ -728,6 +788,108 @@ GST_START_TEST (test_intersect2)
 
 GST_END_TEST;
 
+
+GST_START_TEST (test_intersect_zigzag)
+{
+  GstCaps *caps1, *caps2, *icaps, *result;
+
+  /* tests if caps order is maintained */
+  caps1 = gst_caps_from_string ("format/A; format/B; format/C; format/D");
+  caps2 = gst_caps_from_string ("format/D; format/A; format/B; format/C");
+
+  icaps = gst_caps_intersect_full (caps1, caps2, GST_CAPS_INTERSECT_ZIG_ZAG);
+  result = gst_caps_from_string ("format/B; format/A; format/D; format/C");
+  GST_LOG ("intersected caps: %" GST_PTR_FORMAT, icaps);
+  fail_if (gst_caps_is_empty (icaps));
+  fail_unless (gst_caps_is_equal (icaps, result));
+  gst_caps_unref (icaps);
+  gst_caps_unref (result);
+
+  icaps = gst_caps_intersect_full (caps2, caps1, GST_CAPS_INTERSECT_FIRST);
+  result = gst_caps_from_string ("format/A; format/B; format/D; format/C");
+  GST_LOG ("intersected caps: %" GST_PTR_FORMAT, icaps);
+  fail_if (gst_caps_is_empty (icaps));
+  fail_unless (gst_caps_is_equal (icaps, result));
+  gst_caps_unref (icaps);
+  gst_caps_unref (result);
+
+  gst_caps_unref (caps1);
+  gst_caps_unref (caps2);
+}
+
+GST_END_TEST;
+
+
+GST_START_TEST (test_intersect_first)
+{
+  GstCaps *caps1, *caps2, *icaps, *result;
+
+  /* tests if caps order is maintained */
+  caps1 = gst_caps_from_string ("format/A; format/B; format/C; format/D");
+  caps2 = gst_caps_from_string ("format/C; format/D; format/A");
+  icaps = gst_caps_intersect_full (caps1, caps2, GST_CAPS_INTERSECT_FIRST);
+  result = gst_caps_from_string ("format/A; format/C; format/D");
+  GST_LOG ("intersected caps: %" GST_PTR_FORMAT, icaps);
+  fail_if (gst_caps_is_empty (icaps));
+  fail_unless (gst_caps_is_equal (icaps, result));
+  gst_caps_unref (caps1);
+  gst_caps_unref (caps2);
+  gst_caps_unref (icaps);
+  gst_caps_unref (result);
+}
+
+GST_END_TEST;
+
+
+GST_START_TEST (test_intersect_first2)
+{
+  GstCaps *caps1, *caps2, *icaps, *result;
+
+  /* tests if caps order is maintained */
+  caps1 = gst_caps_from_string ("format/A; format/B; format/C; format/D");
+  caps2 = gst_caps_from_string ("format/D; format/A; format/B; format/C");
+
+  icaps = gst_caps_intersect_full (caps1, caps2, GST_CAPS_INTERSECT_FIRST);
+  result = gst_caps_from_string ("format/A; format/B; format/C; format/D");
+  GST_LOG ("intersected caps: %" GST_PTR_FORMAT, icaps);
+  fail_if (gst_caps_is_empty (icaps));
+  fail_unless (gst_caps_is_equal (icaps, result));
+  gst_caps_unref (icaps);
+  gst_caps_unref (result);
+
+  icaps = gst_caps_intersect_full (caps2, caps1, GST_CAPS_INTERSECT_FIRST);
+  result = gst_caps_from_string ("format/D; format/A; format/B; format/C");
+  GST_LOG ("intersected caps: %" GST_PTR_FORMAT, icaps);
+  fail_if (gst_caps_is_empty (icaps));
+  fail_unless (gst_caps_is_equal (icaps, result));
+  gst_caps_unref (icaps);
+  gst_caps_unref (result);
+
+  gst_caps_unref (caps1);
+  gst_caps_unref (caps2);
+}
+
+GST_END_TEST;
+
+GST_START_TEST (test_intersect_duplication)
+{
+  GstCaps *c1, *c2, *test;
+
+  c1 = gst_caps_from_string
+      ("audio/x-raw-int, endianness=(int)1234, signed=(boolean)true, width=(int)16, depth=(int)16, rate=(int)[ 1, 2147483647 ], channels=(int)[ 1, 2 ]");
+  c2 = gst_caps_from_string
+      ("audio/x-raw-int, width=(int)16, depth=(int)16, rate=(int)[ 1, 2147483647 ], channels=(int)[ 1, 2 ], endianness=(int){ 1234, 4321 }, signed=(boolean){ true, false }; audio/x-raw-int, width=(int)16, depth=(int)16, rate=(int)[ 1, 2147483647 ], channels=(int)[ 1, 11 ], endianness=(int){ 1234, 4321 }, signed=(boolean){ true, false }; audio/x-raw-int, width=(int)16, depth=(int)[ 1, 16 ], rate=(int)[ 1, 2147483647 ], channels=(int)[ 1, 11 ], endianness=(int){ 1234, 4321 }, signed=(boolean){ true, false }");
+
+  test = gst_caps_intersect_full (c1, c2, GST_CAPS_INTERSECT_FIRST);
+  fail_unless_equals_int (gst_caps_get_size (test), 1);
+  fail_unless (gst_caps_is_equal (c1, test));
+  gst_caps_unref (c1);
+  gst_caps_unref (c2);
+  gst_caps_unref (test);
+}
+
+GST_END_TEST;
+
 static gboolean
 _caps_is_fixed_foreach (GQuark field_id, const GValue * value, gpointer unused)
 {
@@ -795,6 +957,26 @@ GST_START_TEST (test_normalize)
 
 GST_END_TEST;
 
+GST_START_TEST (test_broken)
+{
+  GstCaps *c1;
+
+  /* NULL is not valid for media_type */
+  ASSERT_CRITICAL (c1 =
+      gst_caps_new_simple (NULL, "field", G_TYPE_INT, 1, NULL));
+  fail_if (c1);
+
+#ifndef G_DISABLE_CHECKS
+  /* such a name is not valid, see gst_structure_validate_name() */
+  ASSERT_CRITICAL (c1 =
+      gst_caps_new_simple ("1#@abc", "field", G_TYPE_INT, 1, NULL));
+  fail_if (c1);
+#endif
+}
+
+GST_END_TEST;
+
+
 static Suite *
 gst_caps_suite (void)
 {
@@ -809,12 +991,18 @@ gst_caps_suite (void)
   tcase_add_test (tc_chain, test_static_caps);
   tcase_add_test (tc_chain, test_simplify);
   tcase_add_test (tc_chain, test_truncate);
+  tcase_add_test (tc_chain, test_subset);
   tcase_add_test (tc_chain, test_merge_fundamental);
   tcase_add_test (tc_chain, test_merge_same);
   tcase_add_test (tc_chain, test_merge_subset);
   tcase_add_test (tc_chain, test_intersect);
   tcase_add_test (tc_chain, test_intersect2);
+  tcase_add_test (tc_chain, test_intersect_zigzag);
+  tcase_add_test (tc_chain, test_intersect_first);
+  tcase_add_test (tc_chain, test_intersect_first2);
+  tcase_add_test (tc_chain, test_intersect_duplication);
   tcase_add_test (tc_chain, test_normalize);
+  tcase_add_test (tc_chain, test_broken);
 
   return s;
 }

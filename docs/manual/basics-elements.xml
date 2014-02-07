@@ -270,16 +270,17 @@ main (int   argc,
   return 0;
 }
     ]]><!-- example-end elementget.c --></programlisting>
-    <para> 
+    <para>
       Most plugins provide additional properties to provide more information
-      about their configuration or to configure the element. 
+      about their configuration or to configure the element.
       <command>gst-inspect</command> is a useful tool to query the properties
       of a particular element, it will also use property introspection to give
       a short explanation about the function of the property and about the
-      parameter types and ranges it supports. See the appendix for details
-      about <command>gst-inspect</command>.
-    </para> 
-    <para> 
+      parameter types and ranges it supports. See
+      <xref linkend="section-applications-inspect"/>
+      in the appendix for details about <command>gst-inspect</command>.
+    </para>
+    <para>
       For more information about <classname>GObject</classname>
       properties we recommend you read the <ulink
       url="http://developer.gnome.org/doc/API/2.0/gobject/index.html"
@@ -288,7 +289,7 @@ main (int   argc,
 	The Glib Object system</ulink>.
     </para>
     <para>
-      A <ulink type="http" url="&URLAPI;gstreamer/html/GstElementFactory.html">
+      A <ulink type="http" url="&URLAPI;GstElementFactory.html">
       <classname>GstElement</classname></ulink> also provides various 
       <classname>GObject</classname> signals that can be used as a flexible
       callback mechanism. Here, too, you can use <command>gst-inspect</command>
@@ -488,7 +489,9 @@ main (int   argc,
       <listitem>
         <para>
           <classname>GST_STATE_NULL</classname>: this is the default state.
-          This state will deallocate all resources held by the element.
+          No resources are allocated in this state, so, transitioning to it
+          will free all resources. The element must be in this state when
+          its refcount reaches 0 and it is freed.
         </para>
       </listitem>
       <listitem>
@@ -522,7 +525,7 @@ main (int   argc,
           video sinks can already play the first frame (since this does
           not affect the clock yet). Autopluggers could use this same
           state transition to already plug together a pipeline. Most other
-          elements, such as codecs or filters, do not need to explicitely
+          elements, such as codecs or filters, do not need to explicitly
           do anything in this state, however.
         </para>
       </listitem>
@@ -550,6 +553,17 @@ main (int   argc,
       thread, by using a <ulink type="http"
       url="&URLAPI;GstBus.html"><classname>GstBus</classname></ulink>. See
       <xref linkend="chapter-bus"/> for details.
+    </para>
+    <para>
+      When you set a bin or pipeline to a certain target state, it will usually
+      propagate the state change to all elements within the bin or pipeline
+      automatically, so it's usually only necessary to set the state of the
+      top-level pipeline to start up the pipeline or shut it down. However,
+      when adding elements dynamically to an already-running pipeline, e.g.
+      from within a "pad-added" or "new-decoded-pad" signal callback, you
+      need to set it to the desired target state yourself using
+      <function>gst_element_set_state ()</function> or
+      <function>gst_element_sync_state_with_parent ()</function>.
     </para>
   </sect1>
 </chapter>

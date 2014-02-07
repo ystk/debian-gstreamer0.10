@@ -104,10 +104,10 @@
 # Luca Ferretti <elle.uca@infinito.it>, 2004, 2005, 2006, 2007, 2008, 2009, 2010.
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.29.2\n"
+"Project-Id-Version: gstreamer 0.10.30.3\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-06-29 10:06+0200\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2010-10-25 10:03+0200\n"
 "Last-Translator: Luca Ferretti <elle.uca@infinito.it>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
@@ -122,7 +122,7 @@ msgstr "Stampa la versione di GStreamer"
 
 # --gst-fatal-warnings
 msgid "Make all warnings fatal"
-msgstr "Rende critici tutti i warning"
+msgstr "Rende tutti i warning critici"
 
 # --gst-debug-help
 msgid "Print available debug categories and exit"
@@ -271,6 +271,9 @@ msgstr "Impossibile chiudere la libreria di supporto."
 msgid "Could not configure supporting library."
 msgstr "Impossibile configurare la libreria di supporto."
 
+msgid "Encoding error."
+msgstr "Errore nel codificare."
+
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer ha incontrato un errore generico di risorse."
 
@@ -305,7 +308,7 @@ msgid "Could not synchronize on resource."
 msgstr "Impossibile sincronizzarsi sulla risorsa."
 
 msgid "Could not get/set settings from/on resource."
-msgstr "Impossibile ottenere/regolare le impostazioni dalla/della risorsa."
+msgstr "Impossibile ottenere/regolare le impostazioni della risorsa."
 
 msgid "No space left on the resource."
 msgstr "Niente spazio sulla risorsa."
@@ -422,6 +425,13 @@ msgstr "data"
 msgid "date the data was created (as a GDate structure)"
 msgstr "la data in cui i dati sono stati creati (come struttura GDate)"
 
+msgid "datetime"
+msgstr "data/ora"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr ""
+"la data e l'ora in cui i dati sono stati creati (come struttura GstDateTime)"
+
 msgid "genre"
 msgstr "genere"
 
@@ -521,6 +531,13 @@ msgstr "uri copyright"
 
 msgid "URI to the copyright notice of the data"
 msgstr "l'URI all'avviso sul copyright dei dati"
+
+#, fuzzy
+msgid "encoded by"
+msgstr "encoder"
+
+msgid "name of the encoding person or organization"
+msgstr ""
 
 msgid "contact"
 msgstr "contatto"
@@ -772,6 +789,12 @@ msgstr ""
 "una località all'interno di una città in cui il contenuto multimediale è "
 "stato registrato o prodotto (p.e. il quartiere)"
 
+msgid "geo location horizontal error"
+msgstr "errore orizzontale località geog."
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr "errore atteso delle misure di posizionamento orizzontale (in metri)"
+
 msgid "geo location movement speed"
 msgstr "velocità movimento località geog."
 
@@ -886,6 +909,20 @@ msgstr "modello dispositivo"
 msgid "Model of the device used to create this media"
 msgstr ""
 "il modello del dispositivo usato per creare questo contenuto multimediale"
+
+msgid "application name"
+msgstr "nome applicazione"
+
+msgid "Application used to create the media"
+msgstr "l'applicazione usata per creare il contenuto multimediale"
+
+msgid "application data"
+msgstr "dati applicazione"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr ""
+"i dati arbitrari dell'applicazione da serializzare all'interno del contenuto "
+"multimediale"
 
 msgid "image orientation"
 msgstr "orientamento immagine"
@@ -1033,15 +1070,15 @@ msgstr "Il file «%s» è un socket."
 msgid "Failed after iterations as requested."
 msgstr "Fallito dopo le iterazioni come richiesto."
 
-msgid "Error while writing to download file."
-msgstr "Errore durante la scritta sul file di scaricamento."
-
 msgid "No Temp directory specified."
 msgstr "Nessuna directory temporanea specificata."
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "Impossibile creare il file temporaneo «%s»."
+
+msgid "Error while writing to download file."
+msgstr "Errore durante la scritta sul file di scaricamento."
 
 msgid "caps"
 msgstr "caps"
@@ -1075,6 +1112,15 @@ msgstr "scrivibile"
 
 msgid "controllable"
 msgstr "controllabile"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr "può passare allo stato  NULL, READY, PAUSED o PLAYING"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr "può passare solo allo stato  NULL, READY o PAUSED"
+
+msgid "changeable only in NULL or READY state"
+msgstr "può passare solo allo stato  NULL o READY"
 
 msgid "Blacklisted files:"
 msgstr "File nella blacklist:"
@@ -1175,6 +1221,9 @@ msgstr ""
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "ATTENZIONE: elemento con nome «%s» non trovato.\n"
 
+msgid "Index statistics"
+msgstr ""
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "Ottenuto messaggio #%u dall'elemento \"%s\" (%s): "
@@ -1245,6 +1294,10 @@ msgstr "Impostazione dello stato a %s come richiesto da %s...\n"
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Interrotto: arresto della pipeline ...\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "nessun elemento «%s»"
+
 # -t, --tags
 msgid "Output tags (also known as metadata)"
 msgstr "Stampa i tag (anche noti come metadati)"
@@ -1289,6 +1342,9 @@ msgstr "Stampa traccia di alloc (se abilitato in compilazione)"
 # -e, --eos-on-shutdown
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "Forza EOS sulle sorgenti prima di arrestare la pipeline"
+
+msgid "Gather and print index statistics"
+msgstr ""
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

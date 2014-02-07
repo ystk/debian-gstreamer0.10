@@ -61,6 +61,7 @@
 #include "gstqueue.h"
 
 #include "../../gst/gst-i18n-lib.h"
+#include "../../gst/glib-compat-private.h"
 
 static GstStaticPadTemplate sinktemplate = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
@@ -91,7 +92,7 @@ GST_DEBUG_CATEGORY_STATIC (queue_dataflow);
                       queue->cur_level.time, \
                       queue->min_threshold.time, \
                       queue->max_size.time, \
-                      queue->queue->length)
+                      queue->queue.length)
 
 /* Queue signals and args */
 enum
@@ -105,20 +106,20 @@ enum
 
 enum
 {
-  ARG_0,
+  PROP_0,
   /* FIXME: don't we have another way of doing this
    * "Gstreamer format" (frame/byte/time) queries? */
-  ARG_CUR_LEVEL_BUFFERS,
-  ARG_CUR_LEVEL_BYTES,
-  ARG_CUR_LEVEL_TIME,
-  ARG_MAX_SIZE_BUFFERS,
-  ARG_MAX_SIZE_BYTES,
-  ARG_MAX_SIZE_TIME,
-  ARG_MIN_THRESHOLD_BUFFERS,
-  ARG_MIN_THRESHOLD_BYTES,
-  ARG_MIN_THRESHOLD_TIME,
-  ARG_LEAKY
-      /* FILL ME */
+  PROP_CUR_LEVEL_BUFFERS,
+  PROP_CUR_LEVEL_BYTES,
+  PROP_CUR_LEVEL_TIME,
+  PROP_MAX_SIZE_BUFFERS,
+  PROP_MAX_SIZE_BYTES,
+  PROP_MAX_SIZE_TIME,
+  PROP_MIN_THRESHOLD_BUFFERS,
+  PROP_MIN_THRESHOLD_BYTES,
+  PROP_MIN_THRESHOLD_TIME,
+  PROP_LEAKY,
+  PROP_SILENT
 };
 
 /* default property values */
@@ -142,7 +143,9 @@ enum
 
 #define GST_QUEUE_WAIT_DEL_CHECK(q, label) G_STMT_START {               \
   STATUS (q, q->sinkpad, "wait for DEL");                               \
+  q->waiting_del = TRUE;                                                \
   g_cond_wait (q->item_del, q->qlock);                                  \
+  q->waiting_del = FALSE;                                               \
   if (q->srcresult != GST_FLOW_OK) {                                    \
     STATUS (q, q->srcpad, "received DEL wakeup");                       \
     goto label;                                                         \
@@ -152,7 +155,9 @@ enum
 
 #define GST_QUEUE_WAIT_ADD_CHECK(q, label) G_STMT_START {               \
   STATUS (q, q->srcpad, "wait for ADD");                                \
+  q->waiting_add = TRUE;                                                \
   g_cond_wait (q->item_add, q->qlock);                                  \
+  q->waiting_add = FALSE;                                               \
   if (q->srcresult != GST_FLOW_OK) {                                    \
     STATUS (q, q->srcpad, "received ADD wakeup");                       \
     goto label;                                                         \
@@ -161,13 +166,17 @@ enum
 } G_STMT_END
 
 #define GST_QUEUE_SIGNAL_DEL(q) G_STMT_START {                          \
-  STATUS (q, q->srcpad, "signal DEL");                                  \
-  g_cond_signal (q->item_del);                                          \
+  if (q->waiting_del) {                                                 \
+    STATUS (q, q->srcpad, "signal DEL");                                \
+    g_cond_signal (q->item_del);                                        \
+  }                                                                     \
 } G_STMT_END
 
 #define GST_QUEUE_SIGNAL_ADD(q) G_STMT_START {                          \
-  STATUS (q, q->sinkpad, "signal ADD");                                 \
-  g_cond_signal (q->item_add);                                          \
+  if (q->waiting_add) {                                                 \
+    STATUS (q, q->sinkpad, "signal ADD");                               \
+    g_cond_signal (q->item_add);                                        \
+  }                                                                     \
 } G_STMT_END
 
 #define _do_init(bla) \
@@ -304,51 +313,64 @@ gst_queue_class_init (GstQueueClass * klass)
       g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
 
   /* properties */
-  g_object_class_install_property (gobject_class, ARG_CUR_LEVEL_BYTES,
+  g_object_class_install_property (gobject_class, PROP_CUR_LEVEL_BYTES,
       g_param_spec_uint ("current-level-bytes", "Current level (kB)",
           "Current amount of data in the queue (bytes)",
           0, G_MAXUINT, 0, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, ARG_CUR_LEVEL_BUFFERS,
+  g_object_class_install_property (gobject_class, PROP_CUR_LEVEL_BUFFERS,
       g_param_spec_uint ("current-level-buffers", "Current level (buffers)",
           "Current number of buffers in the queue",
           0, G_MAXUINT, 0, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, ARG_CUR_LEVEL_TIME,
+  g_object_class_install_property (gobject_class, PROP_CUR_LEVEL_TIME,
       g_param_spec_uint64 ("current-level-time", "Current level (ns)",
           "Current amount of data in the queue (in ns)",
           0, G_MAXUINT64, 0, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
-  g_object_class_install_property (gobject_class, ARG_MAX_SIZE_BYTES,
+  g_object_class_install_property (gobject_class, PROP_MAX_SIZE_BYTES,
       g_param_spec_uint ("max-size-bytes", "Max. size (kB)",
           "Max. amount of data in the queue (bytes, 0=disable)",
           0, G_MAXUINT, DEFAULT_MAX_SIZE_BYTES,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, ARG_MAX_SIZE_BUFFERS,
+  g_object_class_install_property (gobject_class, PROP_MAX_SIZE_BUFFERS,
       g_param_spec_uint ("max-size-buffers", "Max. size (buffers)",
           "Max. number of buffers in the queue (0=disable)", 0, G_MAXUINT,
           DEFAULT_MAX_SIZE_BUFFERS,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, ARG_MAX_SIZE_TIME,
+  g_object_class_install_property (gobject_class, PROP_MAX_SIZE_TIME,
       g_param_spec_uint64 ("max-size-time", "Max. size (ns)",
           "Max. amount of data in the queue (in ns, 0=disable)", 0, G_MAXUINT64,
           DEFAULT_MAX_SIZE_TIME, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  g_object_class_install_property (gobject_class, ARG_MIN_THRESHOLD_BYTES,
+  g_object_class_install_property (gobject_class, PROP_MIN_THRESHOLD_BYTES,
       g_param_spec_uint ("min-threshold-bytes", "Min. threshold (kB)",
           "Min. amount of data in the queue to allow reading (bytes, 0=disable)",
           0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, ARG_MIN_THRESHOLD_BUFFERS,
+  g_object_class_install_property (gobject_class, PROP_MIN_THRESHOLD_BUFFERS,
       g_param_spec_uint ("min-threshold-buffers", "Min. threshold (buffers)",
           "Min. number of buffers in the queue to allow reading (0=disable)",
           0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, ARG_MIN_THRESHOLD_TIME,
+  g_object_class_install_property (gobject_class, PROP_MIN_THRESHOLD_TIME,
       g_param_spec_uint64 ("min-threshold-time", "Min. threshold (ns)",
           "Min. amount of data in the queue to allow reading (in ns, 0=disable)",
           0, G_MAXUINT64, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  g_object_class_install_property (gobject_class, ARG_LEAKY,
+  g_object_class_install_property (gobject_class, PROP_LEAKY,
       g_param_spec_enum ("leaky", "Leaky",
           "Where the queue leaks, if at all",
           GST_TYPE_QUEUE_LEAKY, GST_QUEUE_NO_LEAK,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstQueue:silent
+   *
+   * Don't emit queue signals. Makes queues more lightweight if no signals are
+   * needed.
+   *
+   * Since: 0.10.31
+   */
+  g_object_class_install_property (gobject_class, PROP_SILENT,
+      g_param_spec_boolean ("silent", "Silent",
+          "Don't emit queue signals", FALSE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gobject_class->finalize = gst_queue_finalize;
@@ -409,13 +431,16 @@ gst_queue_init (GstQueue * queue, GstQueueClass * g_class)
   queue->qlock = g_mutex_new ();
   queue->item_add = g_cond_new ();
   queue->item_del = g_cond_new ();
-  queue->queue = g_queue_new ();
+
+  g_queue_init (&queue->queue);
 
   queue->sinktime = GST_CLOCK_TIME_NONE;
   queue->srctime = GST_CLOCK_TIME_NONE;
 
   queue->sink_tainted = TRUE;
   queue->src_tainted = TRUE;
+
+  queue->newseg_applied_to_src = FALSE;
 
   GST_DEBUG_OBJECT (queue,
       "initialized queue's not_empty & not_full conditions");
@@ -425,16 +450,15 @@ gst_queue_init (GstQueue * queue, GstQueueClass * g_class)
 static void
 gst_queue_finalize (GObject * object)
 {
+  GstMiniObject *data;
   GstQueue *queue = GST_QUEUE (object);
 
   GST_DEBUG_OBJECT (queue, "finalizing queue");
 
-  while (!g_queue_is_empty (queue->queue)) {
-    GstMiniObject *data = g_queue_pop_head (queue->queue);
-
+  while ((data = g_queue_pop_head (&queue->queue)))
     gst_mini_object_unref (data);
-  }
-  g_queue_free (queue->queue);
+
+  g_queue_clear (&queue->queue);
   g_mutex_free (queue->qlock);
   g_cond_free (queue->item_add);
   g_cond_free (queue->item_del);
@@ -449,10 +473,14 @@ gst_queue_acceptcaps (GstPad * pad, GstCaps * caps)
   GstQueue *queue;
   GstPad *otherpad;
 
-  queue = GST_QUEUE (GST_PAD_PARENT (pad));
+  queue = GST_QUEUE (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (queue == NULL))
+    return FALSE;
 
   otherpad = (pad == queue->srcpad ? queue->sinkpad : queue->srcpad);
   result = gst_pad_peer_accept_caps (otherpad, caps);
+
+  gst_object_unref (queue);
 
   return result;
 }
@@ -464,12 +492,16 @@ gst_queue_getcaps (GstPad * pad)
   GstPad *otherpad;
   GstCaps *result;
 
-  queue = GST_QUEUE (GST_PAD_PARENT (pad));
+  queue = GST_QUEUE (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (queue == NULL))
+    return gst_caps_new_any ();
 
   otherpad = (pad == queue->srcpad ? queue->sinkpad : queue->srcpad);
   result = gst_pad_peer_get_caps (otherpad);
   if (result == NULL)
     result = gst_caps_new_any ();
+
+  gst_object_unref (queue);
 
   return result;
 }
@@ -497,6 +529,7 @@ gst_queue_link_src (GstPad * pad, GstPad * peer)
   if (GST_PAD_LINK_SUCCESSFUL (result)) {
     GST_QUEUE_MUTEX_LOCK (queue);
     if (queue->srcresult == GST_FLOW_OK) {
+      queue->push_newsegment = TRUE;
       gst_pad_start_task (pad, (GstTaskFunction) gst_queue_loop, pad);
       GST_DEBUG_OBJECT (queue, "starting task as pad is linked");
     } else {
@@ -517,11 +550,14 @@ gst_queue_bufferalloc (GstPad * pad, guint64 offset, guint size, GstCaps * caps,
   GstQueue *queue;
   GstFlowReturn result;
 
-  queue = GST_QUEUE (GST_PAD_PARENT (pad));
+  queue = GST_QUEUE (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (queue == NULL))
+    return GST_FLOW_WRONG_STATE;
 
   /* Forward to src pad, without setting caps on the src pad */
   result = gst_pad_alloc_buffer (queue->srcpad, offset, size, caps, buf);
 
+  gst_object_unref (queue);
   return result;
 }
 
@@ -633,9 +669,9 @@ apply_buffer (GstQueue * queue, GstBuffer * buffer, GstSegment * segment,
 static void
 gst_queue_locked_flush (GstQueue * queue)
 {
-  while (!g_queue_is_empty (queue->queue)) {
-    GstMiniObject *data = g_queue_pop_head (queue->queue);
+  GstMiniObject *data;
 
+  while ((data = g_queue_pop_head (&queue->queue))) {
     /* Then lose another reference because we are supposed to destroy that
        data when flushing */
     gst_mini_object_unref (data);
@@ -666,16 +702,7 @@ gst_queue_locked_enqueue_buffer (GstQueue * queue, gpointer item)
   queue->cur_level.bytes += GST_BUFFER_SIZE (buffer);
   apply_buffer (queue, buffer, &queue->sink_segment, TRUE, TRUE);
 
-  /* if this is the first buffer update the end side as well, but without the
-   * duration. */
-  /* FIXME : This will only be useful for current time level if the
-   * source task is running, which is not the case for ex in
-   * gstplaybasebin when pre-rolling.
-   * See #482147 */
-  /*     if (queue->cur_level.buffers == 1) */
-  /*       apply_buffer (queue, buffer, &queue->src_segment, FALSE); */
-
-  g_queue_push_tail (queue->queue, item);
+  g_queue_push_tail (&queue->queue, item);
   GST_QUEUE_SIGNAL_ADD (queue);
 }
 
@@ -695,6 +722,12 @@ gst_queue_locked_enqueue_event (GstQueue * queue, gpointer item)
       break;
     case GST_EVENT_NEWSEGMENT:
       apply_segment (queue, event, &queue->sink_segment, TRUE);
+      /* if the queue is empty, apply sink segment on the source */
+      if (queue->queue.length == 0) {
+        GST_CAT_LOG_OBJECT (queue_dataflow, queue, "Apply segment on srcpad");
+        apply_segment (queue, event, &queue->src_segment, FALSE);
+        queue->newseg_applied_to_src = TRUE;
+      }
       /* a new segment allows us to accept more buffers if we got UNEXPECTED
        * from downstream */
       queue->unexpected = FALSE;
@@ -703,7 +736,7 @@ gst_queue_locked_enqueue_event (GstQueue * queue, gpointer item)
       break;
   }
 
-  g_queue_push_tail (queue->queue, item);
+  g_queue_push_tail (&queue->queue, item);
   GST_QUEUE_SIGNAL_ADD (queue);
 }
 
@@ -713,7 +746,7 @@ gst_queue_locked_dequeue (GstQueue * queue, gboolean * is_buffer)
 {
   GstMiniObject *item;
 
-  item = g_queue_pop_head (queue->queue);
+  item = g_queue_pop_head (&queue->queue);
   if (item == NULL)
     goto no_item;
 
@@ -744,7 +777,12 @@ gst_queue_locked_dequeue (GstQueue * queue, gboolean * is_buffer)
         GST_QUEUE_CLEAR_LEVEL (queue->cur_level);
         break;
       case GST_EVENT_NEWSEGMENT:
-        apply_segment (queue, event, &queue->src_segment, FALSE);
+        /* apply newsegment if it has not already been applied */
+        if (G_LIKELY (!queue->newseg_applied_to_src)) {
+          apply_segment (queue, event, &queue->src_segment, FALSE);
+        } else {
+          queue->newseg_applied_to_src = FALSE;
+        }
         break;
       default:
         break;
@@ -774,7 +812,11 @@ gst_queue_handle_sink_event (GstPad * pad, GstEvent * event)
 {
   GstQueue *queue;
 
-  queue = GST_QUEUE (GST_OBJECT_PARENT (pad));
+  queue = GST_QUEUE (gst_pad_get_parent (pad));
+  if (G_UNLIKELY (queue == NULL)) {
+    gst_event_unref (event);
+    return FALSE;
+  }
 
   switch (GST_EVENT_TYPE (event)) {
     case GST_EVENT_FLUSH_START:
@@ -835,6 +877,7 @@ gst_queue_handle_sink_event (GstPad * pad, GstEvent * event)
       break;
   }
 done:
+  gst_object_unref (queue);
   return TRUE;
 
   /* ERRORS */
@@ -843,6 +886,7 @@ out_flushing:
     GST_CAT_LOG_OBJECT (queue_dataflow, queue,
         "refusing event, we are flushing");
     GST_QUEUE_MUTEX_UNLOCK (queue);
+    gst_object_unref (queue);
     gst_event_unref (event);
     return FALSE;
   }
@@ -850,6 +894,7 @@ out_eos:
   {
     GST_CAT_LOG_OBJECT (queue_dataflow, queue, "refusing event, we are EOS");
     GST_QUEUE_MUTEX_UNLOCK (queue);
+    gst_object_unref (queue);
     gst_event_unref (event);
     return FALSE;
   }
@@ -858,7 +903,7 @@ out_eos:
 static gboolean
 gst_queue_is_empty (GstQueue * queue)
 {
-  if (queue->queue->length == 0)
+  if (queue->queue.length == 0)
     return TRUE;
 
   /* It is possible that a max size is reached before all min thresholds are.
@@ -933,13 +978,14 @@ gst_queue_chain (GstPad * pad, GstBuffer * buffer)
    * the user defined as "full". Note that this only applies to buffers.
    * We always handle events and they don't count in our statistics. */
   while (gst_queue_is_filled (queue)) {
-    GST_QUEUE_MUTEX_UNLOCK (queue);
-    g_signal_emit (queue, gst_queue_signals[SIGNAL_OVERRUN], 0);
-    GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
-
-    /* we recheck, the signal could have changed the thresholds */
-    if (!gst_queue_is_filled (queue))
-      break;
+    if (!queue->silent) {
+      GST_QUEUE_MUTEX_UNLOCK (queue);
+      g_signal_emit (queue, gst_queue_signals[SIGNAL_OVERRUN], 0);
+      GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
+      /* we recheck, the signal could have changed the thresholds */
+      if (!gst_queue_is_filled (queue))
+        break;
+    }
 
     /* how are we going to make space for this buffer? */
     switch (queue->leaky) {
@@ -970,9 +1016,11 @@ gst_queue_chain (GstPad * pad, GstBuffer * buffer)
 
         GST_CAT_DEBUG_OBJECT (queue_dataflow, queue, "queue is not full");
 
-        GST_QUEUE_MUTEX_UNLOCK (queue);
-        g_signal_emit (queue, gst_queue_signals[SIGNAL_RUNNING], 0);
-        GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
+        if (!queue->silent) {
+          GST_QUEUE_MUTEX_UNLOCK (queue);
+          g_signal_emit (queue, gst_queue_signals[SIGNAL_RUNNING], 0);
+          GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
+        }
         break;
       }
     }
@@ -1037,6 +1085,28 @@ out_unexpected:
   }
 }
 
+static void
+gst_queue_push_newsegment (GstQueue * queue)
+{
+  GstSegment *s;
+  GstEvent *event;
+
+  s = &queue->src_segment;
+
+  if (s->accum != 0) {
+    event = gst_event_new_new_segment_full (FALSE, 1.0, 1.0, s->format, 0,
+        s->accum, 0);
+    GST_CAT_LOG_OBJECT (queue_dataflow, queue,
+        "pushing accum newsegment event");
+    gst_pad_push_event (queue->srcpad, event);
+  }
+
+  event = gst_event_new_new_segment_full (FALSE, s->rate, s->applied_rate,
+      s->format, s->start, s->stop, s->time);
+  GST_CAT_LOG_OBJECT (queue_dataflow, queue, "pushing real newsegment event");
+  gst_pad_push_event (queue->srcpad, event);
+}
+
 /* dequeue an item from the queue an push it downstream. This functions returns
  * the result of the push. */
 static GstFlowReturn
@@ -1080,6 +1150,9 @@ next:
     if (caps && caps != GST_PAD_CAPS (queue->srcpad))
       gst_pad_set_caps (queue->srcpad, caps);
 
+    if (queue->push_newsegment) {
+      gst_queue_push_newsegment (queue);
+    }
     result = gst_pad_push (queue->srcpad, buffer);
 
     /* need to check for srcresult here as well */
@@ -1126,6 +1199,9 @@ next:
 
     GST_QUEUE_MUTEX_UNLOCK (queue);
 
+    if (queue->push_newsegment && type != GST_EVENT_NEWSEGMENT) {
+      gst_queue_push_newsegment (queue);
+    }
     gst_pad_push_event (queue->srcpad, event);
 
     GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
@@ -1164,25 +1240,29 @@ gst_queue_loop (GstPad * pad)
   GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
 
   while (gst_queue_is_empty (queue)) {
-    GST_QUEUE_MUTEX_UNLOCK (queue);
-    g_signal_emit (queue, gst_queue_signals[SIGNAL_UNDERRUN], 0);
     GST_CAT_DEBUG_OBJECT (queue_dataflow, queue, "queue is empty");
-    GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
+    if (!queue->silent) {
+      GST_QUEUE_MUTEX_UNLOCK (queue);
+      g_signal_emit (queue, gst_queue_signals[SIGNAL_UNDERRUN], 0);
+      GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
+    }
 
     /* we recheck, the signal could have changed the thresholds */
     while (gst_queue_is_empty (queue)) {
       GST_QUEUE_WAIT_ADD_CHECK (queue, out_flushing);
     }
-    GST_QUEUE_MUTEX_UNLOCK (queue);
 
-    g_signal_emit (queue, gst_queue_signals[SIGNAL_RUNNING], 0);
-    g_signal_emit (queue, gst_queue_signals[SIGNAL_PUSHING], 0);
     GST_CAT_DEBUG_OBJECT (queue_dataflow, queue, "queue is not empty");
-
-    GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
+    if (!queue->silent) {
+      GST_QUEUE_MUTEX_UNLOCK (queue);
+      g_signal_emit (queue, gst_queue_signals[SIGNAL_RUNNING], 0);
+      g_signal_emit (queue, gst_queue_signals[SIGNAL_PUSHING], 0);
+      GST_QUEUE_MUTEX_LOCK_CHECK (queue, out_flushing);
+    }
   }
 
   ret = gst_queue_push_one (queue);
+  queue->push_newsegment = FALSE;
   queue->srcresult = ret;
   if (ret != GST_FLOW_OK)
     goto out_flushing;
@@ -1204,8 +1284,7 @@ out_flushing:
     GST_QUEUE_MUTEX_UNLOCK (queue);
     /* let app know about us giving up if upstream is not expected to do so */
     /* UNEXPECTED is already taken care of elsewhere */
-    if (eos && (GST_FLOW_IS_FATAL (ret) || ret == GST_FLOW_NOT_LINKED) &&
-        (ret != GST_FLOW_UNEXPECTED)) {
+    if (eos && (ret == GST_FLOW_NOT_LINKED || ret < GST_FLOW_UNEXPECTED)) {
       GST_ELEMENT_ERROR (queue, STREAM, FAILED,
           (_("Internal data flow error.")),
           ("streaming task paused, reason %s (%d)",
@@ -1220,8 +1299,12 @@ static gboolean
 gst_queue_handle_src_event (GstPad * pad, GstEvent * event)
 {
   gboolean res = TRUE;
-  GstQueue *queue = GST_QUEUE (GST_PAD_PARENT (pad));
+  GstQueue *queue = GST_QUEUE (gst_pad_get_parent (pad));
 
+  if (G_UNLIKELY (queue == NULL)) {
+    gst_event_unref (event);
+    return FALSE;
+  }
 #ifndef GST_DISABLE_GST_DEBUG
   GST_CAT_DEBUG_OBJECT (queue_dataflow, queue, "got event %p (%d)",
       event, GST_EVENT_TYPE (event));
@@ -1229,23 +1312,31 @@ gst_queue_handle_src_event (GstPad * pad, GstEvent * event)
 
   res = gst_pad_push_event (queue->sinkpad, event);
 
+  gst_object_unref (queue);
   return res;
 }
 
 static gboolean
 gst_queue_handle_src_query (GstPad * pad, GstQuery * query)
 {
-  GstQueue *queue = GST_QUEUE (GST_PAD_PARENT (pad));
+  GstQueue *queue = GST_QUEUE (gst_pad_get_parent (pad));
   GstPad *peer;
   gboolean res;
 
-  if (!(peer = gst_pad_get_peer (queue->sinkpad)))
+  if (G_UNLIKELY (queue == NULL))
     return FALSE;
+
+  if (!(peer = gst_pad_get_peer (queue->sinkpad))) {
+    gst_object_unref (queue);
+    return FALSE;
+  }
 
   res = gst_pad_query (peer, query);
   gst_object_unref (peer);
-  if (!res)
+  if (!res) {
+    gst_object_unref (queue);
     return FALSE;
+  }
 
   switch (GST_QUERY_TYPE (query)) {
     case GST_QUERY_POSITION:
@@ -1301,6 +1392,7 @@ gst_queue_handle_src_query (GstPad * pad, GstQuery * query)
       break;
   }
 
+  gst_object_unref (queue);
   return TRUE;
 }
 
@@ -1400,35 +1492,38 @@ gst_queue_set_property (GObject * object,
   GST_QUEUE_MUTEX_LOCK (queue);
 
   switch (prop_id) {
-    case ARG_MAX_SIZE_BYTES:
+    case PROP_MAX_SIZE_BYTES:
       queue->max_size.bytes = g_value_get_uint (value);
       queue_capacity_change (queue);
       break;
-    case ARG_MAX_SIZE_BUFFERS:
+    case PROP_MAX_SIZE_BUFFERS:
       queue->max_size.buffers = g_value_get_uint (value);
       queue_capacity_change (queue);
       break;
-    case ARG_MAX_SIZE_TIME:
+    case PROP_MAX_SIZE_TIME:
       queue->max_size.time = g_value_get_uint64 (value);
       queue_capacity_change (queue);
       break;
-    case ARG_MIN_THRESHOLD_BYTES:
+    case PROP_MIN_THRESHOLD_BYTES:
       queue->min_threshold.bytes = g_value_get_uint (value);
       queue->orig_min_threshold.bytes = queue->min_threshold.bytes;
       QUEUE_THRESHOLD_CHANGE (queue);
       break;
-    case ARG_MIN_THRESHOLD_BUFFERS:
+    case PROP_MIN_THRESHOLD_BUFFERS:
       queue->min_threshold.buffers = g_value_get_uint (value);
       queue->orig_min_threshold.buffers = queue->min_threshold.buffers;
       QUEUE_THRESHOLD_CHANGE (queue);
       break;
-    case ARG_MIN_THRESHOLD_TIME:
+    case PROP_MIN_THRESHOLD_TIME:
       queue->min_threshold.time = g_value_get_uint64 (value);
       queue->orig_min_threshold.time = queue->min_threshold.time;
       QUEUE_THRESHOLD_CHANGE (queue);
       break;
-    case ARG_LEAKY:
+    case PROP_LEAKY:
       queue->leaky = g_value_get_enum (value);
+      break;
+    case PROP_SILENT:
+      queue->silent = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1447,35 +1542,38 @@ gst_queue_get_property (GObject * object,
   GST_QUEUE_MUTEX_LOCK (queue);
 
   switch (prop_id) {
-    case ARG_CUR_LEVEL_BYTES:
+    case PROP_CUR_LEVEL_BYTES:
       g_value_set_uint (value, queue->cur_level.bytes);
       break;
-    case ARG_CUR_LEVEL_BUFFERS:
+    case PROP_CUR_LEVEL_BUFFERS:
       g_value_set_uint (value, queue->cur_level.buffers);
       break;
-    case ARG_CUR_LEVEL_TIME:
+    case PROP_CUR_LEVEL_TIME:
       g_value_set_uint64 (value, queue->cur_level.time);
       break;
-    case ARG_MAX_SIZE_BYTES:
+    case PROP_MAX_SIZE_BYTES:
       g_value_set_uint (value, queue->max_size.bytes);
       break;
-    case ARG_MAX_SIZE_BUFFERS:
+    case PROP_MAX_SIZE_BUFFERS:
       g_value_set_uint (value, queue->max_size.buffers);
       break;
-    case ARG_MAX_SIZE_TIME:
+    case PROP_MAX_SIZE_TIME:
       g_value_set_uint64 (value, queue->max_size.time);
       break;
-    case ARG_MIN_THRESHOLD_BYTES:
+    case PROP_MIN_THRESHOLD_BYTES:
       g_value_set_uint (value, queue->min_threshold.bytes);
       break;
-    case ARG_MIN_THRESHOLD_BUFFERS:
+    case PROP_MIN_THRESHOLD_BUFFERS:
       g_value_set_uint (value, queue->min_threshold.buffers);
       break;
-    case ARG_MIN_THRESHOLD_TIME:
+    case PROP_MIN_THRESHOLD_TIME:
       g_value_set_uint64 (value, queue->min_threshold.time);
       break;
-    case ARG_LEAKY:
+    case PROP_LEAKY:
       g_value_set_enum (value, queue->leaky);
+      break;
+    case PROP_SILENT:
+      g_value_set_boolean (value, queue->silent);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

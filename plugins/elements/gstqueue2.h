@@ -60,10 +60,12 @@ struct _GstQueue2Range
 {
   GstQueue2Range *next;
 
-  guint64 offset;
-  guint64 writing_pos;
-  guint64 reading_pos;
-  guint64 max_reading_pos;
+  guint64 offset;          /* offset of range start in source */
+  guint64 rb_offset;       /* offset of range start in ring buffer */
+  guint64 writing_pos;     /* writing position in source */
+  guint64 rb_writing_pos;  /* writing position in ring buffer */
+  guint64 reading_pos;     /* reading position in source */
+  guint64 max_reading_pos; /* latest requested offset in source */
 };
 
 struct _GstQueue2
@@ -74,9 +76,17 @@ struct _GstQueue2
   GstPad *sinkpad;
   GstPad *srcpad;
 
+  /* upstream size in bytes (if downstream is operating in pull mode) */
+  guint64 upstream_size;
+
   /* segments to keep track of timestamps */
   GstSegment sink_segment;
   GstSegment src_segment;
+
+  /* Position of src/sink */
+  GstClockTime sinktime, srctime;
+  /* TRUE if either position needs to be recalculated */
+  gboolean sink_tainted, src_tainted;
 
   /* flowreturn when srcpad is paused */
   GstFlowReturn srcresult;
@@ -85,7 +95,7 @@ struct _GstQueue2
   gboolean unexpected;
 
   /* the queue of data we're keeping our hands on */
-  GQueue *queue;
+  GQueue queue;
 
   GstQueue2Size cur_level;       /* currently in the queue */
   GstQueue2Size max_level;       /* max. amount of data allowed in the queue */
@@ -106,6 +116,7 @@ struct _GstQueue2
   gdouble last_in_elapsed;
   guint64 bytes_in;
   gdouble byte_in_rate;
+  gdouble byte_in_period;
 
   GTimer *out_timer;
   gboolean out_timer_started;
@@ -132,6 +143,9 @@ struct _GstQueue2
    * because we can't save it on the file */
   gboolean segment_event_received;
   GstEvent *starting_segment;
+
+  guint64 ring_buffer_max_size;
+  guint8 * ring_buffer;
 };
 
 struct _GstQueue2Class

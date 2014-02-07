@@ -1,15 +1,15 @@
 # Swedish messages for gstreamer.
-# Copyright (C) 2004-2010 Free Software Foundation, Inc.
+# Copyright (C) 2004-2011 Free Software Foundation, Inc.
 # This file is distributed under the same license as the gstreamer package.
 # Christian Rose <menthos@menthos.com>, 2004, 2005.
-# Daniel Nylander <po@danielnylander.se>, 2007, 2008, 2009, 2010.
+# Daniel Nylander <po@danielnylander.se>, 2007, 2008, 2009, 2010, 2011.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gstreamer 0.10.28.2\n"
+"Project-Id-Version: gstreamer 0.10.31.2\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
-"PO-Revision-Date: 2010-06-07 18:16+0100\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
+"PO-Revision-Date: 2011-01-09 19:46+0100\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "Language: sv\n"
@@ -158,6 +158,9 @@ msgstr "Kunde inte stänga stödbibliotek."
 msgid "Could not configure supporting library."
 msgstr "Kunde inte konfigurera stödbibliotek."
 
+msgid "Encoding error."
+msgstr "Kodningsfel."
+
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer stötte på ett allmänt resursfel."
 
@@ -304,6 +307,12 @@ msgstr "datum"
 msgid "date the data was created (as a GDate structure)"
 msgstr "datum då dessa data skapades (som en GDate-struktur)"
 
+msgid "datetime"
+msgstr "datumtid"
+
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr "datum och tid då dessa data skapades (som en GstDateTime-struktur)"
+
 msgid "genre"
 msgstr "genre"
 
@@ -396,6 +405,13 @@ msgstr "Uri till copyrightnotis"
 
 msgid "URI to the copyright notice of the data"
 msgstr "Uri till copyrightnotis för datat"
+
+#, fuzzy
+msgid "encoded by"
+msgstr "kodare"
+
+msgid "name of the encoding person or organization"
+msgstr ""
 
 msgid "contact"
 msgstr "kontakt"
@@ -643,33 +659,42 @@ msgstr ""
 "en plats inom en stad där mediet har producerats eller skapats (t.ex. "
 "närområde)"
 
-#, fuzzy
+msgid "geo location horizontal error"
+msgstr "fel i horisontell geografisk plats"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr "förväntat fel i horisontell positioneringsmätning (i meter)"
+
 msgid "geo location movement speed"
-msgstr "longitud för geografisk plats"
+msgstr "förflyttningshastighet för geografisk plats"
 
 msgid ""
 "movement speed of the capturing device while performing the capture in m/s"
-msgstr ""
+msgstr "förflyttningshastighet för fångstenheten när mediat skapas (i meter/s)"
 
-#, fuzzy
 msgid "geo location movement direction"
-msgstr "höjd för geografisk plats"
+msgstr "förflyttningsriktning för geografisk plats"
 
 msgid ""
 "indicates the movement direction of the device performing the capture of a "
 "media. It is represented as degrees in floating point representation, 0 "
 "means the geographic north, and increases clockwise"
 msgstr ""
+"indikerar riktningen som enheten förflyttas när mediat skapas. Det "
+"representeras som grader i flyttalsrepresentation, 0 betyder geografiskt "
+"nordlig riktning och ökar medsols"
 
-#, fuzzy
 msgid "geo location capture direction"
-msgstr "höjd för geografisk plats"
+msgstr "fångstriktning för geografisk plats"
 
 msgid ""
 "indicates the direction the device is pointing to when capturing  a media. "
 "It is represented as degrees in floating point  representation, 0 means the "
 "geographic north, and increases clockwise"
 msgstr ""
+"indikerar riktningen som enheten pekar mot när mediat skapas. Det "
+"representeras som grader i flyttalsrepresentation, 0 betyder geografiskt "
+"nordlig riktning och ökar medsols"
 
 #. TRANSLATORS: 'show name' = 'TV/radio/podcast show name' here
 msgid "show name"
@@ -733,24 +758,34 @@ msgstr ""
 "användaren detta media"
 
 msgid "device manufacturer"
-msgstr ""
+msgstr "enhetstillverkare"
 
-#, fuzzy
 msgid "Manufacturer of the device used to create this media"
-msgstr "version av kodaren som använts för att koda denna ström"
+msgstr "Tillverkare av enheten som använts för att skapa detta media"
 
 msgid "device model"
-msgstr ""
+msgstr "enhetsmodell"
 
-#, fuzzy
 msgid "Model of the device used to create this media"
-msgstr "version av kodaren som använts för att koda denna ström"
+msgstr "Modell av enheten som använts för att skapa detta media"
+
+msgid "application name"
+msgstr "programnamn"
+
+msgid "Application used to create the media"
+msgstr "Programmet som använts för att skapa detta media"
+
+msgid "application data"
+msgstr "programdata"
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr "Godtycklig programdata att serialisera inuti detta media"
 
 msgid "image orientation"
-msgstr ""
+msgstr "bildorientering"
 
 msgid "How the image should be rotated or flipped before display"
-msgstr ""
+msgstr "Hur bilden ska roteras eller vändas före visning"
 
 msgid ", "
 msgstr ", "
@@ -888,15 +923,15 @@ msgstr "Filen \"%s\" är ett uttag."
 msgid "Failed after iterations as requested."
 msgstr "Misslyckades efter iterationer som begärt."
 
-msgid "Error while writing to download file."
-msgstr "Fel vid skrivning till hämtningsfilen."
-
 msgid "No Temp directory specified."
 msgstr "Ingen temporärkatalog angiven."
 
 #, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "Kunde inte skapa temporärfilen \"%s\"."
+
+msgid "Error while writing to download file."
+msgstr "Fel vid skrivning till hämtningsfilen."
 
 # Osäker. Jag tror "caps" är kort för "capabilities".
 msgid "caps"
@@ -931,6 +966,15 @@ msgstr "skrivbar"
 
 msgid "controllable"
 msgstr "kontrollerbar"
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr "ändringsbart i tillstånden NULL, READY, PAUSED eller PLAYING"
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr "ändringsbart endast i tillstånden NULL, READY eller PAUSED"
+
+msgid "changeable only in NULL or READY state"
+msgstr "ändringsbart endast i tillstånden NULL eller READY"
 
 msgid "Blacklisted files:"
 msgstr "Svartlistade filer:"
@@ -1019,6 +1063,9 @@ msgstr "FEL: kunde inte tolka kommandoradsargumentet %d: %s.\n"
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "VARNING: elementet med namnet \"%s\" hittades inte.\n"
 
+msgid "Index statistics"
+msgstr ""
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr "Fick meddelande #%u från elementet \"%s\" (%s): "
@@ -1088,6 +1135,10 @@ msgstr "Ställer in tillståndet till %s enligt begäran från %s...\n"
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr "Avbrott: Stoppar rörledningen ...\n"
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "inget \"%s\"-element"
+
 msgid "Output tags (also known as metadata)"
 msgstr "Utmatningstaggar (även känt som metadata)"
 
@@ -1116,13 +1167,16 @@ msgid "Do not install a fault handler"
 msgstr "Installera inte en felhanterare"
 
 msgid "Do not install signal handlers for SIGUSR1 and SIGUSR2"
-msgstr ""
+msgstr "Installera inte signalhanterare för SIGUSR1 och SIGUSR2"
 
 msgid "Print alloc trace (if enabled at compile time)"
 msgstr "Skriv ut alloc-spår (om aktiverat vid kompileringen)"
 
 msgid "Force EOS on sources before shutting the pipeline down"
 msgstr "Tvinga EOS på källor innan rörledningen stängs av"
+
+msgid "Gather and print index statistics"
+msgstr ""
 
 #, c-format
 msgid "ERROR: pipeline could not be constructed: %s.\n"

@@ -54,6 +54,8 @@ typedef struct _GstDataQueueItem GstDataQueueItem;
  *
  * Structure used by #GstDataQueue. You can supply a different structure, as
  * long as the top of the structure is identical to this structure.
+ *
+ * Since: 0.10.11
  */
 
 struct _GstDataQueueItem
@@ -74,6 +76,8 @@ struct _GstDataQueueItem
  * @time: amount of time
  *
  * Structure describing the size of a queue.
+ *
+ * Since: 0.10.11
  */
 struct _GstDataQueueSize
 {
@@ -94,6 +98,8 @@ struct _GstDataQueueSize
  * considered as full.
  *
  * Returns: #TRUE if the queue should be considered full.
+ *
+ * Since: 0.10.11
  */
 typedef gboolean (*GstDataQueueCheckFullFunction) (GstDataQueue * queue,
     guint visible, guint bytes, guint64 time, gpointer checkdata);
@@ -103,8 +109,11 @@ typedef void (*GstDataQueueEmptyCallback) (GstDataQueue * queue, gpointer checkd
 
 /**
  * GstDataQueue:
+ * @object: the parent structure
  *
  * Opaque #GstDataQueue structure.
+ *
+ * Since: 0.10.11
  */
 struct _GstDataQueue
 {
@@ -125,7 +134,14 @@ struct _GstDataQueue
                                  * of external flushing */
   GstDataQueueFullCallback fullcallback;
   GstDataQueueEmptyCallback emptycallback;
-  gpointer _gst_reserved[GST_PADDING - 2];
+
+  union {
+    struct {
+      gboolean waiting_add;
+      gboolean waiting_del;
+    } ABI;
+    gpointer _gst_reserved[GST_PADDING - 2];
+  } abidata;
 };
 
 struct _GstDataQueueClass
@@ -142,12 +158,12 @@ struct _GstDataQueueClass
 GType gst_data_queue_get_type (void);
 
 GstDataQueue * gst_data_queue_new            (GstDataQueueCheckFullFunction checkfull,
-                                              gpointer checkdata);
+                                              gpointer checkdata) G_GNUC_MALLOC;
 
 GstDataQueue * gst_data_queue_new_full       (GstDataQueueCheckFullFunction checkfull,
 					      GstDataQueueFullCallback fullcallback,
 					      GstDataQueueEmptyCallback emptycallback,
-					      gpointer checkdata);
+					      gpointer checkdata) G_GNUC_MALLOC;
 
 gboolean       gst_data_queue_push           (GstDataQueue * queue, GstDataQueueItem * item);
 gboolean       gst_data_queue_pop            (GstDataQueue * queue, GstDataQueueItem ** item);

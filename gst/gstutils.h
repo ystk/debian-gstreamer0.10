@@ -123,8 +123,7 @@ static void type_as_function ## _init	       (type          *object,	\
                                                 type ## Class *g_class);\
 static parent_type ## Class *parent_class = NULL;			\
 static void								\
-type_as_function ## _class_init_trampoline (gpointer g_class,		\
-					    gpointer data)		\
+type_as_function ## _class_init_trampoline (gpointer g_class)		\
 {									\
   parent_class = (parent_type ## Class *)				\
       g_type_class_peek_parent (g_class);				\
@@ -145,7 +144,7 @@ type_as_function ## _get_type (void)					\
 	sizeof (type ## Class),						\
         type_as_function ## _base_init,					\
         NULL,		  /* base_finalize */				\
-        type_as_function ## _class_init_trampoline,			\
+        (GClassInitFunc) type_as_function ## _class_init_trampoline,    \
         NULL,		  /* class_finalize */				\
         NULL,               /* class_data */				\
         sizeof (type),							\
@@ -217,7 +216,7 @@ type_as_function ## _implements_interface_init (GstImplementsInterfaceClass *kla
 }                                                                       \
                                                                         \
 static void                                                             \
-type_as_function ## _init_interfaces (GType type)                       \
+type_as_function ## _init_interfaces (GType type_var)                   \
 {                                                                       \
   static const GInterfaceInfo implements_iface_info = {                 \
     (GInterfaceInitFunc) type_as_function ## _implements_interface_init,\
@@ -230,9 +229,9 @@ type_as_function ## _init_interfaces (GType type)                       \
     NULL,                                                               \
   };                                                                    \
                                                                         \
-  g_type_add_interface_static (type, GST_TYPE_IMPLEMENTS_INTERFACE,     \
+  g_type_add_interface_static (type_var, GST_TYPE_IMPLEMENTS_INTERFACE, \
       &implements_iface_info);                                          \
-  g_type_add_interface_static (type, interface_type_as_macro,		\
+  g_type_add_interface_static (type_var, interface_type_as_macro,	\
       &iface_info);							\
 }                                                                       \
                                                                         \
@@ -270,7 +269,7 @@ GST_BOILERPLATE_FULL (type, type_as_function, parent_type,              \
 
 /* Define PUT and GET functions for unaligned memory */
 #define _GST_GET(__data, __idx, __size, __shift) \
-    (((guint##__size) (((guint8 *) (__data))[__idx])) << (__shift))
+    (((guint##__size) (((const guint8 *) (__data))[__idx])) << (__shift))
 
 #define _GST_PUT(__data, __idx, __size, __shift, __num) \
     (((guint8 *) (__data))[__idx] = (((guint##__size) (__num)) >> (__shift)) & 0xff)
@@ -506,7 +505,7 @@ GST_BOILERPLATE_FULL (type, type_as_function, parent_type,              \
 					  _GST_PUT (data, 0,  8,  0, num); \
 					} while (0)
 
-/* Float endianess conversion macros */
+/* Float endianness conversion macros */
 
 /* FIXME: Remove this once we depend on a GLib version with this */
 #ifndef GFLOAT_FROM_LE
@@ -993,8 +992,9 @@ GST_WRITE_DOUBLE_BE(guint8 *data, gdouble num)
  */
 #define GST_ROUND_DOWN_64(num) ((num)&(~63))
 
-void			gst_object_default_error	(GstObject * source,
-							 GError * error, gchar * debug);
+void			gst_object_default_error	(GstObject    * source,
+							 const GError * error,
+							 const gchar  * debug);
 
 /* element functions */
 void                    gst_element_create_all_pads     (GstElement *element);
@@ -1003,8 +1003,8 @@ GstPad*                 gst_element_get_compatible_pad  (GstElement *element, Gs
 
 GstPadTemplate*         gst_element_get_compatible_pad_template (GstElement *element, GstPadTemplate *compattempl);
 
-G_CONST_RETURN gchar*   gst_element_state_get_name      (GstState state);
-G_CONST_RETURN gchar *  gst_element_state_change_return_get_name (GstStateChangeReturn state_ret);
+const gchar*            gst_element_state_get_name      (GstState state);
+const gchar *           gst_element_state_change_return_get_name (GstStateChangeReturn state_ret);
 
 gboolean		gst_element_link                (GstElement *src, GstElement *dest);
 gboolean		gst_element_link_many           (GstElement *element_1,
@@ -1034,8 +1034,14 @@ gboolean                gst_element_seek_simple         (GstElement   *element,
                                                          gint64        seek_pos);
 
 /* util elementfactory functions */
-gboolean		gst_element_factory_can_src_caps(GstElementFactory *factory, const GstCaps *caps);
-gboolean		gst_element_factory_can_sink_caps(GstElementFactory *factory, const GstCaps *caps);
+#ifndef GST_DISABLE_DEPRECATED
+gboolean		gst_element_factory_can_src_caps    (GstElementFactory *factory, const GstCaps *caps);
+gboolean		gst_element_factory_can_sink_caps   (GstElementFactory *factory, const GstCaps *caps);
+#endif /* GST_DISABLE_DEPRECATED */
+gboolean gst_element_factory_can_sink_all_caps (GstElementFactory *factory, const GstCaps *caps);
+gboolean gst_element_factory_can_src_all_caps  (GstElementFactory *factory, const GstCaps *caps);
+gboolean gst_element_factory_can_sink_any_caps (GstElementFactory *factory, const GstCaps *caps);
+gboolean gst_element_factory_can_src_any_caps  (GstElementFactory *factory, const GstCaps *caps);
 
 /* util query functions */
 gboolean                gst_element_query_position      (GstElement *element, GstFormat *format,
@@ -1172,6 +1178,7 @@ void gst_util_fraction_to_double (gint src_n, gint src_d, gdouble *dest);
 void gst_util_double_to_fraction (gdouble src, gint *dest_n, gint *dest_d);
 gboolean gst_util_fraction_multiply (gint a_n, gint a_d, gint b_n, gint b_d, gint *res_n, gint *res_d);
 gboolean gst_util_fraction_add (gint a_n, gint a_d, gint b_n, gint b_d, gint *res_n, gint *res_d);
+gint gst_util_fraction_compare (gint a_n, gint a_d, gint b_n, gint b_d);
 
 
 /* sink message event

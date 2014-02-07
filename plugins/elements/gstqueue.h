@@ -39,17 +39,26 @@ G_BEGIN_DECLS
 #define GST_IS_QUEUE_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_QUEUE))
 
-enum {
+typedef struct _GstQueue GstQueue;
+typedef struct _GstQueueSize GstQueueSize;
+typedef enum _GstQueueLeaky GstQueueLeaky;
+typedef struct _GstQueueClass GstQueueClass;
+
+/**
+ * GstQueueLeaky:
+ * @GST_QUEUE_NO_LEAK: Not Leaky
+ * @GST_QUEUE_LEAK_UPSTREAM: Leaky on upstream (new buffers)
+ * @GST_QUEUE_LEAK_DOWNSTREAM: Leaky on downstream (old buffers)
+ *
+ * Buffer dropping scheme to avoid the queue to block when full.
+ */
+enum _GstQueueLeaky {
   GST_QUEUE_NO_LEAK             = 0,
   GST_QUEUE_LEAK_UPSTREAM       = 1,
   GST_QUEUE_LEAK_DOWNSTREAM     = 2
 };
 
-typedef struct _GstQueue GstQueue;
-typedef struct _GstQueueSize GstQueueSize;
-typedef struct _GstQueueClass GstQueueClass;
-
-/**
+/*
  * GstQueueSize:
  * @buffers: number of buffers
  * @bytes: number of bytes
@@ -96,7 +105,7 @@ struct _GstQueue {
   gboolean      eos;
 
   /* the queue of data we're keeping our grubby hands on */
-  GQueue *queue;
+  GQueue queue;
 
   GstQueueSize
     cur_level,          /* currently in the queue */
@@ -108,10 +117,18 @@ struct _GstQueue {
   gint leaky;
 
   GMutex *qlock;        /* lock for queue (vs object lock) */
+  gboolean waiting_add;
   GCond *item_add;      /* signals buffers now available for reading */
+  gboolean waiting_del;
   GCond *item_del;      /* signals space now available for writing */
 
   gboolean head_needs_discont, tail_needs_discont;
+  gboolean push_newsegment;
+
+  gboolean silent;      /* don't emit signals */
+
+  /* whether the first new segment has been applied to src */
+  gboolean newseg_applied_to_src;
 };
 
 struct _GstQueueClass {

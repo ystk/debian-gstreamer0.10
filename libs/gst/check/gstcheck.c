@@ -201,11 +201,11 @@ gst_check_teardown_element (GstElement * element)
  */
 GstPad *
 gst_check_setup_src_pad (GstElement * element,
-    GstStaticPadTemplate * template, GstCaps * caps)
+    GstStaticPadTemplate * tmpl, GstCaps * caps)
 {
   GstPad *srcpad;
 
-  srcpad = gst_check_setup_src_pad_by_name (element, template, "sink");
+  srcpad = gst_check_setup_src_pad_by_name (element, tmpl, "sink");
   if (caps)
     fail_unless (gst_pad_set_caps (srcpad, caps), "could not set caps on pad");
   return srcpad;
@@ -213,12 +213,12 @@ gst_check_setup_src_pad (GstElement * element,
 
 GstPad *
 gst_check_setup_src_pad_by_name (GstElement * element,
-    GstStaticPadTemplate * template, const gchar * name)
+    GstStaticPadTemplate * tmpl, const gchar * name)
 {
   GstPad *srcpad, *sinkpad;
 
   /* sending pad */
-  srcpad = gst_pad_new_from_static_template (template, "src");
+  srcpad = gst_pad_new_from_static_template (tmpl, "src");
   GST_DEBUG_OBJECT (element, "setting up sending pad %p", srcpad);
   fail_if (srcpad == NULL, "Could not create a srcpad");
   ASSERT_OBJECT_REFCOUNT (srcpad, "srcpad", 1);
@@ -244,7 +244,10 @@ gst_check_teardown_pad_by_name (GstElement * element, const gchar * name)
 
   /* clean up floating src pad */
   pad_element = gst_element_get_static_pad (element, name);
-  ASSERT_OBJECT_REFCOUNT (pad_element, "pad", 2);
+  /* We don't check the refcount here since there *might* be
+   * a pad cache holding an extra reference on pad_element.
+   * To get to a state where no pad cache will exist,
+   * we first unlink that pad. */
   pad_peer = gst_pad_get_peer (pad_element);
 
   if (pad_peer) {
@@ -279,12 +282,12 @@ gst_check_teardown_src_pad (GstElement * element)
 /* FIXME: set_caps isn't that useful; might want to check if fixed,
  * then use set_use_fixed or somesuch */
 GstPad *
-gst_check_setup_sink_pad (GstElement * element, GstStaticPadTemplate * template,
+gst_check_setup_sink_pad (GstElement * element, GstStaticPadTemplate * tmpl,
     GstCaps * caps)
 {
   GstPad *sinkpad;
 
-  sinkpad = gst_check_setup_sink_pad_by_name (element, template, "src");
+  sinkpad = gst_check_setup_sink_pad_by_name (element, tmpl, "src");
   if (caps)
     fail_unless (gst_pad_set_caps (sinkpad, caps), "Could not set pad caps");
   return sinkpad;
@@ -292,12 +295,12 @@ gst_check_setup_sink_pad (GstElement * element, GstStaticPadTemplate * template,
 
 GstPad *
 gst_check_setup_sink_pad_by_name (GstElement * element,
-    GstStaticPadTemplate * template, const gchar * name)
+    GstStaticPadTemplate * tmpl, const gchar * name)
 {
   GstPad *srcpad, *sinkpad;
 
   /* receiving pad */
-  sinkpad = gst_pad_new_from_static_template (template, "sink");
+  sinkpad = gst_pad_new_from_static_template (tmpl, "sink");
   GST_DEBUG_OBJECT (element, "setting up receiving pad %p", sinkpad);
   fail_if (sinkpad == NULL, "Could not create a sinkpad");
 
@@ -335,11 +338,8 @@ gst_check_teardown_sink_pad (GstElement * element)
 void
 gst_check_drop_buffers (void)
 {
-  GstBuffer *temp_buffer;
-
-  while (g_list_length (buffers)) {
-    temp_buffer = GST_BUFFER (buffers->data);
-    gst_buffer_unref (temp_buffer);
+  while (buffers != NULL) {
+    gst_buffer_unref (GST_BUFFER (buffers->data));
     buffers = g_list_delete_link (buffers, buffers);
   }
 }
@@ -449,14 +449,14 @@ gst_check_element_push_buffer_list (const gchar * element_name,
       "could not set to playing");
   /* push all the buffers in the buffer_in list */
   fail_unless (g_list_length (buffer_in) > 0, "the buffer_in list is empty");
-  while (g_list_length (buffer_in) > 0) {
+  while (buffer_in != NULL) {
     GstBuffer *next_buffer = GST_BUFFER (buffer_in->data);
 
     fail_unless (GST_IS_BUFFER (next_buffer),
         "data in buffer_in should be a buffer");
     /* remove the buffer from the list */
     buffer_in = g_list_remove (buffer_in, next_buffer);
-    if (g_list_length (buffer_in) == 0) {
+    if (buffer_in == NULL) {
       fail_unless (gst_pad_push (src_pad, next_buffer) == last_flow_return,
           "we expect something else from the last buffer");
     } else {
@@ -467,10 +467,8 @@ gst_check_element_push_buffer_list (const gchar * element_name,
   fail_unless (gst_element_set_state (element,
           GST_STATE_NULL) == GST_STATE_CHANGE_SUCCESS, "could not set to null");
   /* check that there is a buffer out */
-  fail_unless (g_list_length (buffers) == g_list_length (buffer_out),
-      "We expected %d buffers, but there are %d buffers",
-      g_list_length (buffer_out), g_list_length (buffers));
-  while (g_list_length (buffers) > 0) {
+  fail_unless_equals_int (g_list_length (buffers), g_list_length (buffer_out));
+  while (buffers != NULL) {
     GstBuffer *new = GST_BUFFER (buffers->data);
     GstBuffer *orig = GST_BUFFER (buffer_out->data);
 
@@ -573,19 +571,22 @@ gst_check_abi_list (GstCheckABIStruct list[], gboolean have_abi_sizes)
 gint
 gst_check_run_suite (Suite * suite, const gchar * name, const gchar * fname)
 {
+  SRunner *sr;
+  gchar *xmlfilename = NULL;
   gint nf;
 
-  SRunner *sr = srunner_create (suite);
+  sr = srunner_create (suite);
 
   if (g_getenv ("GST_CHECK_XML")) {
     /* how lucky we are to have __FILE__ end in .c */
-    gchar *xmlfilename = g_strdup_printf ("%sheck.xml", fname);
+    xmlfilename = g_strdup_printf ("%sheck.xml", fname);
 
     srunner_set_xml (sr, xmlfilename);
   }
 
   srunner_run_all (sr, CK_NORMAL);
   nf = srunner_ntests_failed (sr);
+  g_free (xmlfilename);
   srunner_free (sr);
   return nf;
 }

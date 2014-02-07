@@ -43,7 +43,9 @@
 #include "gstlfocontrolsource.h"
 #include "gstlfocontrolsourceprivate.h"
 
-#include "math.h"
+#include "gst/glib-compat-private.h"
+
+#include <gst/math-compat.h>
 
 #define EMPTY(x) (x)
 
@@ -566,7 +568,7 @@ static GstWaveformImplementation *waveforms[] = {
   &waveform_triangle
 };
 
-static guint num_waveforms = G_N_ELEMENTS (waveforms);
+static const guint num_waveforms = G_N_ELEMENTS (waveforms);
 
 enum
 {
@@ -580,26 +582,27 @@ enum
 GType
 gst_lfo_waveform_get_type (void)
 {
-  static GType gtype = 0;
+  static gsize gtype = 0;
+  static const GEnumValue values[] = {
+    {GST_LFO_WAVEFORM_SINE, "GST_LFO_WAVEFORM_SINE",
+        "sine"},
+    {GST_LFO_WAVEFORM_SQUARE, "GST_LFO_WAVEFORM_SQUARE",
+        "square"},
+    {GST_LFO_WAVEFORM_SAW, "GST_LFO_WAVEFORM_SAW",
+        "saw"},
+    {GST_LFO_WAVEFORM_REVERSE_SAW, "GST_LFO_WAVEFORM_REVERSE_SAW",
+        "reverse-saw"},
+    {GST_LFO_WAVEFORM_TRIANGLE, "GST_LFO_WAVEFORM_TRIANGLE",
+        "triangle"},
+    {0, NULL, NULL}
+  };
 
-  if (gtype == 0) {
-    static const GEnumValue values[] = {
-      {GST_LFO_WAVEFORM_SINE, "Sine waveform (default)",
-          "sine"},
-      {GST_LFO_WAVEFORM_SQUARE, "Square waveform",
-          "square"},
-      {GST_LFO_WAVEFORM_SAW, "Saw waveform",
-          "saw"},
-      {GST_LFO_WAVEFORM_REVERSE_SAW, "Reverse saw waveform",
-          "reverse-saw"},
-      {GST_LFO_WAVEFORM_TRIANGLE, "Triangle waveform",
-          "triangle"},
-      {0, NULL, NULL}
-    };
-
-    gtype = g_enum_register_static ("GstLFOWaveform", values);
+  if (g_once_init_enter (&gtype)) {
+    GType tmp = g_enum_register_static ("GstLFOWaveform", values);
+    g_once_init_leave (&gtype, tmp);
   }
-  return gtype;
+
+  return (GType) gtype;
 }
 
 G_DEFINE_TYPE (GstLFOControlSource, gst_lfo_control_source,
@@ -648,7 +651,7 @@ gst_lfo_control_source_set_waveform (GstLFOControlSource * self,
   GstControlSource *csource = GST_CONTROL_SOURCE (self);
   gboolean ret = TRUE;
 
-  if (waveform >= num_waveforms || waveform < 0) {
+  if (waveform >= num_waveforms || (int) waveform < 0) {
     GST_WARNING ("waveform %d invalid or not implemented yet", waveform);
     return FALSE;
   }
@@ -968,7 +971,8 @@ gst_lfo_control_source_set_property (GObject * object, guint prop_id,
   switch (prop_id) {
     case PROP_WAVEFORM:
       g_mutex_lock (self->lock);
-      gst_lfo_control_source_set_waveform (self, g_value_get_enum (value));
+      gst_lfo_control_source_set_waveform (self,
+          (GstLFOWaveform) g_value_get_enum (value));
       g_mutex_unlock (self->lock);
       break;
     case PROP_FREQUENCY:{

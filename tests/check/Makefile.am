@@ -8,7 +8,7 @@ REGISTRY_ENVIRONMENT = \
 	GST_REGISTRY=$(CHECK_REGISTRY)
 
 TESTS_ENVIRONMENT = \
-        STATE_IGNORE_ELEMENTS="$(STATE_IGNORE_ELEMENTS)"	\
+        GST_STATE_IGNORE_ELEMENTS="$(STATE_IGNORE_ELEMENTS)"	\
         $(REGISTRY_ENVIRONMENT)					\
         GST_PLUGIN_SCANNER=$(top_builddir)/libs/gst/helpers/gst-plugin-scanner \
         GST_PLUGIN_SYSTEM_PATH=					\
@@ -33,6 +33,22 @@ else
 PARSE_CHECKS = pipelines/simple-launch-lines pipelines/cleanup pipelines/parse-launch
 endif
 
+# Do not run the abi test in case any option which causes the API to change has
+# been used
+if !GST_DISABLE_LOADSAVE
+if !GST_DISABLE_REGISTRY
+if !GST_DISABLE_TRACE
+ABI_CHECKS = gst/gstabi
+endif
+endif
+endif
+
+if HAVE_CXX
+CXX_CHECKS = gst/gstcpp libs/gstlibscpp
+else
+CXX_CHECKS =
+endif
+
 # if it's calling gst_element_factory_make(), it will probably not work without
 # a registry
 if GST_DISABLE_REGISTRY
@@ -43,6 +59,7 @@ REGISTRY_CHECKS =				\
 	gst/gstbin				\
 	gst/gstchildproxy			\
 	gst/gstelement				\
+	gst/gstelementfactory			\
 	gst/gstevent				\
 	gst/gstghostpad				\
 	gst/gstindex				\
@@ -60,9 +77,14 @@ REGISTRY_CHECKS =				\
 	elements/fdsrc			  	\
 	elements/filesink			\
 	elements/filesrc			\
+	elements/funnel				\
 	elements/identity			\
 	elements/multiqueue			\
+	elements/selector			\
 	elements/tee			  	\
+	elements/queue                          \
+	elements/queue2                         \
+	elements/valve                          \
 	libs/basesrc				\
 	libs/basesink				\
 	libs/controller				\
@@ -72,11 +94,14 @@ REGISTRY_CHECKS =				\
 endif
 
 check_PROGRAMS =				\
-	gst/gstabi			     	\
+	$(ABI_CHECKS)			     	\
+	gst/gstatomicqueue			\
 	gst/gstbuffer				\
 	gst/gstbufferlist			\
 	gst/gstbus				\
 	gst/gstcaps     			\
+	$(CXX_CHECKS)			     	\
+	gst/gstdatetime     			\
 	gst/gstinfo		 		\
 	gst/gstiterator 			\
 	gst/gstmessage	 			\
@@ -104,14 +129,12 @@ check_PROGRAMS =				\
 	libs/bytewriter				\
 	libs/gstnetclientclock			\
 	libs/gstnettimeprovider			\
-	libs/transform1				
+	libs/transform1
 
 # failing tests
-# queue : tests is unstable (race conditions)
 noinst_PROGRAMS =				\
 	gst/gstpipeline				\
-	libs/collectpads			\
-	elements/queue
+	libs/collectpads
 
 # elements to ignore for the state tests
 # STATE_IGNORE_ELEMENTS =
@@ -120,12 +143,14 @@ TESTS = $(check_PROGRAMS)
 
 noinst_HEADERS = \
 	gst/capslist.h \
+	gst/struct_arm.h \
 	gst/struct_i386.h \
 	gst/struct_hppa.h \
 	gst/struct_ppc32.h \
 	gst/struct_ppc64.h \
 	gst/struct_sparc.h \
 	gst/struct_x86_64.h \
+	libs/struct_arm.h \
 	libs/struct_i386.h \
 	libs/struct_hppa.h \
 	libs/struct_ppc32.h \
@@ -136,22 +161,28 @@ noinst_HEADERS = \
 EXTRA_DIST = \
 	libs/test_transform.c
 
-AM_CFLAGS = $(GST_OBJ_CFLAGS)
+AM_CFLAGS = $(GST_OBJ_CFLAGS) -UG_DISABLE_ASSERT -UG_DISABLE_CAST_CHECKS
+AM_CXXFLAGS = $(GST_OBJ_CXXFLAGS) -UG_DISABLE_ASSERT -UG_DISABLE_CAST_CHECKS
 LDADD = $(top_builddir)/libs/gst/check/libgstcheck-@GST_MAJORMINOR@.la \
 	$(top_builddir)/libs/gst/base/libgstbase-@GST_MAJORMINOR@.la \
 	$(GST_OBJ_LIBS)
+
+gst_gstcpp_SOURCES = gst/gstcpp.cc
+
+libs_gstlibscpp_SOURCES = libs/gstlibscpp.cc
 
 gst_gstutils_LDADD = $(LDADD) $(GSL_LIBS) $(GMP_LIBS)
 
 libs_gdp_SOURCES = \
 	libs/gdp.c
-libs_gdp_CFLAGS = $(AM_CFLAGS)
 libs_gdp_LDADD = \
 	$(top_builddir)/libs/gst/dataprotocol/libgstdataprotocol-@GST_MAJORMINOR@.la \
 	$(LDADD)
 
-elements_fdsrc_CFLAGS=$(GST_OBJ_CFLAGS) -DTESTFILE=\"$(top_srcdir)/configure.ac\"
-elements_filesrc_CFLAGS=$(GST_OBJ_CFLAGS) -DTESTFILE=\"$(top_srcdir)/configure.ac\"
+elements_fdsrc_CFLAGS=$(GST_OBJ_CFLAGS) $(AM_CFLAGS) \
+	-DTESTFILE=\"$(top_srcdir)/configure.ac\"
+elements_filesrc_CFLAGS=$(GST_OBJ_CFLAGS) $(AM_CFLAGS) \
+	-DTESTFILE=\"$(top_srcdir)/configure.ac\"
 
 libs_controller_LDADD = \
 	$(top_builddir)/libs/gst/controller/libgstcontroller-@GST_MAJORMINOR@.la \
@@ -234,7 +265,7 @@ coverage-report:
 	      coverage/$$dir/index.xml > coverage/$$dir/index.html;	\
 	  fi; \
         done
-
+	
 	for file in $(COVERAGE_FILES_REL); do				\
 	  echo Generating coverage/$$file.html; 			\
 	  perl $(top_srcdir)/common/coverage/coverage-report-entry.pl   \

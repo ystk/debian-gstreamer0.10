@@ -158,23 +158,33 @@ typedef enum {
  * whether an error message should be posted on the bus. Note that such
  * elements may also need to post an error message in the #GST_FLOW_NOT_LINKED
  * case which is not caught by this macro.
+ *
+ * Deprecated: This macro is badly named and can't be used in any real
+ * scenarios without additional checks.
  */
+#ifndef GST_DISABLE_DEPRECATED
 #define GST_FLOW_IS_FATAL(ret) ((ret) <= GST_FLOW_UNEXPECTED)
+#endif
 
 /**
  * GST_FLOW_IS_SUCCESS:
  * @ret: a #GstFlowReturn value
  *
  * Macro to test if the given #GstFlowReturn value indicates a
- * successfull result
+ * successful result
  * This macro is mainly used in elements to decide if the processing
- * of a buffer was successfull.
+ * of a buffer was successful.
  *
  * Since: 0.10.7
+ *
+ * Deprecated: This macro is badly named and can't be used in any real
+ * scenarios without additional checks.
  */
+#ifndef GST_DISABLE_DEPRECATED
 #define GST_FLOW_IS_SUCCESS(ret) ((ret) >= GST_FLOW_OK)
+#endif
 
-G_CONST_RETURN gchar*	gst_flow_get_name	(GstFlowReturn ret);
+const gchar*	        gst_flow_get_name	(GstFlowReturn ret);
 GQuark			gst_flow_to_quark	(GstFlowReturn ret);
 
 /**
@@ -182,7 +192,7 @@ GQuark			gst_flow_to_quark	(GstFlowReturn ret);
  * @GST_PAD_LINK_CHECK_NOTHING: Don't check hierarchy or caps compatibility.
  * @GST_PAD_LINK_CHECK_HIERARCHY: Check the pads have same parents/grandparents.
  *   Could be omitted if it is already known that the two elements that own the
- *   pads are in the same bin. 
+ *   pads are in the same bin.
  * @GST_PAD_LINK_CHECK_TEMPLATE_CAPS: Check if the pads are compatible by using
  *   their template caps. This is much faster than @GST_PAD_LINK_CHECK_CAPS, but
  *   would be unsafe e.g. if one pad has %GST_CAPS_ANY.
@@ -213,12 +223,12 @@ typedef enum {
 /**
  * GST_PAD_LINK_CHECK_DEFAULT:
  *
- * The default checks done when linking pads (i.e. the ones used by 
+ * The default checks done when linking pads (i.e. the ones used by
  * gst_pad_link()).
  *
  * Since: 0.10.30
  */
-#define GST_PAD_LINK_CHECK_DEFAULT (GST_PAD_LINK_CHECK_HIERARCHY | GST_PAD_LINK_CHECK_CAPS)
+#define GST_PAD_LINK_CHECK_DEFAULT ((GstPadLinkCheck) (GST_PAD_LINK_CHECK_HIERARCHY | GST_PAD_LINK_CHECK_CAPS))
 
 /**
  * GstActivateMode:
@@ -395,7 +405,10 @@ typedef gboolean		(*GstPadCheckGetRangeFunction)	(GstPad *pad);
  *
  * Deprecated: use the threadsafe #GstPadIterIntLinkFunction instead.
  */
+#ifndef GST_DISABLE_DEPRECATED
 typedef GList*			(*GstPadIntLinkFunction)	(GstPad *pad);
+#endif
+
 
 /**
  * GstPadIterIntLinkFunction:
@@ -497,7 +510,7 @@ typedef gboolean		(*GstPadAcceptCapsFunction)	(GstPad *pad, GstCaps *caps);
  * @pad: a #GstPad
  * @caps: the #GstCaps to fixate
  *
- * Given possibly unfixed caps @caps, let @pad use its default prefered
+ * Given possibly unfixed caps @caps, let @pad use its default preferred
  * format to make a fixed caps. @caps should be writable. By default this
  * function will pick the first value of any ranges or lists in the caps but
  * elements can override this function to perform other behaviour.
@@ -698,7 +711,13 @@ struct _GstPad {
   GstPadQueryFunction		 queryfunc;
 
   /* internal links */
+#ifndef GST_DISABLE_DEPRECATED
   GstPadIntLinkFunction		 intlinkfunc;
+#else
+#ifndef __GTK_DOC_IGNORE__
+  gpointer intlinkfunc;
+#endif
+#endif
 
   GstPadBufferAllocFunction      bufferallocfunc;
 
@@ -947,7 +966,7 @@ void			gst_pad_set_acceptcaps_function		(GstPad *pad, GstPadAcceptCapsFunction a
 void			gst_pad_set_fixatecaps_function		(GstPad *pad, GstPadFixateCapsFunction fixatecaps);
 void			gst_pad_set_setcaps_function		(GstPad *pad, GstPadSetCapsFunction setcaps);
 
-G_CONST_RETURN GstCaps*	gst_pad_get_pad_template_caps		(GstPad *pad);
+const GstCaps*	        gst_pad_get_pad_template_caps		(GstPad *pad);
 
 /* capsnego function for linked/unlinked pads */
 GstCaps *		gst_pad_get_caps_reffed                 (GstPad * pad);
@@ -1001,10 +1020,8 @@ GstIterator *           gst_pad_iterate_internal_links_default  (GstPad * pad);
 
 /* generic query function */
 void			gst_pad_set_query_type_function		(GstPad *pad, GstPadQueryTypeFunction type_func);
-G_CONST_RETURN GstQueryType*
-			gst_pad_get_query_types			(GstPad *pad);
-G_CONST_RETURN GstQueryType*
-			gst_pad_get_query_types_default		(GstPad *pad);
+const GstQueryType*	gst_pad_get_query_types			(GstPad *pad);
+const GstQueryType*	gst_pad_get_query_types_default		(GstPad *pad);
 
 gboolean		gst_pad_query				(GstPad *pad, GstQuery *query);
 gboolean		gst_pad_peer_query			(GstPad *pad, GstQuery *query);

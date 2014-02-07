@@ -23,7 +23,7 @@
 /**
  * SECTION:element-identity
  *
- * Dummy element that passes incomming data through unmodified. It has some
+ * Dummy element that passes incoming data through unmodified. It has some
  * useful diagnostic functions, such as offset and timestamp checking.
  */
 
@@ -32,6 +32,7 @@
 #endif
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "../../gst/gst-i18n-lib.h"
 #include "gstidentity.h"
@@ -111,8 +112,12 @@ static GstFlowReturn gst_identity_prepare_output_buffer (GstBaseTransform
     GstBuffer ** out_buf);
 static gboolean gst_identity_start (GstBaseTransform * trans);
 static gboolean gst_identity_stop (GstBaseTransform * trans);
+static GstStateChangeReturn gst_identity_change_state (GstElement * element,
+    GstStateChange transition);
 
 static guint gst_identity_signals[LAST_SIGNAL] = { 0 };
+
+static GParamSpec *pspec_last_message = NULL;
 
 static void
 gst_identity_base_init (gpointer g_class)
@@ -137,7 +142,10 @@ gst_identity_finalize (GObject * object)
   identity = GST_IDENTITY (object);
 
   g_free (identity->last_message);
+
+#if !GLIB_CHECK_VERSION(2,26,0)
   g_static_rec_mutex_free (&identity->notify_lock);
+#endif
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -174,9 +182,11 @@ static void
 gst_identity_class_init (GstIdentityClass * klass)
 {
   GObjectClass *gobject_class;
+  GstElementClass *gstelement_class;
   GstBaseTransformClass *gstbasetrans_class;
 
   gobject_class = G_OBJECT_CLASS (klass);
+  gstelement_class = GST_ELEMENT_CLASS (klass);
   gstbasetrans_class = GST_BASE_TRANSFORM_CLASS (klass);
 
   gobject_class->set_property = gst_identity_set_property;
@@ -207,9 +217,10 @@ gst_identity_class_init (GstIdentityClass * klass)
       g_param_spec_boolean ("single-segment", "Single Segment",
           "Timestamp buffers and eat newsegments so as to appear as one segment",
           DEFAULT_SINGLE_SEGMENT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  pspec_last_message = g_param_spec_string ("last-message", "last-message",
+      "last-message", NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (gobject_class, PROP_LAST_MESSAGE,
-      g_param_spec_string ("last-message", "last-message", "last-message", NULL,
-          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+      pspec_last_message);
   g_object_class_install_property (gobject_class, PROP_DUMP,
       g_param_spec_boolean ("dump", "Dump", "Dump buffer contents to stdout",
           DEFAULT_DUMP, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
@@ -265,6 +276,9 @@ gst_identity_class_init (GstIdentityClass * klass)
 
   gobject_class->finalize = gst_identity_finalize;
 
+  gstelement_class->change_state =
+      GST_DEBUG_FUNCPTR (gst_identity_change_state);
+
   gstbasetrans_class->event = GST_DEBUG_FUNCPTR (gst_identity_event);
   gstbasetrans_class->transform_ip =
       GST_DEBUG_FUNCPTR (gst_identity_transform_ip);
@@ -290,7 +304,12 @@ gst_identity_init (GstIdentity * identity, GstIdentityClass * g_class)
   identity->dump = DEFAULT_DUMP;
   identity->last_message = NULL;
   identity->signal_handoffs = DEFAULT_SIGNAL_HANDOFFS;
+
+#if !GLIB_CHECK_VERSION(2,26,0)
   g_static_rec_mutex_init (&identity->notify_lock);
+#endif
+
+  gst_base_transform_set_gap_aware (GST_BASE_TRANSFORM_CAST (identity), TRUE);
 }
 
 static void
@@ -301,10 +320,14 @@ gst_identity_notify_last_message (GstIdentity * identity)
    * http://bugzilla.gnome.org/show_bug.cgi?id=166020#c60 and follow-ups.
    * So we really don't want to do a g_object_notify() here for out-of-band
    * events with the streaming thread possibly also doing a g_object_notify()
-   * for an in-band buffer or event. */
+   * for an in-band buffer or event. This is fixed in GLib >= 2.26 */
+#if !GLIB_CHECK_VERSION(2,26,0)
   g_static_rec_mutex_lock (&identity->notify_lock);
-  g_object_notify ((GObject *) identity, "last_message");
+  g_object_notify ((GObject *) identity, "last-message");
   g_static_rec_mutex_unlock (&identity->notify_lock);
+#else
+  g_object_notify_by_pspec ((GObject *) identity, pspec_last_message);
+#endif
 }
 
 static gboolean
@@ -361,6 +384,17 @@ gst_identity_event (GstBaseTransform * trans, GstEvent * event)
   }
 
   ret = parent_class->event (trans, event);
+
+  if (GST_EVENT_TYPE (event) == GST_EVENT_FLUSH_START) {
+    GST_OBJECT_LOCK (identity);
+    if (identity->clock_id) {
+      GST_DEBUG_OBJECT (identity, "unlock clock wait");
+      gst_clock_id_unschedule (identity->clock_id);
+      gst_clock_id_unref (identity->clock_id);
+      identity->clock_id = NULL;
+    }
+    GST_OBJECT_UNLOCK (identity);
+  }
 
   if (identity->single_segment
       && (GST_EVENT_TYPE (event) == GST_EVENT_NEWSEGMENT)) {
@@ -533,6 +567,61 @@ gst_identity_check_imperfect_offset (GstIdentity * identity, GstBuffer * buf)
   }
 }
 
+static const gchar *
+print_pretty_time (gchar * ts_str, gsize ts_str_len, GstClockTime ts)
+{
+  if (ts == GST_CLOCK_TIME_NONE)
+    return "none";
+
+  g_snprintf (ts_str, ts_str_len, "%" GST_TIME_FORMAT, GST_TIME_ARGS (ts));
+  return ts_str;
+}
+
+static void
+gst_identity_update_last_message_for_buffer (GstIdentity * identity,
+    const gchar * action, GstBuffer * buf)
+{
+  gchar ts_str[64], dur_str[64];
+  gchar flag_str[100];
+
+  GST_OBJECT_LOCK (identity);
+
+  {
+    const char *flag_list[12] = {
+      "ro", "media4", "", "",
+      "preroll", "discont", "incaps", "gap",
+      "delta_unit", "media1", "media2", "media3"
+    };
+    int i;
+    char *end = flag_str;
+    end[0] = '\0';
+    for (i = 0; i < 12; i++) {
+      if (GST_MINI_OBJECT_CAST (buf)->flags & (1 << i)) {
+        strcpy (end, flag_list[i]);
+        end += strlen (end);
+        end[0] = ' ';
+        end[1] = '\0';
+        end++;
+      }
+    }
+  }
+
+  g_free (identity->last_message);
+  identity->last_message = g_strdup_printf ("%s   ******* (%s:%s) "
+      "(%u bytes, timestamp: %s, duration: %s, offset: %" G_GINT64_FORMAT ", "
+      "offset_end: % " G_GINT64_FORMAT ", flags: %d %s) %p", action,
+      GST_DEBUG_PAD_NAME (GST_BASE_TRANSFORM_CAST (identity)->sinkpad),
+      GST_BUFFER_SIZE (buf),
+      print_pretty_time (ts_str, sizeof (ts_str), GST_BUFFER_TIMESTAMP (buf)),
+      print_pretty_time (dur_str, sizeof (dur_str), GST_BUFFER_DURATION (buf)),
+      GST_BUFFER_OFFSET (buf), GST_BUFFER_OFFSET_END (buf),
+      GST_BUFFER_FLAGS (buf), flag_str, buf);
+
+  GST_OBJECT_UNLOCK (identity);
+
+  gst_identity_notify_last_message (identity);
+}
+
 static GstFlowReturn
 gst_identity_transform_ip (GstBaseTransform * trans, GstBuffer * buf)
 {
@@ -565,19 +654,7 @@ gst_identity_transform_ip (GstBaseTransform * trans, GstBuffer * buf)
   if (identity->drop_probability > 0.0) {
     if ((gfloat) (1.0 * rand () / (RAND_MAX)) < identity->drop_probability) {
       if (!identity->silent) {
-        GST_OBJECT_LOCK (identity);
-        g_free (identity->last_message);
-        identity->last_message =
-            g_strdup_printf
-            ("dropping   ******* (%s:%s)i (%d bytes, timestamp: %"
-            GST_TIME_FORMAT ", duration: %" GST_TIME_FORMAT ", offset: %"
-            G_GINT64_FORMAT ", offset_end: % " G_GINT64_FORMAT
-            ", flags: %d) %p", GST_DEBUG_PAD_NAME (trans->sinkpad),
-            GST_BUFFER_SIZE (buf), GST_TIME_ARGS (GST_BUFFER_TIMESTAMP (buf)),
-            GST_TIME_ARGS (GST_BUFFER_DURATION (buf)), GST_BUFFER_OFFSET (buf),
-            GST_BUFFER_OFFSET_END (buf), GST_BUFFER_FLAGS (buf), buf);
-        GST_OBJECT_UNLOCK (identity);
-        gst_identity_notify_last_message (identity);
+        gst_identity_update_last_message_for_buffer (identity, "dropping", buf);
       }
       /* return DROPPED to basetransform. */
       return GST_BASE_TRANSFORM_FLOW_DROPPED;
@@ -589,19 +666,7 @@ gst_identity_transform_ip (GstBaseTransform * trans, GstBuffer * buf)
   }
 
   if (!identity->silent) {
-    GST_OBJECT_LOCK (identity);
-    g_free (identity->last_message);
-    identity->last_message =
-        g_strdup_printf ("chain   ******* (%s:%s)i (%d bytes, timestamp: %"
-        GST_TIME_FORMAT ", duration: %" GST_TIME_FORMAT ", offset: %"
-        G_GINT64_FORMAT ", offset_end: % " G_GINT64_FORMAT ", flags: %d) %p",
-        GST_DEBUG_PAD_NAME (trans->sinkpad), GST_BUFFER_SIZE (buf),
-        GST_TIME_ARGS (GST_BUFFER_TIMESTAMP (buf)),
-        GST_TIME_ARGS (GST_BUFFER_DURATION (buf)),
-        GST_BUFFER_OFFSET (buf), GST_BUFFER_OFFSET_END (buf),
-        GST_BUFFER_FLAGS (buf), buf);
-    GST_OBJECT_UNLOCK (identity);
-    gst_identity_notify_last_message (identity);
+    gst_identity_update_last_message_for_buffer (identity, "chain", buf);
   }
 
   if (identity->datarate > 0) {
@@ -631,7 +696,6 @@ gst_identity_transform_ip (GstBaseTransform * trans, GstBuffer * buf)
       timestamp = runtimestamp + GST_ELEMENT (identity)->base_time;
 
       /* save id if we need to unlock */
-      /* FIXME: actually unlock this somewhere in the state changes */
       identity->clock_id = gst_clock_new_single_shot_id (clock, timestamp);
       GST_OBJECT_UNLOCK (identity);
 
@@ -799,4 +863,47 @@ gst_identity_stop (GstBaseTransform * trans)
   GST_OBJECT_UNLOCK (identity);
 
   return TRUE;
+}
+
+static GstStateChangeReturn
+gst_identity_change_state (GstElement * element, GstStateChange transition)
+{
+  GstStateChangeReturn ret;
+  GstIdentity *identity = GST_IDENTITY (element);
+
+  switch (transition) {
+    case GST_STATE_CHANGE_NULL_TO_READY:
+      break;
+    case GST_STATE_CHANGE_READY_TO_PAUSED:
+      break;
+    case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
+      break;
+    case GST_STATE_CHANGE_PAUSED_TO_READY:
+      GST_OBJECT_LOCK (identity);
+      if (identity->clock_id) {
+        GST_DEBUG_OBJECT (identity, "unlock clock wait");
+        gst_clock_id_unschedule (identity->clock_id);
+        gst_clock_id_unref (identity->clock_id);
+        identity->clock_id = NULL;
+      }
+      GST_OBJECT_UNLOCK (identity);
+      break;
+    default:
+      break;
+  }
+
+  ret = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
+
+  switch (transition) {
+    case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
+      break;
+    case GST_STATE_CHANGE_PAUSED_TO_READY:
+      break;
+    case GST_STATE_CHANGE_READY_TO_NULL:
+      break;
+    default:
+      break;
+  }
+
+  return ret;
 }

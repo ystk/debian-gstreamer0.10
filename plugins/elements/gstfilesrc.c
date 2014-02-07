@@ -24,6 +24,13 @@
  * @see_also: #GstFileSrc
  *
  * Read data from a file in the local file system.
+ *
+ * <refsect2>
+ * <title>Example launch line</title>
+ * |[
+ * gst-launch filesrc location=song.ogg ! decodebin2 ! autoaudiosink
+ * ]| Play a song.ogg from local dir.
+ * </refsect2>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -360,10 +367,12 @@ gst_file_src_set_location (GstFileSrc * src, const gchar * location)
     src->filename = NULL;
     src->uri = NULL;
   } else {
-    /* we store the filename as received by the application. On Windoes this
+    /* we store the filename as received by the application. On Windows this
      * should be UTF8 */
     src->filename = g_strdup (location);
-    src->uri = gst_uri_construct ("file", src->filename);
+    src->uri = gst_filename_to_uri (location, NULL);
+    GST_INFO ("filename : %s", src->filename);
+    GST_INFO ("uri      : %s", src->uri);
   }
   g_object_notify (G_OBJECT (src), "location");
   gst_uri_handler_new_uri (GST_URI_HANDLER (src), src->uri);
@@ -486,52 +495,24 @@ struct _GstMmapBufferClass
   GstBufferClass buffer_class;
 };
 
-static void gst_mmap_buffer_init (GTypeInstance * instance, gpointer g_class);
-static void gst_mmap_buffer_class_init (gpointer g_class, gpointer class_data);
 static void gst_mmap_buffer_finalize (GstMmapBuffer * mmap_buffer);
-static GstBufferClass *mmap_buffer_parent_class = NULL;
 
-static GType
-gst_mmap_buffer_get_type (void)
-{
-  static GType _gst_mmap_buffer_type;
+GType gst_mmap_buffer_get_type (void);
 
-  if (G_UNLIKELY (_gst_mmap_buffer_type == 0)) {
-    static const GTypeInfo mmap_buffer_info = {
-      sizeof (GstMmapBufferClass),
-      NULL,
-      NULL,
-      gst_mmap_buffer_class_init,
-      NULL,
-      NULL,
-      sizeof (GstMmapBuffer),
-      0,
-      gst_mmap_buffer_init,
-      NULL
-    };
-
-    _gst_mmap_buffer_type = g_type_register_static (GST_TYPE_BUFFER,
-        "GstMmapBuffer", &mmap_buffer_info, 0);
-  }
-  return _gst_mmap_buffer_type;
-}
+G_DEFINE_TYPE (GstMmapBuffer, gst_mmap_buffer, GST_TYPE_BUFFER);
 
 static void
-gst_mmap_buffer_class_init (gpointer g_class, gpointer class_data)
+gst_mmap_buffer_class_init (GstMmapBufferClass * g_class)
 {
   GstMiniObjectClass *mini_object_class = GST_MINI_OBJECT_CLASS (g_class);
-
-  mmap_buffer_parent_class = g_type_class_peek_parent (g_class);
 
   mini_object_class->finalize =
       (GstMiniObjectFinalizeFunction) gst_mmap_buffer_finalize;
 }
 
 static void
-gst_mmap_buffer_init (GTypeInstance * instance, gpointer g_class)
+gst_mmap_buffer_init (GstMmapBuffer * buf)
 {
-  GstBuffer *buf = (GstBuffer *) instance;
-
   GST_BUFFER_FLAG_SET (buf, GST_BUFFER_FLAG_READONLY);
   /* before we re-enable this flag, we probably need to fix _copy()
    * _make_writable(), etc. in GstMiniObject/GstBuffer as well */
@@ -572,8 +553,8 @@ gst_mmap_buffer_finalize (GstMmapBuffer * mmap_buffer)
   GST_LOG ("unmapped region %08lx+%08lx at %p",
       (gulong) offset, (gulong) size, data);
 
-  GST_MINI_OBJECT_CLASS (mmap_buffer_parent_class)->finalize (GST_MINI_OBJECT
-      (mmap_buffer));
+  GST_MINI_OBJECT_CLASS (gst_mmap_buffer_parent_class)->finalize
+      (GST_MINI_OBJECT (mmap_buffer));
 }
 
 static GstBuffer *
@@ -782,11 +763,11 @@ gst_file_src_create_mmap (GstFileSrc * src, guint64 offset, guint length,
 
   /* if we need to touch the buffer (to bring it into memory), do so */
   if (src->touch) {
-    volatile guchar *p = GST_BUFFER_DATA (buf), c;
+    volatile guchar *p = GST_BUFFER_DATA (buf);
 
     /* read first byte of each page */
     for (i = 0; i < GST_BUFFER_SIZE (buf); i += src->pagesize)
-      c = p[i];
+      (void) p[i];
   }
 
   /* we're done, return the buffer */
@@ -819,6 +800,7 @@ gst_file_src_create_read (GstFileSrc * src, guint64 offset, guint length,
 {
   int ret;
   GstBuffer *buf;
+  guint to_read, bytes_read;
 
   if (G_UNLIKELY (src->read_position != offset)) {
     off_t res;
@@ -837,28 +819,38 @@ gst_file_src_create_read (GstFileSrc * src, guint64 offset, guint length,
   }
 
   /* No need to read anything if length is 0 */
-  if (length > 0) {
+  GST_BUFFER_SIZE (buf) = 0;
+  GST_BUFFER_OFFSET (buf) = offset;
+  GST_BUFFER_OFFSET_END (buf) = offset;
+  bytes_read = 0;
+  to_read = length;
+  while (to_read > 0) {
     GST_LOG_OBJECT (src, "Reading %d bytes at offset 0x%" G_GINT64_MODIFIER "x",
-        length, offset);
-    ret = read (src->fd, GST_BUFFER_DATA (buf), length);
-    if (G_UNLIKELY (ret < 0))
+        to_read, offset + bytes_read);
+    errno = 0;
+    ret = read (src->fd, GST_BUFFER_DATA (buf) + bytes_read, to_read);
+    if (G_UNLIKELY (ret < 0)) {
+      if (errno == EAGAIN || errno == EINTR)
+        continue;
       goto could_not_read;
+    }
 
-    /* seekable regular files should have given us what we expected */
-    if (G_UNLIKELY ((guint) ret < length && src->seekable))
-      goto unexpected_eos;
-
-    /* other files should eos if they read 0 and more was requested */
-    if (G_UNLIKELY (ret == 0 && length > 0))
+    /* files should eos if they read 0 and more was requested */
+    if (G_UNLIKELY (ret == 0)) {
+      /* .. but first we should return any remaining data */
+      if (bytes_read > 0)
+        break;
       goto eos;
+    }
 
-    length = ret;
-    GST_BUFFER_SIZE (buf) = length;
-    GST_BUFFER_OFFSET (buf) = offset;
-    GST_BUFFER_OFFSET_END (buf) = offset + length;
+    to_read -= ret;
+    bytes_read += ret;
 
-    src->read_position += length;
+    src->read_position += ret;
   }
+
+  GST_BUFFER_SIZE (buf) = bytes_read;
+  GST_BUFFER_OFFSET_END (buf) = offset + bytes_read;
 
   *buffer = buf;
 
@@ -876,16 +868,9 @@ could_not_read:
     gst_buffer_unref (buf);
     return GST_FLOW_ERROR;
   }
-unexpected_eos:
-  {
-    GST_ELEMENT_ERROR (src, RESOURCE, READ, (NULL),
-        ("unexpected end of file."));
-    gst_buffer_unref (buf);
-    return GST_FLOW_ERROR;
-  }
 eos:
   {
-    GST_DEBUG ("non-regular file hits EOS");
+    GST_DEBUG ("EOS");
     gst_buffer_unref (buf);
     return GST_FLOW_UNEXPECTED;
   }
@@ -1037,6 +1022,8 @@ gst_file_src_start (GstBaseSrc * basesrc)
   /* We can only really do seeking on regular files - for other file types, we
    * don't know their length, so seeking isn't useful/meaningful */
   src->seekable = src->seekable && src->is_regular;
+
+  gst_base_src_set_dynamic_size (basesrc, src->seekable);
 
   return TRUE;
 

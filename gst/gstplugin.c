@@ -62,6 +62,7 @@
 #endif
 #include <signal.h>
 #include <errno.h>
+#include <string.h>
 
 #include "glib-compat-private.h"
 
@@ -205,7 +206,7 @@ _gst_plugin_register_static (GstPluginDesc * desc)
  *     library-specific namespace prefix in order to avoid name conflicts in
  *     case a similar plugin with the same name ever gets added to GStreamer)
  * @description: description of the plugin
- * @init_func: pointer to the init function of this plugin.
+ * @init_func: (scope call): pointer to the init function of this plugin.
  * @version: version string of the plugin
  * @license: effective license of plugin. Must be one of the approved licenses
  *     (see #GstPluginDesc above) or the plugin will not be registered.
@@ -231,7 +232,7 @@ gst_plugin_register_static (gint major_version, gint minor_version,
     const gchar * package, const gchar * origin)
 {
   GstPluginDesc desc = { major_version, minor_version, name, description,
-    init_func, version, license, source, package, origin,
+    init_func, version, license, source, package, origin, NULL,
   };
   GstPlugin *plugin;
   gboolean res = FALSE;
@@ -268,7 +269,8 @@ gst_plugin_register_static (gint major_version, gint minor_version,
  *     library-specific namespace prefix in order to avoid name conflicts in
  *     case a similar plugin with the same name ever gets added to GStreamer)
  * @description: description of the plugin
- * @init_full_func: pointer to the init function with user data of this plugin.
+ * @init_full_func: (scope call): pointer to the init function with user data
+ *     of this plugin.
  * @version: version string of the plugin
  * @license: effective license of plugin. Must be one of the approved licenses
  *     (see #GstPluginDesc above) or the plugin will not be registered.
@@ -300,7 +302,7 @@ gst_plugin_register_static_full (gint major_version, gint minor_version,
 {
   GstPluginDesc desc = { major_version, minor_version, name, description,
     (GstPluginInitFunc) init_full_func, version, license, source, package,
-    origin,
+    origin, NULL,
   };
   GstPlugin *plugin;
   gboolean res = FALSE;
@@ -601,7 +603,8 @@ _gst_plugin_fault_handler_sighandler (int signum)
       g_print ("%s\n\n", _gst_plugin_fault_handler_filename);
       g_print ("Please either:\n");
       g_print ("- remove it and restart.\n");
-      g_print ("- run with --gst-disable-segtrap and debug.\n");
+      g_print
+          ("- run with --gst-disable-segtrap --gst-disable-registry-fork and debug.\n");
       exit (-1);
       break;
     default:
@@ -645,6 +648,44 @@ _gst_plugin_fault_handler_setup (void)
 }
 #endif /* HAVE_SIGACTION */
 
+/* g_time_val_from_iso8601() doesn't do quite what we want */
+static gboolean
+check_release_datetime (const gchar * date_time)
+{
+  guint64 val;
+
+  /* we require YYYY-MM-DD or YYYY-MM-DDTHH:MMZ format */
+  if (!g_ascii_isdigit (*date_time))
+    return FALSE;
+
+  val = g_ascii_strtoull (date_time, (gchar **) & date_time, 10);
+  if (val < 2000 || val > 2100 || *date_time != '-')
+    return FALSE;
+
+  val = g_ascii_strtoull (date_time + 1, (gchar **) & date_time, 10);
+  if (val == 0 || val > 12 || *date_time != '-')
+    return FALSE;
+
+  val = g_ascii_strtoull (date_time + 1, (gchar **) & date_time, 10);
+  if (val == 0 || val > 32)
+    return FALSE;
+
+  /* end of string or date/time separator + HH:MMZ */
+  if (*date_time == 'T' || *date_time == ' ') {
+    val = g_ascii_strtoull (date_time + 1, (gchar **) & date_time, 10);
+    if (val > 24 || *date_time != ':')
+      return FALSE;
+
+    val = g_ascii_strtoull (date_time + 1, (gchar **) & date_time, 10);
+    if (val > 59 || *date_time != 'Z')
+      return FALSE;
+
+    ++date_time;
+  }
+
+  return (*date_time == '\0');
+}
+
 static GStaticMutex gst_plugin_loading_mutex = G_STATIC_MUTEX_INIT;
 
 #define CHECK_PLUGIN_DESC_FIELD(desc,field,fn)                               \
@@ -659,8 +700,8 @@ static GStaticMutex gst_plugin_loading_mutex = G_STATIC_MUTEX_INIT;
  *
  * Loads the given plugin and refs it.  Caller needs to unref after use.
  *
- * Returns: a reference to the existing loaded GstPlugin, a reference to the
- * newly-loaded GstPlugin, or NULL if an error occurred.
+ * Returns: (transfer full): a reference to the existing loaded GstPlugin, a 
+ * reference to the newly-loaded GstPlugin, or NULL if an error occurred.
  */
 GstPlugin *
 gst_plugin_load_file (const gchar * filename, GError ** error)
@@ -670,9 +711,10 @@ gst_plugin_load_file (const gchar * filename, GError ** error)
   GModule *module;
   gboolean ret;
   gpointer ptr;
-  struct stat file_status;
+  GStatBuf file_status;
   GstRegistry *registry;
   gboolean new_plugin = TRUE;
+  GModuleFlags flags;
 
   g_return_val_if_fail (filename != NULL, NULL);
 
@@ -711,7 +753,17 @@ gst_plugin_load_file (const gchar * filename, GError ** error)
     goto return_error;
   }
 
-  module = g_module_open (filename, G_MODULE_BIND_LOCAL);
+  flags = G_MODULE_BIND_LOCAL;
+  /* libgstpython.so is the gst-python plugin loader. It needs to be loaded with
+   * G_MODULE_BIND_LAZY.
+   *
+   * Ideally there should be a generic way for plugins to specify that they
+   * need to be loaded with _LAZY.
+   * */
+  if (strstr (filename, "libgstpython"))
+    flags |= G_MODULE_BIND_LAZY;
+
+  module = g_module_open (filename, flags);
   if (module == NULL) {
     GST_CAT_WARNING (GST_CAT_PLUGIN_LOADING, "module_open failed: %s",
         g_module_error ());
@@ -769,6 +821,13 @@ gst_plugin_load_file (const gchar * filename, GError ** error)
     CHECK_PLUGIN_DESC_FIELD (plugin->orig_desc, source, filename);
     CHECK_PLUGIN_DESC_FIELD (plugin->orig_desc, package, filename);
     CHECK_PLUGIN_DESC_FIELD (plugin->orig_desc, origin, filename);
+
+    if (plugin->orig_desc->release_datetime != NULL &&
+        !check_release_datetime (plugin->orig_desc->release_datetime)) {
+      GST_ERROR ("GstPluginDesc for '%s' has invalid datetime '%s'",
+          filename, plugin->orig_desc->release_datetime);
+      plugin->orig_desc->release_datetime = NULL;
+    }
   }
 
   GST_LOG ("Plugin %p for file \"%s\" prepared, calling entry function...",
@@ -829,6 +888,7 @@ gst_plugin_desc_copy (GstPluginDesc * dest, const GstPluginDesc * src)
   dest->source = g_intern_string (src->source);
   dest->package = g_intern_string (src->package);
   dest->origin = g_intern_string (src->origin);
+  dest->release_datetime = g_intern_string (src->release_datetime);
 }
 
 /**
@@ -855,7 +915,7 @@ gst_plugin_get_name (GstPlugin * plugin)
  *
  * Returns: the long name of the plugin
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_get_description (GstPlugin * plugin)
 {
   g_return_val_if_fail (plugin != NULL, NULL);
@@ -871,7 +931,7 @@ gst_plugin_get_description (GstPlugin * plugin)
  *
  * Returns: the filename of the plugin
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_get_filename (GstPlugin * plugin)
 {
   g_return_val_if_fail (plugin != NULL, NULL);
@@ -887,7 +947,7 @@ gst_plugin_get_filename (GstPlugin * plugin)
  *
  * Returns: the version of the plugin
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_get_version (GstPlugin * plugin)
 {
   g_return_val_if_fail (plugin != NULL, NULL);
@@ -903,7 +963,7 @@ gst_plugin_get_version (GstPlugin * plugin)
  *
  * Returns: the license of the plugin
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_get_license (GstPlugin * plugin)
 {
   g_return_val_if_fail (plugin != NULL, NULL);
@@ -919,7 +979,7 @@ gst_plugin_get_license (GstPlugin * plugin)
  *
  * Returns: the source of the plugin
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_get_source (GstPlugin * plugin)
 {
   g_return_val_if_fail (plugin != NULL, NULL);
@@ -935,7 +995,7 @@ gst_plugin_get_source (GstPlugin * plugin)
  *
  * Returns: the package of the plugin
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_get_package (GstPlugin * plugin)
 {
   g_return_val_if_fail (plugin != NULL, NULL);
@@ -951,7 +1011,7 @@ gst_plugin_get_package (GstPlugin * plugin)
  *
  * Returns: the origin of the plugin
  */
-G_CONST_RETURN gchar *
+const gchar *
 gst_plugin_get_origin (GstPlugin * plugin)
 {
   g_return_val_if_fail (plugin != NULL, NULL);
@@ -966,8 +1026,8 @@ gst_plugin_get_origin (GstPlugin * plugin)
  * Gets the #GModule of the plugin. If the plugin isn't loaded yet, NULL is
  * returned.
  *
- * Returns: module belonging to the plugin or NULL if the plugin isn't
- *          loaded yet.
+ * Returns: (transfer none): module belonging to the plugin or NULL if the
+ *          plugin isn't loaded yet.
  */
 GModule *
 gst_plugin_get_module (GstPlugin * plugin)
@@ -1000,11 +1060,11 @@ gst_plugin_is_loaded (GstPlugin * plugin)
  * Gets the plugin specific data cache. If it is %NULL there is no cached data
  * stored. This is the case when the registry is getting rebuilt.
  *
- * Returns: The cached data as a #GstStructure or %NULL.
+ * Returns: (transfer none): The cached data as a #GstStructure or %NULL.
  *
  * Since: 0.10.24
  */
-G_CONST_RETURN GstStructure *
+const GstStructure *
 gst_plugin_get_cache_data (GstPlugin * plugin)
 {
   g_return_val_if_fail (GST_IS_PLUGIN (plugin), NULL);
@@ -1015,7 +1075,7 @@ gst_plugin_get_cache_data (GstPlugin * plugin)
 /**
  * gst_plugin_set_cache_data:
  * @plugin: a plugin
- * @cache_data: a structure containing the data to cache
+ * @cache_data: (transfer full): a structure containing the data to cache
  *
  * Adds plugin specific data to cache. Passes the ownership of the structure to
  * the @plugin.
@@ -1222,7 +1282,7 @@ gst_plugin_find_feature_by_name (GstPlugin * plugin, const gchar * name)
  *
  * Load the named plugin. Refs the plugin.
  *
- * Returns: A reference to a loaded plugin, or NULL on error.
+ * Returns: (transfer full): a reference to a loaded plugin, or NULL on error.
  */
 GstPlugin *
 gst_plugin_load_by_name (const gchar * name)
@@ -1252,7 +1312,7 @@ gst_plugin_load_by_name (const gchar * name)
 
 /**
  * gst_plugin_load:
- * @plugin: plugin to load
+ * @plugin: (transfer none): plugin to load
  *
  * Loads @plugin. Note that the *return value* is the loaded plugin; @plugin is
  * untouched. The normal use pattern of this function goes like this:
@@ -1265,7 +1325,7 @@ gst_plugin_load_by_name (const gchar * name)
  * plugin = loaded_plugin;
  * </programlisting>
  *
- * Returns: A reference to a loaded plugin, or NULL on error.
+ * Returns: (transfer full): a reference to a loaded plugin, or NULL on error.
  */
 GstPlugin *
 gst_plugin_load (GstPlugin * plugin)
@@ -1292,7 +1352,7 @@ load_error:
 
 /**
  * gst_plugin_list_free:
- * @list: list of #GstPlugin
+ * @list: (transfer full) (element-type Gst.Plugin): list of #GstPlugin
  *
  * Unrefs each member of @list, then frees the list.
  */
@@ -1391,12 +1451,11 @@ _priv_plugin_deps_env_vars_changed (GstPlugin * plugin)
   return FALSE;
 }
 
-static GList *
+static void
 gst_plugin_ext_dep_extract_env_vars_paths (GstPlugin * plugin,
-    GstPluginDep * dep)
+    GstPluginDep * dep, GQueue * paths)
 {
   gchar **evars;
-  GList *paths = NULL;
 
   for (evars = dep->env_vars; evars != NULL && *evars != NULL; ++evars) {
     const gchar *e;
@@ -1443,9 +1502,9 @@ gst_plugin_ext_dep_extract_env_vars_paths (GstPlugin * plugin,
           full_path = g_strdup (arr[i]);
         }
 
-        if (!g_list_find_custom (paths, full_path, (GCompareFunc) strcmp)) {
+        if (!g_queue_find_custom (paths, full_path, (GCompareFunc) strcmp)) {
           GST_LOG_OBJECT (plugin, "path: '%s'", full_path);
-          paths = g_list_prepend (paths, full_path);
+          g_queue_push_tail (paths, full_path);
           full_path = NULL;
         } else {
           GST_LOG_OBJECT (plugin, "path: '%s' (duplicate,ignoring)", full_path);
@@ -1459,14 +1518,11 @@ gst_plugin_ext_dep_extract_env_vars_paths (GstPlugin * plugin,
     g_strfreev (components);
   }
 
-  GST_LOG_OBJECT (plugin, "Extracted %d paths from environment",
-      g_list_length (paths));
-
-  return paths;
+  GST_LOG_OBJECT (plugin, "Extracted %d paths from environment", paths->length);
 }
 
 static guint
-gst_plugin_ext_dep_get_hash_from_stat_entry (struct stat *s)
+gst_plugin_ext_dep_get_hash_from_stat_entry (GStatBuf * s)
 {
   if (!(s->st_mode & (S_IFDIR | S_IFREG)))
     return (guint) - 1;
@@ -1510,7 +1566,7 @@ gst_plugin_ext_dep_scan_dir_and_match_names (GstPlugin * plugin,
   GDir *dir;
   guint hash = 0;
 
-  recurse_dirs = !!(flags & GST_PLUGIN_DEPENDENCY_FLAG_RECURSE);
+  recurse_dirs = ! !(flags & GST_PLUGIN_DEPENDENCY_FLAG_RECURSE);
 
   dir = g_dir_open (path, 0, &err);
   if (dir == NULL) {
@@ -1523,7 +1579,7 @@ gst_plugin_ext_dep_scan_dir_and_match_names (GstPlugin * plugin,
    * the same order, and not in a random order */
   while ((entry = g_dir_read_name (dir))) {
     gboolean have_match;
-    struct stat s;
+    GStatBuf s;
     gchar *full_path;
     guint fhash;
 
@@ -1572,15 +1628,15 @@ gst_plugin_ext_dep_scan_path_with_filenames (GstPlugin * plugin,
   if (filenames == NULL || *filenames == NULL)
     filenames = empty_filenames;
 
-  recurse_into_dirs = !!(flags & GST_PLUGIN_DEPENDENCY_FLAG_RECURSE);
-  partial_names = !!(flags & GST_PLUGIN_DEPENDENCY_FLAG_FILE_NAME_IS_SUFFIX);
+  recurse_into_dirs = ! !(flags & GST_PLUGIN_DEPENDENCY_FLAG_RECURSE);
+  partial_names = ! !(flags & GST_PLUGIN_DEPENDENCY_FLAG_FILE_NAME_IS_SUFFIX);
 
   /* if we can construct the exact paths to check with the data we have, just
    * stat them one by one; this is more efficient than opening the directory
    * and going through each entry to see if it matches one of our filenames. */
   if (!recurse_into_dirs && !partial_names) {
     for (i = 0; filenames[i] != NULL; ++i) {
-      struct stat s;
+      GStatBuf s;
       gchar *full_path;
       guint fhash;
 
@@ -1608,43 +1664,37 @@ static guint
 gst_plugin_ext_dep_get_stat_hash (GstPlugin * plugin, GstPluginDep * dep)
 {
   gboolean paths_are_default_only;
-  GList *scan_paths;
+  GQueue scan_paths = G_QUEUE_INIT;
   guint scan_hash = 0;
+  gchar *path;
 
   GST_LOG_OBJECT (plugin, "start");
 
   paths_are_default_only =
       dep->flags & GST_PLUGIN_DEPENDENCY_FLAG_PATHS_ARE_DEFAULT_ONLY;
 
-  scan_paths = gst_plugin_ext_dep_extract_env_vars_paths (plugin, dep);
+  gst_plugin_ext_dep_extract_env_vars_paths (plugin, dep, &scan_paths);
 
-  if (scan_paths == NULL || !paths_are_default_only) {
+  if (g_queue_is_empty (&scan_paths) || !paths_are_default_only) {
     gchar **paths;
 
     for (paths = dep->paths; paths != NULL && *paths != NULL; ++paths) {
       const gchar *path = *paths;
 
-      if (!g_list_find_custom (scan_paths, path, (GCompareFunc) strcmp)) {
+      if (!g_queue_find_custom (&scan_paths, path, (GCompareFunc) strcmp)) {
         GST_LOG_OBJECT (plugin, "path: '%s'", path);
-        scan_paths = g_list_prepend (scan_paths, g_strdup (path));
+        g_queue_push_tail (&scan_paths, g_strdup (path));
       } else {
         GST_LOG_OBJECT (plugin, "path: '%s' (duplicate, ignoring)", path);
       }
     }
   }
 
-  /* not that the order really matters, but it makes debugging easier */
-  scan_paths = g_list_reverse (scan_paths);
-
-  while (scan_paths != NULL) {
-    const gchar *path = scan_paths->data;
-
+  while ((path = g_queue_pop_head (&scan_paths))) {
     scan_hash += gst_plugin_ext_dep_scan_path_with_filenames (plugin, path,
         (const gchar **) dep->names, dep->flags);
     scan_hash = scan_hash << 1;
-
-    g_free (scan_paths->data);
-    scan_paths = g_list_delete_link (scan_paths, scan_paths);
+    g_free (path);
   }
 
   GST_LOG_OBJECT (plugin, "done, scan_hash: %08x", scan_hash);
@@ -1704,7 +1754,7 @@ gst_plugin_ext_dep_equals (GstPluginDep * dep, const gchar ** env_vars,
 /**
  * gst_plugin_add_dependency:
  * @plugin: a #GstPlugin
- * @env_vars: NULL-terminated array of environent variables affecting the
+ * @env_vars: NULL-terminated array of environment variables affecting the
  *     feature set of the plugin (e.g. an environment variable containing
  *     paths where to look for additional modules/plugins of a library),
  *     or NULL. Environment variable names may be followed by a path component
@@ -1777,7 +1827,7 @@ gst_plugin_add_dependency (GstPlugin * plugin, const gchar ** env_vars,
 /**
  * gst_plugin_add_dependency_simple:
  * @plugin: the #GstPlugin
- * @env_vars: one or more environent variables (separated by ':', ';' or ','),
+ * @env_vars: one or more environment variables (separated by ':', ';' or ','),
  *      or NULL. Environment variable names may be followed by a path component
  *      which will be added to the content of the environment variable, e.g.
  *      "HOME/.mystuff/plugins:MYSTUFF_PLUGINS_PATH"

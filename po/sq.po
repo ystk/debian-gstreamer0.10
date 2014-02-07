@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gstreamer 0.8.4\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/\n"
-"POT-Creation-Date: 2010-07-15 10:32+0100\n"
+"POT-Creation-Date: 2012-02-20 21:32+0000\n"
 "PO-Revision-Date: 2004-08-07 23:46+0200\n"
 "Last-Translator: Laurent Dhima <laurenti@alblinux.net>\n"
 "Language-Team: Albanian <begraj@hotmail.com>\n"
@@ -163,6 +163,9 @@ msgstr "E pamundur mbyllja e librarisë mbështetëse."
 msgid "Could not configure supporting library."
 msgstr "E pamundur mbyllja e librarisë mbështetëse."
 
+msgid "Encoding error."
+msgstr ""
+
 #, fuzzy
 msgid "GStreamer encountered a general resource error."
 msgstr "GStreamer ndeshi në një gabim të përgjithshëm të librarisë bazë."
@@ -314,6 +317,14 @@ msgstr "data"
 msgid "date the data was created (as a GDate structure)"
 msgstr "data e krijimit të së dhënës (në ditë të kalendarit Julian)"
 
+#, fuzzy
+msgid "datetime"
+msgstr "data"
+
+#, fuzzy
+msgid "date and time the data was created (as a GstDateTime structure)"
+msgstr "data e krijimit të së dhënës (në ditë të kalendarit Julian)"
+
 msgid "genre"
 msgstr "lloji"
 
@@ -407,6 +418,13 @@ msgstr "copyright"
 #, fuzzy
 msgid "URI to the copyright notice of the data"
 msgstr "shënime mbi të drejtat e së dhënës"
+
+#, fuzzy
+msgid "encoded by"
+msgstr "kodifikuesi"
+
+msgid "name of the encoding person or organization"
+msgstr ""
 
 msgid "contact"
 msgstr "kontakti"
@@ -653,6 +671,13 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "geo location horizontal error"
+msgstr "pozicioni"
+
+msgid "expected error of the horizontal positioning measures (in meters)"
+msgstr ""
+
+#, fuzzy
 msgid "geo location movement speed"
 msgstr "pozicioni"
 
@@ -753,6 +778,20 @@ msgstr ""
 #, fuzzy
 msgid "Model of the device used to create this media"
 msgstr "versioni i kodifikuesit të përdorur për të kodifikuar këtë fluks"
+
+#, fuzzy
+msgid "application name"
+msgstr "pozicioni"
+
+#, fuzzy
+msgid "Application used to create the media"
+msgstr "versioni i kodifikuesit të përdorur për të kodifikuar këtë fluks"
+
+msgid "application data"
+msgstr ""
+
+msgid "Arbitrary application data to be serialized into the media"
+msgstr ""
 
 msgid "image orientation"
 msgstr ""
@@ -892,16 +931,16 @@ msgstr "File \"%s\" është një socket."
 msgid "Failed after iterations as requested."
 msgstr "Dështoi mbas përsëritjeve sikurse të kërkuara."
 
-#, fuzzy
-msgid "Error while writing to download file."
-msgstr "Gabim gjatë shkrimit tek file \"%s\"."
-
 msgid "No Temp directory specified."
 msgstr ""
 
 #, fuzzy, c-format
 msgid "Could not create temp file \"%s\"."
 msgstr "E pamundur marrja/vendosja e rregullimeve nga/në burim."
+
+#, fuzzy
+msgid "Error while writing to download file."
+msgstr "Gabim gjatë shkrimit tek file \"%s\"."
 
 msgid "caps"
 msgstr "mbrojtëse"
@@ -936,6 +975,15 @@ msgid "writable"
 msgstr "titulli"
 
 msgid "controllable"
+msgstr ""
+
+msgid "changeable in NULL, READY, PAUSED or PLAYING state"
+msgstr ""
+
+msgid "changeable only in NULL, READY or PAUSED state"
+msgstr ""
+
+msgid "changeable only in NULL or READY state"
 msgstr ""
 
 msgid "Blacklisted files:"
@@ -1020,6 +1068,9 @@ msgstr ""
 msgid "WARNING: element named '%s' not found.\n"
 msgstr "KUJDES: elementi me emrin '%s' nuk u gjet.\n"
 
+msgid "Index statistics"
+msgstr ""
+
 #, c-format
 msgid "Got message #%u from element \"%s\" (%s): "
 msgstr ""
@@ -1087,6 +1138,10 @@ msgstr ""
 msgid "Interrupt: Stopping pipeline ...\n"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Missing element: %s\n"
+msgstr "asnjë element \"%s\""
+
 msgid "Output tags (also known as metadata)"
 msgstr "Tags e output (njohur gjithashtu si metadata)"
 
@@ -1123,6 +1178,9 @@ msgid "Print alloc trace (if enabled at compile time)"
 msgstr "Printo shenjat e alloc (nëse aktivuar në kohën e kompilimit)"
 
 msgid "Force EOS on sources before shutting the pipeline down"
+msgstr ""
+
+msgid "Gather and print index statistics"
 msgstr ""
 
 #, c-format

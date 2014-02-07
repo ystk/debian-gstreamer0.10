@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gst/gst.h>
+#include <gst/glib-compat-private.h>
 
 #define MAX_THREADS  100
 
@@ -34,7 +35,7 @@ run_test (void *user_data)
 
   while (running) {
     gst_clock_get_time (sysclock);
-    prev = g_atomic_int_exchange_and_add (&count, 1);
+    prev = G_ATOMIC_INT_ADD (&count, 1);
     if (prev == G_MAXINT)
       g_warning ("overflow");
   }
@@ -64,7 +65,12 @@ main (gint argc, gchar * argv[])
   for (t = 0; t < num_threads; t++) {
     GError *error = NULL;
 
+#if !GLIB_CHECK_VERSION (2, 31, 0)
     threads[t] = g_thread_create (run_test, sysclock, TRUE, &error);
+#else
+    threads[t] = g_thread_try_new ("clockstresstest", run_test,
+        sysclock, &error);
+#endif
     if (error) {
       printf ("ERROR: g_thread_create() %s\n", error->message);
       exit (-1);

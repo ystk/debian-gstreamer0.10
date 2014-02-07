@@ -24,7 +24,7 @@
 /**
  * SECTION:gstimplementsinterface
  * @short_description: Core interface implemented by #GstElement instances that
- * allows runtime querying of interface availabillity
+ * allows runtime querying of interface availability
  * @see_also: #GstElement
  *
  * Provides interface functionality on per instance basis and not per class
@@ -136,7 +136,7 @@ gst_element_implements_interface (GstElement * element, GType iface_type)
  * cast a given object to an interface type, and check whether this
  * interface is supported for this specific instance.
  *
- * Returns: a gpointer to the interface type
+ * Returns: (transfer none): a gpointer to the interface type
  */
 
 gpointer

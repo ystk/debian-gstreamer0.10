@@ -9,7 +9,7 @@ thread changes. The purpose of this message is to allow the application to
 interact with the streaming thread properties, such as the thread priority or
 the threadpool to use.
 
-We accomodate for the following requirements:
+We accommodate for the following requirements:
 
  - Application is informed when a streaming thread is about to be created. It
    should be possible for the application to suggest a custom GstTask.
@@ -26,7 +26,7 @@ We allow for the following scenarios:
 
 
 Use cases
----------
+~~~~~~~~~
 
  * boost the priority of the udp receiver streaming thread
 
@@ -56,7 +56,7 @@ Use cases
 
 
 Messages
---------
+~~~~~~~~
 
  The existing STREAM_STATUS message will be further defined and implemented in
  (selected) elements. The following fields will be contained in the message:
@@ -101,7 +101,7 @@ Messages
 
 
 Events
-------
+~~~~~~
 
 
 

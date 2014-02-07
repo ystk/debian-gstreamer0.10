@@ -32,6 +32,7 @@ G_BEGIN_DECLS
 
 typedef struct _GstBuffer GstBuffer;
 typedef struct _GstBufferClass GstBufferClass;
+typedef struct _GstBufferPrivate GstBufferPrivate;
 
 /**
  * GST_BUFFER_TRACE_NAME:
@@ -217,12 +218,14 @@ typedef struct _GstBufferClass GstBufferClass;
  * @GST_BUFFER_FLAG_MEDIA1: a flag whose use is specific to the caps of the buffer. Since: 0.10.23.
  * @GST_BUFFER_FLAG_MEDIA2: a flag whose use is specific to the caps of the buffer. Since: 0.10.23.
  * @GST_BUFFER_FLAG_MEDIA3: a flag whose use is specific to the caps of the buffer. Since: 0.10.23.
+ * @GST_BUFFER_FLAG_MEDIA4: a flag whose use is specific to the caps of the buffer. Since: 0.10.33.
  * @GST_BUFFER_FLAG_LAST: additional flags can be added starting from this flag.
  *
  * A set of buffer flags used to describe properties of a #GstBuffer.
  */
 typedef enum {
   GST_BUFFER_FLAG_READONLY   = GST_MINI_OBJECT_FLAG_READONLY,
+  GST_BUFFER_FLAG_MEDIA4     = GST_MINI_OBJECT_FLAG_RESERVED1,
   GST_BUFFER_FLAG_PREROLL    = (GST_MINI_OBJECT_FLAG_LAST << 0),
   GST_BUFFER_FLAG_DISCONT    = (GST_MINI_OBJECT_FLAG_LAST << 1),
   GST_BUFFER_FLAG_IN_CAPS    = (GST_MINI_OBJECT_FLAG_LAST << 2),
@@ -286,7 +289,8 @@ struct _GstBuffer {
   GstBuffer             *parent;
 
   /*< private >*/
-  gpointer _gst_reserved[GST_PADDING - 2];
+  GstBufferPrivate      *priv;
+  gpointer _gst_reserved[GST_PADDING - 3];
 };
 
 struct _GstBufferClass {
@@ -296,9 +300,9 @@ struct _GstBufferClass {
 GType       gst_buffer_get_type (void);
 
 /* allocation */
-GstBuffer * gst_buffer_new               (void);
-GstBuffer * gst_buffer_new_and_alloc     (guint size);
-GstBuffer * gst_buffer_try_new_and_alloc (guint size);
+GstBuffer * gst_buffer_new               (void) G_GNUC_MALLOC;
+GstBuffer * gst_buffer_new_and_alloc     (guint size) G_GNUC_MALLOC;
+GstBuffer * gst_buffer_try_new_and_alloc (guint size) G_GNUC_MALLOC;
 
 /**
  * gst_buffer_set_data:
@@ -333,7 +337,7 @@ G_STMT_START {                                          \
  * GstBuffer instances can potentially increase the number
  * of memcpy operations in a pipeline.
  *
- * Returns: @buf
+ * Returns: (transfer full): @buf
  */
 #ifdef _FOOL_GTK_DOC_
 G_INLINE_FUNC GstBuffer * gst_buffer_ref (GstBuffer * buf);
@@ -347,7 +351,7 @@ gst_buffer_ref (GstBuffer * buf)
 
 /**
  * gst_buffer_unref:
- * @buf: a #GstBuffer.
+ * @buf: (transfer full): a #GstBuffer.
  *
  * Decreases the refcount of the buffer. If the refcount reaches 0, the buffer
  * will be freed. If GST_BUFFER_MALLOCDATA() is non-NULL, this pointer will
@@ -371,7 +375,7 @@ gst_buffer_unref (GstBuffer * buf)
  * Create a copy of the given buffer. This will also make a newly allocated
  * copy of the data the source buffer contains.
  *
- * Returns: a new copy of @buf.
+ * Returns: (transfer full): a new copy of @buf.
  */
 #ifdef _FOOL_GTK_DOC_
 G_INLINE_FUNC GstBuffer * gst_buffer_copy (const GstBuffer * buf);
@@ -380,7 +384,7 @@ G_INLINE_FUNC GstBuffer * gst_buffer_copy (const GstBuffer * buf);
 static inline GstBuffer *
 gst_buffer_copy (const GstBuffer * buf)
 {
-  return GST_BUFFER (gst_mini_object_copy (GST_MINI_OBJECT_CAST (buf)));
+  return GST_BUFFER (gst_mini_object_copy (GST_MINI_OBJECT_CONST_CAST (buf)));
 }
 
 
@@ -390,6 +394,8 @@ gst_buffer_copy (const GstBuffer * buf)
  * @GST_BUFFER_COPY_TIMESTAMPS: flag indicating that buffer timestamp, duration,
  * offset and offset_end should be copied
  * @GST_BUFFER_COPY_CAPS: flag indicating that buffer caps should be copied
+ * @GST_BUFFER_COPY_QDATA: flag indicating that buffer qdata should be copied
+ *    (Since 0.10.36)
  *
  * A set of flags that can be provided to the gst_buffer_copy_metadata()
  * function to specify which metadata fields should be copied.
@@ -399,7 +405,8 @@ gst_buffer_copy (const GstBuffer * buf)
 typedef enum {
   GST_BUFFER_COPY_FLAGS      = (1 << 0),
   GST_BUFFER_COPY_TIMESTAMPS = (1 << 1),
-  GST_BUFFER_COPY_CAPS       = (1 << 2)
+  GST_BUFFER_COPY_CAPS       = (1 << 2),
+  GST_BUFFER_COPY_QDATA      = (1 << 3)
 } GstBufferCopyFlags;
 
 /**
@@ -410,7 +417,7 @@ typedef enum {
  *
  * Since: 0.10.13
  */
-#define GST_BUFFER_COPY_ALL (GST_BUFFER_COPY_FLAGS | GST_BUFFER_COPY_TIMESTAMPS | GST_BUFFER_COPY_CAPS)
+#define GST_BUFFER_COPY_ALL ((GstBufferCopyFlags) (GST_BUFFER_COPY_FLAGS | GST_BUFFER_COPY_TIMESTAMPS | GST_BUFFER_COPY_CAPS | GST_BUFFER_COPY_QDATA))
 
 /* copies metadata into newly allocated buffer */
 void            gst_buffer_copy_metadata        (GstBuffer *dest, const GstBuffer *src,
@@ -428,11 +435,14 @@ void            gst_buffer_copy_metadata        (GstBuffer *dest, const GstBuffe
 #define         gst_buffer_is_writable(buf)     gst_mini_object_is_writable (GST_MINI_OBJECT_CAST (buf))
 /**
  * gst_buffer_make_writable:
- * @buf: a #GstBuffer
+ * @buf: (transfer full): a #GstBuffer
  *
  * Makes a writable buffer from the given buffer. If the source buffer is
  * already writable, this will simply return the same buffer. A copy will
  * otherwise be made using gst_buffer_copy().
+ *
+ * Returns: (transfer full): a writable buffer which may or may not be the
+ *     same as @buf
  */
 #define         gst_buffer_make_writable(buf)   GST_BUFFER_CAST (gst_mini_object_make_writable (GST_MINI_OBJECT_CAST (buf)))
 
@@ -441,11 +451,23 @@ void            gst_buffer_copy_metadata        (GstBuffer *dest, const GstBuffe
 gboolean        gst_buffer_is_metadata_writable (GstBuffer *buf);
 GstBuffer*      gst_buffer_make_metadata_writable (GstBuffer *buf);
 
+/* per-buffer user data */
+
+void                  gst_buffer_set_qdata (GstBuffer     * buffer,
+                                            GQuark          quark,
+                                            GstStructure  * data);
+
+const GstStructure *  gst_buffer_get_qdata (GstBuffer     * buffer,
+                                            GQuark          quark);
+
+
+
 /**
  * gst_buffer_replace:
- * @obuf: pointer to a pointer to a #GstBuffer to be replaced.
- * @nbuf: pointer to a #GstBuffer that will replace the buffer pointed to by
- *        @obuf.
+ * @obuf: (inout) (transfer full): pointer to a pointer to a #GstBuffer to be
+ *     replaced.
+ * @nbuf: (transfer none) (allow-none): pointer to a #GstBuffer that will
+ *     replace the buffer pointed to by @obuf.
  *
  * Modifies a pointer to a #GstBuffer to point to a different #GstBuffer. The
  * modification is done atomically (so this is useful for ensuring thread safety
@@ -454,27 +476,30 @@ GstBuffer*      gst_buffer_make_metadata_writable (GstBuffer *buf);
  *
  * Either @nbuf or the #GstBuffer pointed to by @obuf may be NULL.
  */
-#define         gst_buffer_replace(obuf,nbuf) \
-G_STMT_START {                                                                \
-  GstBuffer **___obufaddr = (GstBuffer **)(obuf);         \
-  gst_mini_object_replace ((GstMiniObject **)___obufaddr, \
-      GST_MINI_OBJECT_CAST (nbuf));                       \
-} G_STMT_END
+#ifdef _FOOL_GTK_DOC_
+G_INLINE_FUNC void gst_buffer_replace (GstBuffer **obuf, GstBuffer *nbuf);
+#endif
+
+static inline void
+gst_buffer_replace (GstBuffer **obuf, GstBuffer *nbuf)
+{
+  gst_mini_object_replace ((GstMiniObject **) obuf, (GstMiniObject *) nbuf);
+}
 
 GstCaps*        gst_buffer_get_caps             (GstBuffer *buffer);
 void            gst_buffer_set_caps             (GstBuffer *buffer, GstCaps *caps);
 
 /* creating a subbuffer */
-GstBuffer*      gst_buffer_create_sub           (GstBuffer *parent, guint offset, guint size);
+GstBuffer*      gst_buffer_create_sub           (GstBuffer *parent, guint offset, guint size) G_GNUC_MALLOC;
 
 /* span, two buffers, intelligently */
 gboolean        gst_buffer_is_span_fast         (GstBuffer *buf1, GstBuffer *buf2);
-GstBuffer*      gst_buffer_span                 (GstBuffer *buf1, guint32 offset, GstBuffer *buf2, guint32 len);
+GstBuffer*      gst_buffer_span                 (GstBuffer *buf1, guint32 offset, GstBuffer *buf2, guint32 len) G_GNUC_MALLOC;
 
 /**
  * gst_value_set_buffer:
  * @v: a #GValue to receive the data
- * @b: a #GstBuffer to assign to the GstValue
+ * @b: (transfer none): a #GstBuffer to assign to the GstValue
  *
  * Sets @b as the value of @v.  Caller retains reference to buffer.
  */
@@ -482,7 +507,7 @@ GstBuffer*      gst_buffer_span                 (GstBuffer *buf1, guint32 offset
 /**
  * gst_value_take_buffer:
  * @v: a #GValue to receive the data
- * @b: a #GstBuffer to assign to the GstValue
+ * @b: (transfer full): a #GstBuffer to assign to the GstValue
  *
  * Sets @b as the value of @v.  Caller gives away reference to buffer.
  */
@@ -494,6 +519,8 @@ GstBuffer*      gst_buffer_span                 (GstBuffer *buf1, guint32 offset
  * Receives a #GstBuffer as the value of @v. Does not return a reference to
  * the buffer, so the pointer is only valid for as long as the caller owns
  * a reference to @v.
+ *
+ * Returns: (transfer none): buffer
  */
 #define         gst_value_get_buffer(v)         GST_BUFFER_CAST (gst_value_get_mini_object(v))
 
