@@ -1,3 +1,11 @@
+gstreamer0.10 (0.10.36-1.3) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Patch to build against bison3, picked from upstream.  Thanks Andy
+    Whitcroft and Tobias Hansen.  (Closes: #732424, #733362)
+
+ -- Manuel A. Fernandez Montecelo <mafm@debian.org>  Tue, 29 Jul 2014 21:33:03 +0100
+
 gstreamer0.10 (0.10.36-1.2) unstable; urgency=low
 
   * Non-maintainer upload.
