@@ -1,3 +1,18 @@
+gstreamer0.10 (0.10.36-1.5) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * debian/rules: Remove outdated mangling of debian/shlibs.local, this is
+    breaking dependencies generation for gir packages. (Closes: #761916)
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 06 Nov 2014 20:46:56 +0100
+
+gstreamer0.10 (0.10.36-1.4) unstable; urgency=low
+
+  * Non-maintainer upload with maintainers permission.
+  * Update local libtool copy to build on ppc64el. Closes: #756641
+
+ -- Andreas Barth <aba@ayous.org>  Sat, 23 Aug 2014 21:36:49 +0000
+
 gstreamer0.10 (0.10.36-1.3) unstable; urgency=medium
 
   * Non-maintainer upload.
